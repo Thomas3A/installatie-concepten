@@ -60,7 +60,18 @@ interface NumFieldProps {
 }
 
 /** Numeriek veld met concept-tekst: commit bij verlaten of Enter, geklemd op bereik. */
-export function NumField({ label, info, value, min, max, step = 1, unit, digits, disabled, onChange }: NumFieldProps) {
+export function NumField({
+  label,
+  info,
+  value,
+  min,
+  max,
+  step = 1,
+  unit,
+  digits,
+  disabled,
+  onChange,
+}: NumFieldProps) {
   const id = useId();
   const dig = digits ?? (step < 1 ? (step < 0.1 ? 2 : 1) : 0);
   const [draft, setDraft] = useState<string | null>(null);
@@ -111,7 +122,18 @@ export function NumField({ label, info, value, min, max, step = 1, unit, digits,
 }
 
 /** Compact numeriek veld zonder schuifbalk. */
-export function NumInput({ label, info, value, min, max, step = 1, unit, digits, disabled, onChange }: NumFieldProps) {
+export function NumInput({
+  label,
+  info,
+  value,
+  min,
+  max,
+  step = 1,
+  unit,
+  digits,
+  disabled,
+  onChange,
+}: NumFieldProps) {
   const id = useId();
   const dig = digits ?? (step < 1 ? (step < 0.1 ? 2 : 1) : 0);
   const [draft, setDraft] = useState<string | null>(null);
@@ -197,7 +219,12 @@ export function SegField<T extends string | number>({
     <Field label={label} info={info}>
       <div className={s.seg} role="group" aria-label={label}>
         {options.map((o) => (
-          <button key={String(o.value)} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
+          <button
+            key={String(o.value)}
+            type="button"
+            aria-pressed={o.value === value}
+            onClick={() => onChange(o.value)}
+          >
             {o.label}
           </button>
         ))}
@@ -223,7 +250,13 @@ export function CheckField({
   return (
     <div className={s.field}>
       <div className={s.check}>
-        <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+        />
         <label htmlFor={id}>{label}</label>
         {info && <InfoIcon text={info} label={label} />}
       </div>

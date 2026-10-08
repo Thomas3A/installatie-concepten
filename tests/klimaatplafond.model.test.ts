@@ -8,7 +8,13 @@ import { designFlow, qChar, strandDp, strandThermal } from '../src/concepts/klim
 import { computeDesign, resolveAdvice } from '../src/concepts/klimaatplafond/model/design';
 import { designMessages } from '../src/concepts/klimaatplafond/model/checks';
 import { SCENARIOS, buildScenario } from '../src/concepts/klimaatplafond/scenarios';
-import { initialState, roomsOf, setRunMode, step, type SimState } from '../src/concepts/klimaatplafond/model/simulation';
+import {
+  initialState,
+  roomsOf,
+  setRunMode,
+  step,
+  type SimState,
+} from '../src/concepts/klimaatplafond/model/simulation';
 import { kvTypeB, thetaToState } from '../src/concepts/klimaatplafond/model/valves';
 
 const near = (a: number, b: number, tol: number, msg?: string) =>
@@ -17,7 +23,11 @@ const lh = (q: number) => q * 3.6e6;
 
 describe('paneelgeometrie', () => {
   it('controlewaarden 600×1200', () => {
-    const exp: [75 | 100 | 150, number, number][] = [[75, 7, 8.432], [100, 5, 6.078], [150, 3, 3.671]];
+    const exp: [75 | 100 | 150, number, number][] = [
+      [75, 7, 8.432],
+      [100, 5, 6.078],
+      [150, 3, 3.671],
+    ];
     for (const [pitch, nBenen, lbuis] of exp) {
       const g = panelGeometry('600x1200', pitch);
       expect(g.nBenen).toBe(nBenen);
@@ -141,7 +151,9 @@ describe('standaardconfiguratie', () => {
     expect(designMessages(da).map((m) => m.code)).toContain('W02');
   });
   it('geen meldingen W01–W16 bij Type B', () => {
-    const codes = designMessages(d).filter((m) => m.severity !== 'info').map((m) => m.code);
+    const codes = designMessages(d)
+      .filter((m) => m.severity !== 'info')
+      .map((m) => m.code);
     expect(codes).toEqual([]);
   });
   it('context klopt', () => {
@@ -152,7 +164,16 @@ describe('standaardconfiguratie', () => {
 describe('netwerk', () => {
   it('S4 (4·3·3, steek 75): verdeling ≈ [39,4; 47,5; 47,5] l/h', () => {
     const c = defaultConfig();
-    c.valves[0] = { ...c.valves[0], panelCount: 10, coupling: 'manual', manualStrands: [{ panels: 4, extraLength: 0 }, { panels: 3, extraLength: 0 }, { panels: 3, extraLength: 0 }] };
+    c.valves[0] = {
+      ...c.valves[0],
+      panelCount: 10,
+      coupling: 'manual',
+      manualStrands: [
+        { panels: 4, extraLength: 0 },
+        { panels: 3, extraLength: 0 },
+        { panels: 3, extraLength: 0 },
+      ],
+    };
     const d = computeDesign(resolveAdvice(c));
     const m = d.valves[0].modes.koelen;
     near(lh(m.vmax), 134.4, 0.03);
@@ -183,12 +204,22 @@ describe('netwerk', () => {
 
   // synthetische strengen voor algemene eigenschappen
   const mk = (n: number, layout: 'direct' | 'tichelmann', len = 1.2, x1 = 1.0, k: number[] = []) => {
-    const strandDpFns = Array.from({ length: n }, (_, i) => (q: number) => (k[i] ?? 1) * 1e11 * q * Math.abs(q) ** 0.75);
+    const strandDpFns = Array.from(
+      { length: n },
+      (_, i) => (q: number) => (k[i] ?? 1) * 1e11 * q * Math.abs(q) ** 0.75,
+    );
     const pipe = (q: number, l: number) => pipeDp({ q, d: 0.016, len: l, eps: 7e-9, T: 20 });
-    return solveNetwork({ strandDp: strandDpFns, segLen: Array.from({ length: n }, (_, i) => (i === 0 ? x1 : len)), pipeDp: pipe, layout, qTot: n * 5e-5 });
+    return solveNetwork({
+      strandDp: strandDpFns,
+      segLen: Array.from({ length: n }, (_, i) => (i === 0 ? x1 : len)),
+      pipeDp: pipe,
+      layout,
+      qTot: n * 5e-5,
+    });
   };
   it('massabehoud < 1e-9', () => {
-    for (const layout of ['direct', 'tichelmann'] as const) expect(mk(9, layout, 1.2, 1, [1, 2, 3, 1, 1, 2, 1, 3, 1]).massError).toBeLessThan(1e-9);
+    for (const layout of ['direct', 'tichelmann'] as const)
+      expect(mk(9, layout, 1.2, 1, [1, 2, 3, 1, 1, 2, 1, 3, 1]).massError).toBeLessThan(1e-9);
   });
   it('gelijke strengen met verdeelleidinglengte 0 → exact gelijke verdeling', () => {
     const r = mk(8, 'direct', 0, 0);
@@ -211,7 +242,12 @@ describe('netwerk', () => {
 
 // ---------------------------------------------------------------- dynamiek
 
-function simulate(cfg: KlimaatplafondConfig, mode: 'verwarmen' | 'koelen', hours: number, cb?: (s: SimState) => void): SimState {
+function simulate(
+  cfg: KlimaatplafondConfig,
+  mode: 'verwarmen' | 'koelen',
+  hours: number,
+  cb?: (s: SimState) => void,
+): SimState {
   const d = computeDesign(resolveAdvice(cfg));
   const rooms = roomsOf(d);
   let s = setRunMode(initialState(d, 'stop'), d, mode);
@@ -265,7 +301,10 @@ describe('dynamiek (gelijkprocentig, Kp 0,6, Ti 900 s)', () => {
     const c = defaultConfig();
     c.floorArea = 80;
     c.valveCount = 2;
-    c.valves = [{ ...c.valves[0], panelCount: 28 }, { ...c.valves[0], panelCount: 20 }];
+    c.valves = [
+      { ...c.valves[0], panelCount: 28 },
+      { ...c.valves[0], panelCount: 20 },
+    ];
     const d = computeDesign(resolveAdvice(c));
     const rooms = roomsOf(d);
     let s = setRunMode(initialState(d, 'stop'), d, 'verwarmen');
@@ -337,6 +376,20 @@ describe('dynamiek (gelijkprocentig, Kp 0,6, Ti 900 s)', () => {
     expect(switching).toBeGreaterThan(5);
     expect(s.zones[0].sixWay).toBe('verwarmen');
   });
+  it('gemeten ΔT bij verwarmen en koelen ligt rond het ontwerp-ΔT (vol debiet)', () => {
+    for (const [mode, dt] of [
+      ['koelen', 3],
+      ['verwarmen', 5],
+    ] as const) {
+      const s = simulate(defaultConfig(), mode, 0.5);
+      const z = s.zones[0];
+      expect(z.q).toBeGreaterThan(0);
+      // de ruimte is nog niet op setpoint, dus het ΔT ligt iets boven het ontwerp
+      expect(z.dtMeas).toBeGreaterThan(dt - 0.5);
+      expect(z.dtMeas).toBeLessThan(dt + 1.5);
+      expect(z.tRetMix).toBeCloseTo(mode === 'koelen' ? 16 + z.dtMeas : 35 - z.dtMeas, 6);
+    }
+  });
   it('step is puur: invoer wordt niet gewijzigd', () => {
     const d = computeDesign(resolveAdvice(defaultConfig()));
     const s0 = setRunMode(initialState(d, 'stop'), d, 'koelen');
@@ -353,7 +406,11 @@ describe('scenario-meldingen', () => {
       const cfg = buildScenario(sc.id)!;
       const msgs = designMessages(computeDesign(cfg));
       const codes = msgs.map((m) => m.code);
-      for (const any of expectations[sc.id]) expect(any.some((c) => codes.includes(c)), `${sc.id}: verwacht ${any.join('|')} in ${codes.join(',')}`).toBe(true);
+      for (const any of expectations[sc.id])
+        expect(
+          any.some((c) => codes.includes(c)),
+          `${sc.id}: verwacht ${any.join('|')} in ${codes.join(',')}`,
+        ).toBe(true);
       if (sc.id === 'S1') expect(msgs.filter((m) => m.severity !== 'info')).toEqual([]);
     });
   }

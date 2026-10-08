@@ -43,30 +43,46 @@ function ScenarioCard() {
   );
 }
 
-function PrintSummary() {
+function PrintHeader() {
   const config = useStore((st) => st.config);
   const design = useStore((st) => st.design);
   const scenario = useStore((st) => st.scenarioId);
-  const vd = design.valves[0];
   return (
     <section className={s.printOnly} aria-hidden="true">
       <h1>Installatieconcepten — Klimaatplafond met 6-weg-klep</h1>
       <p>
         {scenario ? `Scenario ${scenario}. ` : ''}
-        Vloer {fmt(config.floorArea, 0)} m² · warmteverlies {fmt(config.heatLoss, 0)} W · koellast {fmt(config.coolLoad, 0)} W · aanvoer koelen {fmt(config.tSupplyCool, 1)} °C (ΔT {fmt(config.dtCool, 1)} K) ·
-        aanvoer verwarmen {fmt(config.tSupplyHeat, 1)} °C (ΔT {fmt(config.dtHeat, 1)} K) · setpoints {fmt(config.setHeat, 1)} / {fmt(config.setCool, 1)} °C · RV {fmt(config.rh, 0)} % · paneel{' '}
-        {config.panelSize} · steek {config.pitch} mm · buis {config.tube} · Δp vóór klep {fmt(config.dpAvailable, 0)} kPa · max. Δp streng {fmt(config.dpMax, 0)} kPa.
+        Vloer {fmt(config.floorArea, 0)} m² · warmteverlies {fmt(config.heatLoss, 0)} W · koellast{' '}
+        {fmt(config.coolLoad, 0)} W · aanvoer koelen {fmt(config.tSupplyCool, 1)} °C (ΔT{' '}
+        {fmt(config.dtCool, 1)} K) · aanvoer verwarmen {fmt(config.tSupplyHeat, 1)} °C (ΔT{' '}
+        {fmt(config.dtHeat, 1)} K) · setpoints {fmt(config.setHeat, 1)} / {fmt(config.setCool, 1)} °C · RV{' '}
+        {fmt(config.rh, 0)} % · paneel {config.panelSize} · steek {config.pitch} mm · buis {config.tube} · Δp
+        vóór klep {fmt(config.dpAvailable, 0)} kPa · max. Δp streng {fmt(config.dpMax, 0)} kPa.
       </p>
       <ul>
         {design.valves.map((v) => (
           <li key={v.index}>
-            Klep {v.index + 1}: Type {v.cfg.type} DN{v.cfg.dn}, {v.cfg.panelCount} panelen, strengen {v.strands.map((x) => x.panels).join('·')}, {v.cfg.layout === 'direct' ? 'direct retour' : 'Tichelmann'}, Vmax koelen{' '}
+            Klep {v.index + 1}: Type {v.cfg.type} DN{v.cfg.dn}, {v.cfg.panelCount} panelen, strengen{' '}
+            {v.strands.map((x) => x.panels).join('·')},{' '}
+            {v.cfg.layout === 'direct' ? 'direct retour' : 'Tichelmann'}, Vmax koelen{' '}
             {fmt(v.modes.koelen.vmax * 3.6e6, 0)} l/h, verwarmen {fmt(v.modes.verwarmen.vmax * 3.6e6, 0)} l/h
           </li>
         ))}
       </ul>
-      <h2>Puzzelmatrix klep 1</h2>
-      {vd && <PuzzleMatrix design={design} vd={vd} selected={vd.chosen ?? undefined} />}
+    </section>
+  );
+}
+
+function PrintMatrix() {
+  const design = useStore((st) => st.design);
+  return (
+    <section className={s.printOnly} aria-hidden="true" style={{ breakBefore: 'page' }}>
+      {design.valves.map((vd) => (
+        <div key={vd.index}>
+          <h2>Puzzelmatrix klep {vd.index + 1}</h2>
+          <PuzzleMatrix design={design} vd={vd} selected={vd.chosen ?? undefined} />
+        </div>
+      ))}
     </section>
   );
 }
@@ -81,19 +97,17 @@ export default function KlimaatplafondPage() {
   const copied = useStore((st) => st.copied);
   const markCopied = useStore((st) => st.markCopied);
   const [params] = useSearchParams();
-  const loaded = useRef(false);
   const tabsRef = useRef<HTMLElement>(null);
   const [shareErr, setShareErr] = useState(false);
 
-  // Configuratie uit de URL (#/klimaatplafond?c=...)
+  // Configuratie uit de URL (#/klimaatplafond?c=...); ook als de link in dezelfde tab wordt vervangen
+  const lastCode = useRef<string | null>(null);
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
     const code = params.get('c');
-    if (code) {
-      const cfg = decodeConfig(code);
-      if (cfg) loadConfig(cfg, null);
-    }
+    if (!code || code === lastCode.current) return;
+    lastCode.current = code;
+    const cfg = decodeConfig(code);
+    if (cfg) loadConfig(cfg, null);
   }, [params, loadConfig]);
 
   useEffect(() => {
@@ -156,7 +170,7 @@ export default function KlimaatplafondPage() {
       </div>
 
       <ScenarioCard />
-      <PrintSummary />
+      <PrintHeader />
 
       <div className={s.layout}>
         <div className={`${s.areaSettings} noPrint`}>
@@ -171,9 +185,35 @@ export default function KlimaatplafondPage() {
           <MessagesPanel />
         </div>
         <section className={`${s.areaTabs} ${s.card} noPrint`} ref={tabsRef} aria-label="Detailweergave">
-          <div className={s.tabList} role="tablist" aria-label="Detailweergave">
+          <div
+            className={s.tabList}
+            role="tablist"
+            aria-label="Detailweergave"
+            onKeyDown={(e) => {
+              const i = TABS.findIndex((t) => t.id === tab);
+              let n = i;
+              if (e.key === 'ArrowRight') n = (i + 1) % TABS.length;
+              else if (e.key === 'ArrowLeft') n = (i - 1 + TABS.length) % TABS.length;
+              else if (e.key === 'Home') n = 0;
+              else if (e.key === 'End') n = TABS.length - 1;
+              else return;
+              e.preventDefault();
+              setTab(TABS[n].id);
+              document.getElementById(`tab-${TABS[n].id}`)?.focus();
+            }}
+          >
             {TABS.map((t) => (
-              <button key={t.id} type="button" role="tab" id={`tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`panel-${t.id}`} className={s.tab} onClick={() => setTab(t.id)}>
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={`tab-${t.id}`}
+                aria-selected={tab === t.id}
+                aria-controls={`panel-${t.id}`}
+                tabIndex={tab === t.id ? 0 : -1}
+                className={s.tab}
+                onClick={() => setTab(t.id)}
+              >
                 {t.label}
               </button>
             ))}
@@ -186,6 +226,7 @@ export default function KlimaatplafondPage() {
           </div>
         </section>
       </div>
+      <PrintMatrix />
     </div>
   );
 }

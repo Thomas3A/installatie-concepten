@@ -227,7 +227,8 @@ export function designFlow(
 ): { q: number; feasible: boolean } {
   const maxDt = Math.abs(cond.tRoom - cond.tIn);
   const feasible = cond.dt < maxDt - 0.5;
-  const g = (lq: number): number => Math.abs(strandThermal(ctx, cond, panels, Math.exp(lq)).tRet - cond.tIn) - cond.dt;
+  const g = (lq: number): number =>
+    Math.abs(strandThermal(ctx, cond, panels, Math.exp(lq)).tRet - cond.tIn) - cond.dt;
   let a = Math.log(0.5 / 3.6e6);
   let b = Math.log(3000 / 3.6e6);
   let ga = g(a);

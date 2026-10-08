@@ -140,3 +140,10 @@ input {
     font-size: 11px;
   }
 }
+
+/* Elementen met className="noPrint" verdwijnen op papier (zie ook de printstijlen per module) */
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+}

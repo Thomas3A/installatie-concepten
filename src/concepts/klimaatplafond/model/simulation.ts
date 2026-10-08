@@ -339,9 +339,14 @@ function stepZone(state: SimState, design: Design, i: number, dt: number): ZoneS
     }
     qStrand = frac.map((f) => f * q);
     const needThermal =
-      needSolve || thermal.length !== n || Math.abs(q - qThermal) > 0.005 * qThermal || Math.abs(tAir - tAirThermal) > 0.05;
+      needSolve ||
+      thermal.length !== n ||
+      Math.abs(q - qThermal) > 0.005 * qThermal ||
+      Math.abs(tAir - tAirThermal) > 0.05;
     if (needThermal) {
-      thermal = vd.strands.map((s, k) => strandThermal(ctx, cond, s.panels, qStrand[k], cond.tIn, tAir, true));
+      thermal = vd.strands.map((s, k) =>
+        strandThermal(ctx, cond, s.panels, qStrand[k], cond.tIn, tAir, true),
+      );
       tMean = thermal.map((t) => t.tMean);
       qThermal = q;
       tAirThermal = tAir;
@@ -386,7 +391,8 @@ function stepZone(state: SimState, design: Design, i: number, dt: number): ZoneS
     for (let k = 0; k < n; k++) {
       const mdot = qStrand[k] * rhoW(cond.tIn);
       if (mdot <= 1e-12) continue;
-      const mag = dir * hydSign(hydMode) * pStrand[k] > 0 ? Math.abs(pStrand[k]) : 0;
+      // alleen vermogen in de richting van de actieve modus bepaalt de retourtemperatuur
+      const mag = hydSign(hydMode) * pStrand[k] > 0 ? Math.abs(pStrand[k]) : 0;
       const d = Math.min(mag / (mdot * cpW(cond.tIn)), dMax);
       tRetStrand[k] = cond.tIn + dir * d;
       num += qStrand[k] * tRetStrand[k];
@@ -536,7 +542,9 @@ export function logEntry(state: SimState, design: Design): LogEntry {
     tAir: state.tAir.slice(),
     tOp: state.tOp.slice(),
     tSet: act === 'verwarmen' ? cfg.setHeat : cfg.setCool,
-    tSupply: state.zones.map((z, i) => (z.hydMode !== 'dicht' ? design.valves[i].modes[z.hydMode].cond.tIn : NaN)),
+    tSupply: state.zones.map((z, i) =>
+      z.hydMode !== 'dicht' ? design.valves[i].modes[z.hydMode].cond.tIn : NaN,
+    ),
     tReturn: state.zones.map((z) => z.tRetMix),
     pCeiling: state.zones.map((z) => z.power),
     pLoad: state.zones.map((_, i) => loadPower(cfg, R[i], state.lastMode, state.tAir[i])),

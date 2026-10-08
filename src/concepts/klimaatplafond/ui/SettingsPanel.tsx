@@ -37,8 +37,23 @@ const ADV_GROUPS: { title: string; fields: AdvDef[] }[] = [
   {
     title: 'Warmteoverdracht',
     fields: [
-      { path: ['rCond'], label: 'R_cond (buis → plaat)', unit: 'm²K/W', min: 0, max: 0.1, step: 0.001, info: 'Geleidingsweerstand van buis naar plaatoppervlak.' },
-      { path: ['reRef'], label: 'Re_ref karakteristiek', min: 2500, max: 20000, step: 100, info: 'Reynoldsgetal waarbij de karakteristiek is gemeten.' },
+      {
+        path: ['rCond'],
+        label: 'R_cond (buis → plaat)',
+        unit: 'm²K/W',
+        min: 0,
+        max: 0.1,
+        step: 0.001,
+        info: 'Geleidingsweerstand van buis naar plaatoppervlak.',
+      },
+      {
+        path: ['reRef'],
+        label: 'Re_ref karakteristiek',
+        min: 2500,
+        max: 20000,
+        step: 100,
+        info: 'Reynoldsgetal waarbij de karakteristiek is gemeten.',
+      },
     ],
   },
   {
@@ -56,7 +71,14 @@ const ADV_GROUPS: { title: string; fields: AdvDef[] }[] = [
     title: 'Paneel, last en zones',
     fields: [
       { path: ['cPanel'], label: 'C_paneel', unit: 'kJ/(m²K)', min: 0.5, max: 50, step: 0.5 },
-      { path: ['tOutDesign'], label: 'Ontwerp-buitentemp. verwarmen', unit: '°C', min: -30, max: 10, step: 1 },
+      {
+        path: ['tOutDesign'],
+        label: 'Ontwerp-buitentemp. verwarmen',
+        unit: '°C',
+        min: -30,
+        max: 10,
+        step: 1,
+      },
       { path: ['hK'], label: 'Transmissie koelen h_k', unit: 'W/(m²K)', min: 0, max: 10, step: 0.1 },
       { path: ['hZone'], label: 'Koppeling zones H_z', unit: 'W/K', min: 0, max: 5000, step: 10 },
     ],
@@ -66,8 +88,22 @@ const ADV_GROUPS: { title: string; fields: AdvDef[] }[] = [
     fields: [
       { path: ['valveB', 'runtime90'], label: 'Type B: looptijd 90°', unit: 's', min: 10, max: 600, step: 5 },
       { path: ['valveB', 'nGl'], label: 'Type B: n_gl', min: 1, max: 6, step: 0.1 },
-      { path: ['valveA', 'switchTime'], label: 'Type A: omschakeltijd', unit: 's', min: 5, max: 300, step: 5 },
-      { path: ['valveA', 'picvStroke'], label: 'Type A: PICV volle slag', unit: 's', min: 10, max: 600, step: 5 },
+      {
+        path: ['valveA', 'switchTime'],
+        label: 'Type A: omschakeltijd',
+        unit: 's',
+        min: 5,
+        max: 300,
+        step: 5,
+      },
+      {
+        path: ['valveA', 'picvStroke'],
+        label: 'Type A: PICV volle slag',
+        unit: 's',
+        min: 10,
+        max: 600,
+        step: 5,
+      },
     ],
   },
   {
@@ -100,16 +136,62 @@ const ADV_GROUPS: { title: string; fields: AdvDef[] }[] = [
       { path: ['limits', 'reTransition'], label: 'Re overgang', min: 1000, max: 10000, step: 100 },
       { path: ['limits', 'dtMinCool'], label: 'ΔT min koelen', unit: 'K', min: 0.5, max: 6, step: 0.5 },
       { path: ['limits', 'dtMinHeat'], label: 'ΔT min verwarmen', unit: 'K', min: 0.5, max: 10, step: 0.5 },
-      { path: ['limits', 'exhaustedDt'], label: 'Uitgeputte streng (W07)', unit: 'K', min: 0.1, max: 5, step: 0.1 },
-      { path: ['limits', 'maldistWarn'], label: 'Ongelijkheid waarschuwing', unit: '%', min: 1, max: 100, step: 1, scale: 100 },
-      { path: ['limits', 'maldistInfo'], label: 'Ongelijkheid info', unit: '%', min: 1, max: 100, step: 1, scale: 100 },
+      {
+        path: ['limits', 'exhaustedDt'],
+        label: 'Uitgeputte streng (W07)',
+        unit: 'K',
+        min: 0.1,
+        max: 5,
+        step: 0.1,
+      },
+      {
+        path: ['limits', 'maldistWarn'],
+        label: 'Ongelijkheid waarschuwing',
+        unit: '%',
+        min: 1,
+        max: 100,
+        step: 1,
+        scale: 100,
+      },
+      {
+        path: ['limits', 'maldistInfo'],
+        label: 'Ongelijkheid info',
+        unit: '%',
+        min: 1,
+        max: 100,
+        step: 1,
+        scale: 100,
+      },
       { path: ['limits', 'dewMargin'], label: 'Marge boven dauwpunt', unit: 'K', min: 0, max: 5, step: 0.5 },
-      { path: ['limits', 'ceilingMaxHeat'], label: 'Plafond max. verwarmen', unit: '°C', min: 25, max: 45, step: 1 },
+      {
+        path: ['limits', 'ceilingMaxHeat'],
+        label: 'Plafond max. verwarmen',
+        unit: '°C',
+        min: 25,
+        max: 45,
+        step: 1,
+      },
       { path: ['limits', 'kvRatioMin'], label: 'Kv/Kvs min (W12)', min: 0.05, max: 0.8, step: 0.05 },
-      { path: ['limits', 'feasibleFraction'], label: 'Haalbaar debiet (W02)', unit: '%', min: 50, max: 100, step: 1, scale: 100 },
+      {
+        path: ['limits', 'feasibleFraction'],
+        label: 'Haalbaar debiet (W02)',
+        unit: '%',
+        min: 50,
+        max: 100,
+        step: 1,
+        scale: 100,
+      },
       { path: ['limits', 'maxDpB'], label: 'Max. Δp Type B', unit: 'kPa', min: 10, max: 1000, step: 10 },
       { path: ['limits', 'maxDpA'], label: 'Max. Δp Type A', unit: 'kPa', min: 10, max: 1000, step: 10 },
-      { path: ['limits', 'occupancy'], label: 'Bezetting (I02)', unit: '%', min: 10, max: 100, step: 1, scale: 100 },
+      {
+        path: ['limits', 'occupancy'],
+        label: 'Bezetting (I02)',
+        unit: '%',
+        min: 10,
+        max: 100,
+        step: 1,
+        scale: 100,
+      },
     ],
   },
 ];
@@ -135,11 +217,36 @@ export function SettingsPanel() {
   return (
     <section aria-label="Instellingen" className="noPrint">
       <Accordion title="Ruimte en last" open>
-        <NumField label={FIELD_INFO.floorArea.label} info={FIELD_INFO.floorArea.info} value={config.floorArea} {...LIMITS.floorArea} unit="m²" onChange={(floorArea) => set({ floorArea })} />
-        <NumField label={FIELD_INFO.heatLoss.label} info={FIELD_INFO.heatLoss.info} value={config.heatLoss} {...LIMITS.heatLoss} unit="W" onChange={(heatLoss) => set({ heatLoss })} />
-        <p className={s.hint} style={{ margin: '-6px 0 0' }}>{(config.heatLoss / config.floorArea).toFixed(1).replace('.', ',')} W/m²</p>
-        <NumField label={FIELD_INFO.coolLoad.label} info={FIELD_INFO.coolLoad.info} value={config.coolLoad} {...LIMITS.coolLoad} unit="W" onChange={(coolLoad) => set({ coolLoad })} />
-        <p className={s.hint} style={{ margin: '-6px 0 0' }}>{(config.coolLoad / config.floorArea).toFixed(1).replace('.', ',')} W/m²</p>
+        <NumField
+          label={FIELD_INFO.floorArea.label}
+          info={FIELD_INFO.floorArea.info}
+          value={config.floorArea}
+          {...LIMITS.floorArea}
+          unit="m²"
+          onChange={(floorArea) => set({ floorArea })}
+        />
+        <NumField
+          label={FIELD_INFO.heatLoss.label}
+          info={FIELD_INFO.heatLoss.info}
+          value={config.heatLoss}
+          {...LIMITS.heatLoss}
+          unit="W"
+          onChange={(heatLoss) => set({ heatLoss })}
+        />
+        <p className={s.hint} style={{ margin: '-6px 0 0' }}>
+          {(config.heatLoss / config.floorArea).toFixed(1).replace('.', ',')} W/m²
+        </p>
+        <NumField
+          label={FIELD_INFO.coolLoad.label}
+          info={FIELD_INFO.coolLoad.info}
+          value={config.coolLoad}
+          {...LIMITS.coolLoad}
+          unit="W"
+          onChange={(coolLoad) => set({ coolLoad })}
+        />
+        <p className={s.hint} style={{ margin: '-6px 0 0' }}>
+          {(config.coolLoad / config.floorArea).toFixed(1).replace('.', ',')} W/m²
+        </p>
         <SegField
           label={FIELD_INFO.mass.label}
           info={FIELD_INFO.mass.info}
@@ -151,7 +258,14 @@ export function SettingsPanel() {
           ]}
           onChange={(mass) => set({ mass })}
         />
-        <NumField label={FIELD_INFO.rh.label} info={FIELD_INFO.rh.info} value={config.rh} {...LIMITS.rh} unit="%" onChange={(rh) => set({ rh })} />
+        <NumField
+          label={FIELD_INFO.rh.label}
+          info={FIELD_INFO.rh.info}
+          value={config.rh}
+          {...LIMITS.rh}
+          unit="%"
+          onChange={(rh) => set({ rh })}
+        />
         <CheckField
           label="Starttemperatuur automatisch (setpoint ∓ 3 K)"
           info={FIELD_INFO.startTemp.info}
@@ -159,18 +273,63 @@ export function SettingsPanel() {
           onChange={(auto) => set({ startTemp: auto ? null : config.setCool + 3 })}
         />
         {config.startTemp !== null && (
-          <NumField label="Starttemperatuur" value={config.startTemp} {...LIMITS.startTemp} unit="°C" onChange={(startTemp) => set({ startTemp })} />
+          <NumField
+            label="Starttemperatuur"
+            value={config.startTemp}
+            {...LIMITS.startTemp}
+            unit="°C"
+            onChange={(startTemp) => set({ startTemp })}
+          />
         )}
-        <CheckField label="Huidige temperatuur behouden bij wijzigingen" checked={config.keepCurrent} onChange={(keepCurrent) => set({ keepCurrent })} />
+        <CheckField
+          label="Huidige temperatuur behouden bij wijzigingen"
+          checked={config.keepCurrent}
+          onChange={(keepCurrent) => set({ keepCurrent })}
+        />
       </Accordion>
 
       <Accordion title="Watertemperaturen en setpoints" open>
         <div className={s.fieldRow}>
-          <NumField label={FIELD_INFO.tSupplyCool.label} info={FIELD_INFO.tSupplyCool.info} value={config.tSupplyCool} {...LIMITS.tSupplyCool} unit="°C" onChange={(tSupplyCool) => set({ tSupplyCool })} />
-          <NumField label={FIELD_INFO.tSupplyHeat.label} info={FIELD_INFO.tSupplyHeat.info} value={config.tSupplyHeat} {...LIMITS.tSupplyHeat} unit="°C" onChange={(tSupplyHeat) => set({ tSupplyHeat })} />
-          <NumField label={FIELD_INFO.dtCool.label} info={FIELD_INFO.dtCool.info} value={config.dtCool} {...LIMITS.dtCool} unit="K" onChange={(dtCool) => set({ dtCool })} />
-          <NumField label={FIELD_INFO.dtHeat.label} info={FIELD_INFO.dtHeat.info} value={config.dtHeat} {...LIMITS.dtHeat} unit="K" onChange={(dtHeat) => set({ dtHeat })} />
-          <NumField label={FIELD_INFO.setHeat.label} info={FIELD_INFO.setHeat.info} value={config.setHeat} {...LIMITS.setHeat} unit="°C" onChange={(setHeat) => set({ setHeat })} />
+          <NumField
+            label={FIELD_INFO.tSupplyCool.label}
+            info={FIELD_INFO.tSupplyCool.info}
+            value={config.tSupplyCool}
+            {...LIMITS.tSupplyCool}
+            unit="°C"
+            onChange={(tSupplyCool) => set({ tSupplyCool })}
+          />
+          <NumField
+            label={FIELD_INFO.tSupplyHeat.label}
+            info={FIELD_INFO.tSupplyHeat.info}
+            value={config.tSupplyHeat}
+            {...LIMITS.tSupplyHeat}
+            unit="°C"
+            onChange={(tSupplyHeat) => set({ tSupplyHeat })}
+          />
+          <NumField
+            label={FIELD_INFO.dtCool.label}
+            info={FIELD_INFO.dtCool.info}
+            value={config.dtCool}
+            {...LIMITS.dtCool}
+            unit="K"
+            onChange={(dtCool) => set({ dtCool })}
+          />
+          <NumField
+            label={FIELD_INFO.dtHeat.label}
+            info={FIELD_INFO.dtHeat.info}
+            value={config.dtHeat}
+            {...LIMITS.dtHeat}
+            unit="K"
+            onChange={(dtHeat) => set({ dtHeat })}
+          />
+          <NumField
+            label={FIELD_INFO.setHeat.label}
+            info={FIELD_INFO.setHeat.info}
+            value={config.setHeat}
+            {...LIMITS.setHeat}
+            unit="°C"
+            onChange={(setHeat) => set({ setHeat })}
+          />
           <NumField
             label={FIELD_INFO.setCool.label}
             info={FIELD_INFO.setCool.info}
@@ -182,7 +341,9 @@ export function SettingsPanel() {
             onChange={(setCool) => set({ setCool })}
           />
         </div>
-        <p className={s.hint} style={{ margin: 0 }}>Setpoint koelen ≥ setpoint verwarmen + 1 K (dode zone).</p>
+        <p className={s.hint} style={{ margin: 0 }}>
+          Setpoint koelen ≥ setpoint verwarmen + 1 K (dode zone).
+        </p>
       </Accordion>
 
       <Accordion title="Plafond" open>
@@ -190,7 +351,10 @@ export function SettingsPanel() {
           label={FIELD_INFO.panelSize.label}
           info={FIELD_INFO.panelSize.info}
           value={config.panelSize}
-          options={(Object.keys(PANEL_SIZES) as (keyof typeof PANEL_SIZES)[]).map((k) => ({ value: k, label: PANEL_SIZES[k].label }))}
+          options={(Object.keys(PANEL_SIZES) as (keyof typeof PANEL_SIZES)[]).map((k) => ({
+            value: k,
+            label: PANEL_SIZES[k].label,
+          }))}
           onChange={(panelSize) => set({ panelSize })}
         />
         <SegField
@@ -222,8 +386,22 @@ export function SettingsPanel() {
           onChange={setValveCount}
         />
         <div className={s.fieldRow}>
-          <NumField label={FIELD_INFO.dpAvailable.label} info={FIELD_INFO.dpAvailable.info} value={config.dpAvailable} {...LIMITS.dpAvailable} unit="kPa" onChange={(dpAvailable) => set({ dpAvailable })} />
-          <NumField label={FIELD_INFO.dpMax.label} info={FIELD_INFO.dpMax.info} value={config.dpMax} {...LIMITS.dpMax} unit="kPa" onChange={(dpMax) => set({ dpMax })} />
+          <NumField
+            label={FIELD_INFO.dpAvailable.label}
+            info={FIELD_INFO.dpAvailable.info}
+            value={config.dpAvailable}
+            {...LIMITS.dpAvailable}
+            unit="kPa"
+            onChange={(dpAvailable) => set({ dpAvailable })}
+          />
+          <NumField
+            label={FIELD_INFO.dpMax.label}
+            info={FIELD_INFO.dpMax.info}
+            value={config.dpMax}
+            {...LIMITS.dpMax}
+            unit="kPa"
+            onChange={(dpMax) => set({ dpMax })}
+          />
         </div>
         {config.valves.map((_, i) => (
           <ValveCard key={i} index={i} />
@@ -231,10 +409,29 @@ export function SettingsPanel() {
       </Accordion>
 
       <Accordion title="Regeling en simulatie" open>
-        <CheckField label={FIELD_INFO.dewProtection.label} info={FIELD_INFO.dewProtection.info} checked={config.dewProtection} onChange={(dewProtection) => set({ dewProtection })} />
+        <CheckField
+          label={FIELD_INFO.dewProtection.label}
+          info={FIELD_INFO.dewProtection.info}
+          checked={config.dewProtection}
+          onChange={(dewProtection) => set({ dewProtection })}
+        />
         <div className={s.fieldRow}>
-          <NumField label={FIELD_INFO.Kp.label} info={FIELD_INFO.Kp.info} value={config.Kp} {...LIMITS.Kp} unit="/K" onChange={(Kp) => set({ Kp })} />
-          <NumField label={FIELD_INFO.Ti.label} info={FIELD_INFO.Ti.info} value={config.Ti} {...LIMITS.Ti} unit="s" onChange={(Ti) => set({ Ti })} />
+          <NumField
+            label={FIELD_INFO.Kp.label}
+            info={FIELD_INFO.Kp.info}
+            value={config.Kp}
+            {...LIMITS.Kp}
+            unit="/K"
+            onChange={(Kp) => set({ Kp })}
+          />
+          <NumField
+            label={FIELD_INFO.Ti.label}
+            info={FIELD_INFO.Ti.info}
+            value={config.Ti}
+            {...LIMITS.Ti}
+            unit="s"
+            onChange={(Ti) => set({ Ti })}
+          />
         </div>
         <SegField
           label={FIELD_INFO.flowChar.label}
@@ -262,7 +459,11 @@ export function SettingsPanel() {
 
       <Accordion title="Geavanceerd">
         <div>
-          <button type="button" className={`${s.btn} ${s.btnSmall}`} onClick={() => set({ advanced: defaultAdvanced() })}>
+          <button
+            type="button"
+            className={`${s.btn} ${s.btnSmall}`}
+            onClick={() => set({ advanced: defaultAdvanced() })}
+          >
             Standaardwaarden herstellen
           </button>
         </div>
@@ -276,7 +477,10 @@ export function SettingsPanel() {
           onChange={(loadSplit) => set({ advanced: { ...config.advanced, loadSplit } })}
         />
         {ADV_GROUPS.map((g) => (
-          <fieldset key={g.title} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px 10px', margin: 0 }}>
+          <fieldset
+            key={g.title}
+            style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px 10px', margin: 0 }}
+          >
             <legend style={{ fontSize: '0.82rem', fontWeight: 600, padding: '0 4px' }}>{g.title}</legend>
             <div className={s.fieldRow}>
               {g.fields.map((f) => {

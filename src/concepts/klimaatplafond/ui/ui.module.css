@@ -555,7 +555,7 @@
 
 .chartGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
   gap: 14px;
 }
 .chartBox {
@@ -617,5 +617,18 @@
   .page {
     padding: 0;
     max-width: none;
+  }
+}
+
+/* mobiel: voorkom horizontale scroll van de pagina */
+.areaPlan,
+.areaRight,
+.areaTabs,
+.chartBox {
+  min-width: 0;
+}
+@media (max-width: 899px) {
+  .seg {
+    flex-wrap: wrap;
   }
 }

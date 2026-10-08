@@ -72,7 +72,10 @@ export function devIdx(dev: number): number {
 }
 
 export function scaleRange(design: Design): { cold: number; warm: number } {
-  return { cold: Math.min(design.cfg.tSupplyCool, design.cfg.setHeat - 1), warm: Math.max(design.cfg.tSupplyHeat, design.cfg.setCool + 1) };
+  return {
+    cold: Math.min(design.cfg.tSupplyCool, design.cfg.setHeat - 1),
+    warm: Math.max(design.cfg.tSupplyHeat, design.cfg.setCool + 1),
+  };
 }
 
 let hatchCache: CanvasPattern | null = null;
@@ -148,7 +151,8 @@ export function drawColors(a: DrawArgs): void {
           const x0m = layout.meander[0].x;
           for (let leg = 0; leg < legs; leg++) {
             const sA = p * nSeg + Math.floor((leg * nSeg) / legs);
-            const sB = p * nSeg + Math.max(Math.floor(((leg + 1) * nSeg) / legs), Math.floor((leg * nSeg) / legs) + 1);
+            const sB =
+              p * nSeg + Math.max(Math.floor(((leg + 1) * nSeg) / legs), Math.floor((leg * nSeg) / legs) + 1);
             let T = tRoom;
             if (th?.tOpp && warm > 0.01) {
               let acc = 0;
@@ -180,7 +184,8 @@ export function drawColors(a: DrawArgs): void {
           else {
             const gi = p * nSeg + j;
             let T = tRoom;
-            if (th?.tWater && warm > 0.01) T = tRoom + (0.5 * (th.tWater[gi] + th.tWater[Math.min(gi + 1, total)]) - tRoom) * warm;
+            if (th?.tWater && warm > 0.01)
+              T = tRoom + (0.5 * (th.tWater[gi] + th.tWater[Math.min(gi + 1, total)]) - tRoom) * warm;
             idx = tempIdx(T, tRoom, rng.cold, rng.warm);
           }
           buckets[idx].push(pn.x, pn.y, j);
@@ -193,7 +198,8 @@ export function drawColors(a: DrawArgs): void {
   for (let c = 0; c < LUT_N; c++) {
     const b = buckets[c];
     if (!b.length) continue;
-    ctx.strokeStyle = overlay === 'oppervlak' ? 'rgba(40,50,60,0.55)' : (overlay === 'verdeling' ? DEV_LUT[c] : TEMP_LUT[c]);
+    ctx.strokeStyle =
+      overlay === 'oppervlak' ? 'rgba(40,50,60,0.55)' : overlay === 'verdeling' ? DEV_LUT[c] : TEMP_LUT[c];
     ctx.beginPath();
     for (let i = 0; i < b.length; i += 3) {
       const poly = layout.segPolys[b[i + 2]];
@@ -263,20 +269,43 @@ export class Particles {
     for (const zone of layout.zones) {
       const vd = design.valves[zone.valve];
       zone.strands.forEach((st) => {
-        const pi = this.paths.push({ zone: zone.valve, strand: st.index, kind: 0, pts: st.path, cum: st.cum, length: st.length, seg: st.index, strandRef: st }) - 1;
+        const pi =
+          this.paths.push({
+            zone: zone.valve,
+            strand: st.index,
+            kind: 0,
+            pts: st.path,
+            cum: st.cum,
+            length: st.length,
+            seg: st.index,
+            strandRef: st,
+          }) - 1;
         const n = Math.max(2, Math.round(st.length / spacing));
-        for (let i = 0; i < n; i++) this.items.push({ kind: 0, path: pi, u: ((i + rnd() * 0.6) / n) * st.length, hint: 1 });
+        for (let i = 0; i < n; i++)
+          this.items.push({ kind: 0, path: pi, u: ((i + rnd() * 0.6) / n) * st.length, hint: 1 });
       });
       // verdeelleidingen: per segment een kort pad voor aanvoer (weg van klep) en retour (naar klep)
       let xPrev = zone.x0;
       zone.strands.forEach((st, k) => {
-        const supply = [{ x: xPrev, y: 0 }, { x: st.supplyX, y: 0 }];
-        const ret = [{ x: st.riserX, y: RETURN_Y }, { x: k === 0 ? zone.x0 : zone.strands[k - 1].riserX, y: RETURN_Y }];
-        for (const [kind, pts] of [[1, supply], [2, ret]] as const) {
+        const supply = [
+          { x: xPrev, y: 0 },
+          { x: st.supplyX, y: 0 },
+        ];
+        const ret = [
+          { x: st.riserX, y: RETURN_Y },
+          { x: k === 0 ? zone.x0 : zone.strands[k - 1].riserX, y: RETURN_Y },
+        ];
+        for (const [kind, pts] of [
+          [1, supply],
+          [2, ret],
+        ] as const) {
           const len = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-          const pi = this.paths.push({ zone: zone.valve, strand: k, kind, pts, cum: [0, len], length: len, seg: k }) - 1;
+          const pi =
+            this.paths.push({ zone: zone.valve, strand: k, kind, pts, cum: [0, len], length: len, seg: k }) -
+            1;
           const n = Math.max(1, Math.round(len / (spacing * 1.2)));
-          for (let i = 0; i < n; i++) this.items.push({ kind, path: pi, u: ((i + rnd() * 0.6) / n) * len, hint: 1 });
+          for (let i = 0; i < n; i++)
+            this.items.push({ kind, path: pi, u: ((i + rnd() * 0.6) / n) * len, hint: 1 });
         }
         xPrev = st.supplyX;
       });
@@ -301,7 +330,7 @@ export class Particles {
         const vd = design.valves[p.zone];
         let F = 0;
         for (let j = p.seg; j < zs.qStrand.length; j++) F += zs.qStrand[j];
-        const di = (design.valves[p.zone].spec.dist.di);
+        const di = design.valves[p.zone].spec.dist.di;
         void vd;
         v = F / A(di);
       }
@@ -313,7 +342,18 @@ export class Particles {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D, args: { design: Design; sim: SimState; layout: PlanLayout; view: View; dpr: number; width: number; height: number }): void {
+  draw(
+    ctx: CanvasRenderingContext2D,
+    args: {
+      design: Design;
+      sim: SimState;
+      layout: PlanLayout;
+      view: View;
+      dpr: number;
+      width: number;
+      height: number;
+    },
+  ): void {
     const { design, sim, layout, view, dpr, width, height } = args;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width * dpr, height * dpr);
@@ -335,7 +375,10 @@ export class Particles {
       let x: number;
       let y: number;
       let T = tRoom;
-      const cond = zs.hydMode !== 'dicht' ? design.valves[p.zone].modes[zs.hydMode].cond : design.valves[p.zone].modes[zs.lastHyd].cond;
+      const cond =
+        zs.hydMode !== 'dicht'
+          ? design.valves[p.zone].modes[zs.hydMode].cond
+          : design.valves[p.zone].modes[zs.lastHyd].cond;
       if (p.kind === 0 && p.strandRef) {
         const pt = pointAt(p.strandRef, it.u, it.hint);
         it.hint = pt.i;
@@ -353,7 +396,8 @@ export class Particles {
         const f = p.length > 0 ? it.u / p.length : 0;
         x = p.pts[0].x + f * (p.pts[1].x - p.pts[0].x);
         y = p.pts[0].y + f * (p.pts[1].y - p.pts[0].y);
-        if (zs.thermal.length) T = it.kind === 1 ? cond.tIn : Number.isFinite(zs.tRetMix) ? zs.tRetMix : cond.tIn;
+        if (zs.thermal.length)
+          T = it.kind === 1 ? cond.tIn : Number.isFinite(zs.tRetMix) ? zs.tRetMix : cond.tIn;
       }
       if (x < vx0 || x > vx1 || y < vy0 || y > vy1) continue;
       T = tRoom + (T - tRoom) * zs.warm;

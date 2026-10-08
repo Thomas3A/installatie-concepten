@@ -56,7 +56,13 @@ export function buildContext(cfg: KlimaatplafondConfig): PlafondContext {
     tauFactor: a.tauFactor,
     conditions: {
       koelen: { mode: 'koelen', tIn: cfg.tSupplyCool, tRoom: cfg.setCool, dt: cfg.dtCool, ...a.charKoelen },
-      verwarmen: { mode: 'verwarmen', tIn: cfg.tSupplyHeat, tRoom: cfg.setHeat, dt: cfg.dtHeat, ...a.charVerwarmen },
+      verwarmen: {
+        mode: 'verwarmen',
+        tIn: cfg.tSupplyHeat,
+        tRoom: cfg.setHeat,
+        dt: cfg.dtHeat,
+        ...a.charVerwarmen,
+      },
     },
   };
 }

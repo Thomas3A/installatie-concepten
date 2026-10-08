@@ -28,5 +28,6 @@ export const DIST_PIPES: PipeSpec[] = [
 export type CopperTubeId = '8x0.5' | '10x0.5' | '12x0.6';
 export type DistPipeId = '16x2' | '20x2' | '26x3';
 
-export const copperTube = (id: CopperTubeId): PipeSpec => COPPER_TUBES.find((t) => t.id === id) ?? COPPER_TUBES[0];
+export const copperTube = (id: CopperTubeId): PipeSpec =>
+  COPPER_TUBES.find((t) => t.id === id) ?? COPPER_TUBES[0];
 export const distPipe = (id: DistPipeId): PipeSpec => DIST_PIPES.find((t) => t.id === id) ?? DIST_PIPES[1];

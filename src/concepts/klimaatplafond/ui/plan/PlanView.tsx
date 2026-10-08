@@ -51,7 +51,7 @@ export function PlanView() {
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
-      setSize({ w, h: Math.round(Math.min(Math.max(w * 0.52, 320), 620)) });
+      setSize({ w, h: Math.round(Math.min(Math.max(w * 0.52, w < 640 ? 420 : 320), 620)) });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -60,11 +60,15 @@ export function PlanView() {
   const fit = useCallback(() => {
     const b = layout.bounds;
     const m = 24;
-    const top = 50; // ruimte voor de werkbalk
+    const top = size.w < 640 ? 118 : 50; // ruimte voor de werkbalk (die op smalle schermen over meer regels loopt)
     const availH = size.h - top - m;
     const k = Math.min((size.w - 2 * m) / (b.maxX - b.minX), availH / (b.maxY - b.minY));
     const kk = Math.max(k, 4);
-    setView({ k: kk, tx: (size.w - (b.maxX - b.minX) * kk) / 2 - b.minX * kk, ty: top + (availH - (b.maxY - b.minY) * kk) / 2 - b.minY * kk });
+    setView({
+      k: kk,
+      tx: (size.w - (b.maxX - b.minX) * kk) / 2 - b.minX * kk,
+      ty: top + (availH - (b.maxY - b.minY) * kk) / 2 - b.minY * kk,
+    });
     userMoved.current = false;
   }, [layout, size]);
 
@@ -151,7 +155,13 @@ export function PlanView() {
       particles.draw(pctx, { design, sim: live.sim, layout, view: v, dpr, width: w, height: h });
       raf = requestAnimationFrame(frame);
     };
-    const drawColorsOver = (ctx: CanvasRenderingContext2D, v: View, dpr: number, w: number, h: number): void => {
+    const drawColorsOver = (
+      ctx: CanvasRenderingContext2D,
+      v: View,
+      dpr: number,
+      w: number,
+      h: number,
+    ): void => {
       // drawColors wist het canvas; teken daarom eerst de achtergrond opnieuw erachter via compositing
       const panelFill = cssVar(cc, '--surface-2');
       drawColors({ ctx, layout, design, sim: live.sim, overlay, view: v, dpr, width: w, height: h });
@@ -159,7 +169,8 @@ export function PlanView() {
       ctx.setTransform(dpr * v.k, 0, 0, dpr * v.k, dpr * v.tx, dpr * v.ty);
       ctx.fillStyle = panelFill;
       for (const z of layout.zones)
-        for (const s of z.strands) for (const pn of s.panels) ctx.fillRect(pn.x, pn.y, layout.geom.B, layout.geom.L);
+        for (const s of z.strands)
+          for (const pn of s.panels) ctx.fillRect(pn.x, pn.y, layout.geom.B, layout.geom.L);
       ctx.globalCompositeOperation = 'source-over';
     };
     raf = requestAnimationFrame(frame);
@@ -179,13 +190,48 @@ export function PlanView() {
       const first = z.strands[0];
       // aanvoer en retour
       els.push(
-        <line key={`s${z.valve}`} x1={z.x0} y1={0} x2={last.supplyX} y2={0} stroke="var(--text-2)" strokeWidth={2.2} vectorEffect="non-scaling-stroke" />,
-        <line key={`r${z.valve}`} x1={z.x0} y1={RETURN_Y} x2={last.riserX} y2={RETURN_Y} stroke="var(--text-2)" strokeWidth={2.2} strokeDasharray="6 3" vectorEffect="non-scaling-stroke" />,
+        <line
+          key={`s${z.valve}`}
+          x1={z.x0}
+          y1={0}
+          x2={last.supplyX}
+          y2={0}
+          stroke="var(--text-2)"
+          strokeWidth={2.2}
+          vectorEffect="non-scaling-stroke"
+        />,
+        <line
+          key={`r${z.valve}`}
+          x1={z.x0}
+          y1={RETURN_Y}
+          x2={last.riserX}
+          y2={RETURN_Y}
+          stroke="var(--text-2)"
+          strokeWidth={2.2}
+          strokeDasharray="6 3"
+          vectorEffect="non-scaling-stroke"
+        />,
       );
       if (vd.cfg.layout === 'tichelmann') {
         els.push(
-          <polyline key={`t${z.valve}`} points={`${first.riserX},${RETURN_Y} ${first.riserX},${TICH_Y} ${last.riserX},${TICH_Y} ${last.riserX},${TICH_Y - 0.15} ${z.x0},${TICH_Y - 0.15}`} fill="none" stroke="var(--accent)" strokeWidth={2} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />,
-          <text key={`tl${z.valve}`} x={z.x0 + 0.05} y={TICH_Y - 0.2} fontSize={10 / view.k} fill="var(--accent)">Tichelmann-retour</text>,
+          <polyline
+            key={`t${z.valve}`}
+            points={`${first.riserX},${RETURN_Y} ${first.riserX},${TICH_Y} ${last.riserX},${TICH_Y} ${last.riserX},${TICH_Y - 0.15} ${z.x0},${TICH_Y - 0.15}`}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={2}
+            strokeDasharray="2 3"
+            vectorEffect="non-scaling-stroke"
+          />,
+          <text
+            key={`tl${z.valve}`}
+            x={z.x0 + 0.05}
+            y={TICH_Y - 0.2}
+            fontSize={10 / view.k}
+            fill="var(--accent)"
+          >
+            Tichelmann-retour
+          </text>,
         );
       }
       z.strands.forEach((st) => {
@@ -203,24 +249,70 @@ export function PlanView() {
           const startHose = idx - 1;
           if (pn < st.panels.length - 1) {
             const pts = st.path.slice(startHose, startHose + 11);
-            parts.push(`M ${pts[0].x} ${pts[0].y} ` + pts.slice(1).map((q) => `L ${q.x} ${q.y}`).join(' '));
+            parts.push(
+              `M ${pts[0].x} ${pts[0].y} ` +
+                pts
+                  .slice(1)
+                  .map((q) => `L ${q.x} ${q.y}`)
+                  .join(' '),
+            );
             idx += 10;
           } else {
             const pts = st.path.slice(startHose);
-            parts.push(`M ${pts[0].x} ${pts[0].y} ` + pts.slice(1).map((q) => `L ${q.x} ${q.y}`).join(' '));
+            parts.push(
+              `M ${pts[0].x} ${pts[0].y} ` +
+                pts
+                  .slice(1)
+                  .map((q) => `L ${q.x} ${q.y}`)
+                  .join(' '),
+            );
           }
         }
-        els.push(<path key={`f${z.valve}-${st.index}`} d={parts.join(' ')} fill="none" stroke="var(--text-2)" strokeWidth={1.4} vectorEffect="non-scaling-stroke" opacity={0.85} />);
+        els.push(
+          <path
+            key={`f${z.valve}-${st.index}`}
+            d={parts.join(' ')}
+            fill="none"
+            stroke="var(--text-2)"
+            strokeWidth={1.4}
+            vectorEffect="non-scaling-stroke"
+            opacity={0.85}
+          />,
+        );
         st.panels.forEach((pn, k) => {
-          els.push(<rect key={`p${z.valve}-${st.index}-${k}`} x={pn.x} y={pn.y} width={g.B} height={g.L} fill="none" stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />);
+          els.push(
+            <rect
+              key={`p${z.valve}-${st.index}-${k}`}
+              x={pn.x}
+              y={pn.y}
+              width={g.B}
+              height={g.L}
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />,
+          );
         });
         // aansluitpunten op de korte zijden
         const e0 = layout.meander[0];
         const eN = layout.meander[layout.meander.length - 1];
         const lastPn = st.panels[st.panels.length - 1];
         els.push(
-          <circle key={`ci${z.valve}-${st.index}`} cx={st.panels[0].x + e0.x} cy={st.panels[0].y + e0.y} r={0.025} fill="var(--text-2)" />,
-          <circle key={`co${z.valve}-${st.index}`} cx={lastPn.x + eN.x} cy={lastPn.y + eN.y} r={0.025} fill="var(--text-2)" />,
+          <circle
+            key={`ci${z.valve}-${st.index}`}
+            cx={st.panels[0].x + e0.x}
+            cy={st.panels[0].y + e0.y}
+            r={0.025}
+            fill="var(--text-2)"
+          />,
+          <circle
+            key={`co${z.valve}-${st.index}`}
+            cx={lastPn.x + eN.x}
+            cy={lastPn.y + eN.y}
+            r={0.025}
+            fill="var(--text-2)"
+          />,
         );
       });
     });
@@ -236,10 +328,21 @@ export function PlanView() {
       if (!zs) return;
       const act = sim.mode === 'stop' ? null : sim.mode;
       const cfgv = vd.cfg;
-      const kvTxt = cfgv.type === 'B' ? `Kvs ${fmt(vd.kvs.koelen, 2).replace(/,00$/, '')}/${fmt(vd.kvs.verwarmen, 2).replace(/,00$/, '')}` : vd.picv.label.split(' ')[0] + (vd.picv.label.includes('HF') ? ' HF' : vd.picv.label.includes('LF') ? ' LF' : '');
+      const kvTxt =
+        cfgv.type === 'B'
+          ? `Kvs ${fmt(vd.kvs.koelen, 2).replace(/,00$/, '')}/${fmt(vd.kvs.verwarmen, 2).replace(/,00$/, '')}`
+          : vd.picv.label.split(' ')[0] +
+            (vd.picv.label.includes('HF') ? ' HF' : vd.picv.label.includes('LF') ? ' LF' : '');
       const hydc = act === 'koelen' ? 'var(--cold)' : act === 'verwarmen' ? 'var(--warm)' : 'var(--text-2)';
       els.push(
-        <text key={`zl${z.valve}`} x={z.x0} y={RETURN_Y - (cfgv.layout === 'tichelmann' ? 0.5 : 0.25)} fontSize={12 / view.k} fill="var(--text)" className={p.zoneLabel}>
+        <text
+          key={`zl${z.valve}`}
+          x={z.x0}
+          y={RETURN_Y - (cfgv.layout === 'tichelmann' ? 0.75 : 0.25)}
+          fontSize={12 / view.k}
+          fill="var(--text)"
+          className={p.zoneLabel}
+        >
           {`Zone ${z.valve + 1} · ${cfgv.panelCount} panelen · ${fmt(sim.tAir[z.valve], 1)} °C`}
         </text>,
         view.k >= 22 && (
@@ -247,7 +350,13 @@ export function PlanView() {
             <text x={z.x0 - 0.05} y={0.3} fontSize={10 / view.k} fill="var(--text-2)" textAnchor="end">
               {`Type ${cfgv.type} · DN${cfgv.dn}`}
             </text>
-            <text x={z.x0 - 0.05} y={0.3 + 12 / view.k} fontSize={10 / view.k} fill="var(--text-2)" textAnchor="end">
+            <text
+              x={z.x0 - 0.05}
+              y={0.3 + 12 / view.k}
+              fontSize={10 / view.k}
+              fill="var(--text-2)"
+              textAnchor="end"
+            >
               {kvTxt}
             </text>
           </g>
@@ -271,11 +380,26 @@ export function PlanView() {
         );
         els.push(
           <g key={`kv${z.valve}`}>
-            <circle cx={cx} cy={cy} r={r + 0.04} fill="var(--surface)" stroke="var(--border)" vectorEffect="non-scaling-stroke" />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r + 0.04}
+              fill="var(--surface)"
+              stroke="var(--border)"
+              vectorEffect="non-scaling-stroke"
+            />
             {arc(0, 30, 'var(--cold)')}
             {arc(30, 60, 'var(--text-2)')}
             {arc(60, 90, 'var(--warm)')}
-            <line x1={cx} y1={cy} x2={cx + r * 0.95 * Math.cos(ang(zs.theta))} y2={cy + r * 0.95 * Math.sin(ang(zs.theta))} stroke="var(--text)" strokeWidth={2.4} vectorEffect="non-scaling-stroke" />
+            <line
+              x1={cx}
+              y1={cy}
+              x2={cx + r * 0.95 * Math.cos(ang(zs.theta))}
+              y2={cy + r * 0.95 * Math.sin(ang(zs.theta))}
+              stroke="var(--text)"
+              strokeWidth={2.4}
+              vectorEffect="non-scaling-stroke"
+            />
             <circle cx={cx} cy={cy} r={0.02} fill="var(--text)" />
           </g>,
         );
@@ -284,10 +408,27 @@ export function PlanView() {
         const frac = Math.min(zs.picvQ / Math.max(md.vmax, 1e-12), 1);
         els.push(
           <g key={`kv${z.valve}`}>
-            <rect x={cx - 0.17} y={cy - 0.12} width={0.34} height={0.24} rx={0.03} fill="var(--surface)" stroke="var(--border)" vectorEffect="non-scaling-stroke" />
+            <rect
+              x={cx - 0.17}
+              y={cy - 0.12}
+              width={0.34}
+              height={0.24}
+              rx={0.03}
+              fill="var(--surface)"
+              stroke="var(--border)"
+              vectorEffect="non-scaling-stroke"
+            />
             <rect x={cx - 0.14} y={cy + 0.01} width={0.28} height={0.07} fill="var(--surface-2)" />
-            <rect x={cx - 0.14} y={cy + 0.01} width={0.28 * frac} height={0.07} fill={zs.sixWay === 'koelen' ? 'var(--cold)' : 'var(--warm)'} />
-            <text x={cx} y={cy - 0.03} fontSize={9 / view.k} textAnchor="middle" fill={hydc}>{zs.switchLeft > 0 ? 'schakelt' : zs.sixWay === 'koelen' ? 'koud' : 'warm'}</text>
+            <rect
+              x={cx - 0.14}
+              y={cy + 0.01}
+              width={0.28 * frac}
+              height={0.07}
+              fill={zs.sixWay === 'koelen' ? 'var(--cold)' : 'var(--warm)'}
+            />
+            <text x={cx} y={cy - 0.03} fontSize={9 / view.k} textAnchor="middle" fill={hydc}>
+              {zs.switchLeft > 0 ? 'schakelt' : zs.sixWay === 'koelen' ? 'koud' : 'warm'}
+            </text>
           </g>,
         );
       }
@@ -299,9 +440,33 @@ export function PlanView() {
         if (q > 0 && th) {
           const re = th.re;
           if (re < design.cfg.advanced.limits.reLaminar) {
-            els.push(<text key={`b${z.valve}-${st.index}`} x={st.cx} y={STRAND_Y0 - 0.1} fontSize={9 / view.k} textAnchor="middle" fill="var(--err)" fontWeight={700}>{view.k >= 22 ? '▲ laminair' : '▲'}</text>);
+            els.push(
+              <text
+                key={`b${z.valve}-${st.index}`}
+                x={st.cx}
+                y={STRAND_Y0 - 0.1}
+                fontSize={9 / view.k}
+                textAnchor="middle"
+                fill="var(--err)"
+                fontWeight={700}
+              >
+                {view.k >= 22 ? '▲ laminair' : '▲'}
+              </text>,
+            );
           } else if (re < design.cfg.advanced.limits.reTransition) {
-            els.push(<text key={`b${z.valve}-${st.index}`} x={st.cx} y={STRAND_Y0 - 0.1} fontSize={9 / view.k} textAnchor="middle" fill="var(--info)" fontWeight={600}>{view.k >= 40 ? '◆ overgang' : '◆'}</text>);
+            els.push(
+              <text
+                key={`b${z.valve}-${st.index}`}
+                x={st.cx}
+                y={STRAND_Y0 - 0.1}
+                fontSize={9 / view.k}
+                textAnchor="middle"
+                fill="var(--info)"
+                fontWeight={600}
+              >
+                {view.k >= 40 ? '◆ overgang' : '◆'}
+              </text>,
+            );
           }
         }
         if (showLabels) {
@@ -309,16 +474,25 @@ export function PlanView() {
           const md = vd.modes[hyd];
           const sp = vd.strands[st.index];
           const dpv = q > 0 && th ? strandDp(design.ctx, sp.panels, sp.extraLength, q, th.tMean) : 0;
-          const lines = q > 0 && th
-            ? [
-                `${fmt(q * 3.6e6, 1)} l/h · ${fmt(th.v, 2)} m/s`,
-                `Re ${fmt(th.re, 0)} · Δp ${fmt(dpv / 1000, 1)} kPa`,
-                `${fmt(md.cond.tIn, 1)}→${fmt(zs.tRetStrand[st.index], 1)} °C · ${fmt(Math.abs(zs.pStrand[st.index]), 0)} W`,
-              ]
-            : ['stilstaand'];
+          const lines =
+            q > 0 && th
+              ? [
+                  `${fmt(q * 3.6e6, 1)} l/h · ${fmt(th.v, 2)} m/s`,
+                  `Re ${fmt(th.re, 0)} · Δp ${fmt(dpv / 1000, 1)} kPa`,
+                  `${fmt(md.cond.tIn, 1)}→${fmt(zs.tRetStrand[st.index], 1)} °C · ${fmt(Math.abs(zs.pStrand[st.index]), 0)} W`,
+                ]
+              : ['stilstaand'];
           lines.forEach((t, i) => {
             els.push(
-              <text key={`lb${z.valve}-${st.index}-${i}`} x={st.cx} y={yBottom + 0.22 + i * (labelFs * 1.2)} fontSize={labelFs * 0.9} textAnchor="middle" fill="var(--text)" className="num">
+              <text
+                key={`lb${z.valve}-${st.index}-${i}`}
+                x={st.cx}
+                y={yBottom + 0.22 + i * (labelFs * 1.2)}
+                fontSize={labelFs * 0.9}
+                textAnchor="middle"
+                fill="var(--text)"
+                className="num"
+              >
                 {t}
               </text>,
             );
@@ -334,7 +508,10 @@ export function PlanView() {
   layout.zones.forEach((z) => {
     z.strands.forEach((st) => {
       const sel = selValve === z.valve && selStrand === st.index;
-      const hl = highlight && highlight.valve === z.valve && (highlight.strands.length === 0 || highlight.strands.includes(st.index));
+      const hl =
+        highlight &&
+        highlight.valve === z.valve &&
+        (highlight.strands.length === 0 || highlight.strands.includes(st.index));
       marks.push(
         <rect
           key={`h${z.valve}-${st.index}`}
@@ -363,7 +540,18 @@ export function PlanView() {
     });
     if (highlight && highlight.valve === z.valve && highlight.strands.length === 0) {
       marks.push(
-        <rect key={`hz${z.valve}`} x={z.x0 - 0.7} y={RETURN_Y - 0.6} width={z.width + 0.8} height={z.bottom - RETURN_Y + 0.8} fill="none" stroke="var(--warn)" strokeWidth={2.5} strokeDasharray="6 4" vectorEffect="non-scaling-stroke" />,
+        <rect
+          key={`hz${z.valve}`}
+          x={z.x0 - 0.7}
+          y={RETURN_Y - 0.6}
+          width={z.width + 0.8}
+          height={z.bottom - RETURN_Y + 0.8}
+          fill="none"
+          stroke="var(--warn)"
+          strokeWidth={2.5}
+          strokeDasharray="6 4"
+          vectorEffect="non-scaling-stroke"
+        />,
       );
     }
   });
@@ -371,7 +559,8 @@ export function PlanView() {
   // ----- legenda
   const rng = scaleRange(design);
   const tRoom0 = sim.tAir[0] ?? design.cfg.setCool;
-  const legendGradient = (lut: string[]): string => `linear-gradient(90deg, ${lut.filter((_, i) => i % 6 === 0).join(',')})`;
+  const legendGradient = (lut: string[]): string =>
+    `linear-gradient(90deg, ${lut.filter((_, i) => i % 6 === 0).join(',')})`;
   const tDew = dewPoint(design.cfg.setCool, design.cfg.rh);
 
   // ----- tooltip
@@ -388,15 +577,26 @@ export function PlanView() {
     const dpv = q > 0 && th ? strandDp(design.ctx, sp.panels, sp.extraLength, q, th.tMean) : 0;
     const dq = md.points[tip.strand]?.q ?? 0;
     tipEl = (
-      <div className={p.tip} style={{ left: Math.min(tip.x - rect.left + 14, size.w - 230), top: Math.max(tip.y - rect.top - 10, 4) }} role="tooltip">
-        <strong>Zone {tip.valve + 1} · streng {tip.strand + 1} ({sp.panels} panelen)</strong>
+      <div
+        className={p.tip}
+        style={{
+          left: Math.min(tip.x - rect.left + 14, size.w - 230),
+          top: Math.max(tip.y - rect.top - 10, 4),
+        }}
+        role="tooltip"
+      >
+        <strong>
+          Zone {tip.valve + 1} · streng {tip.strand + 1} ({sp.panels} panelen)
+        </strong>
         {q > 0 && th ? (
           <>
             Q {fmt(q * 3.6e6, 1)} l/h (ontwerp {fmt(dq * 3.6e6, 1)})
             <br />v {fmt(th.v, 2)} m/s · Re {fmt(reynolds(q, design.ctx.di, th.tMean), 0)}
-            <br />Δp {fmt(dpv / 1000, 1)} kPa
             <br />
-            {fmt(md.cond.tIn, 1)} → {fmt(zs.tRetStrand[tip.strand], 1)} °C · {fmt(Math.abs(zs.pStrand[tip.strand]), 0)} W
+            Δp {fmt(dpv / 1000, 1)} kPa
+            <br />
+            {fmt(md.cond.tIn, 1)} → {fmt(zs.tRetStrand[tip.strand], 1)} °C ·{' '}
+            {fmt(Math.abs(zs.pStrand[tip.strand]), 0)} W
           </>
         ) : (
           <>Geen doorstroming · ontwerp {fmt(dq * 3.6e6, 1)} l/h</>
@@ -431,13 +631,19 @@ export function PlanView() {
         <div className={`${p.toolbar} noPrint`} role="group" aria-label="Weergave">
           <div className={ui.seg}>
             {OVERLAYS.map((o) => (
-              <button key={o.id} type="button" aria-pressed={overlay === o.id} onClick={() => setOverlay(o.id)}>
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={overlay === o.id}
+                onClick={() => setOverlay(o.id)}
+              >
                 {o.label}
               </button>
             ))}
           </div>
           <label>
-            <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> Labels
+            <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />{' '}
+            Labels
           </label>
           <button type="button" className={`${ui.btn} ${ui.btnSmall}`} onClick={fit}>
             Passend maken
@@ -446,7 +652,9 @@ export function PlanView() {
         <div className={p.legend} aria-label="Legenda">
           {overlay === 'verdeling' ? (
             <>
-              <div>Q / Q<sub>ontwerp</sub></div>
+              <div>
+                Q / Q<sub>ontwerp</sub>
+              </div>
               <div className={p.legendBar} style={{ background: legendGradient(DEV_LUT) }} />
               <div className={p.legendTicks}>
                 <span>−30 %</span>
@@ -463,7 +671,11 @@ export function PlanView() {
                 <span>{fmt(tRoom0, 1)} (ruimte)</span>
                 <span>{fmt(rng.warm, 0)}</span>
               </div>
-              {overlay === 'oppervlak' && <div style={{ marginTop: 3 }}>▨ gearceerd: onder T<sub>dauw</sub> + 1 K ({fmt(tDew + 1, 1)} °C)</div>}
+              {overlay === 'oppervlak' && (
+                <div style={{ marginTop: 3 }}>
+                  ▨ gearceerd: onder T<sub>dauw</sub> + 1 K ({fmt(tDew + 1, 1)} °C)
+                </div>
+              )}
             </>
           )}
         </div>

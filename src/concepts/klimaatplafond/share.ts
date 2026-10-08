@@ -17,9 +17,17 @@ function diff(a: Json, b: Json): Json | undefined {
 }
 
 function merge(base: Json, patch: Json): Json {
-  if (patch && base && typeof patch === 'object' && typeof base === 'object' && !Array.isArray(patch) && !Array.isArray(base)) {
+  if (
+    patch &&
+    base &&
+    typeof patch === 'object' &&
+    typeof base === 'object' &&
+    !Array.isArray(patch) &&
+    !Array.isArray(base)
+  ) {
     const out: { [k: string]: Json } = { ...(base as { [k: string]: Json }) };
-    for (const k of Object.keys(patch)) out[k] = merge((base as { [k: string]: Json })[k] as Json, (patch as { [k: string]: Json })[k]);
+    for (const k of Object.keys(patch))
+      out[k] = merge((base as { [k: string]: Json })[k] as Json, (patch as { [k: string]: Json })[k]);
     return out;
   }
   return patch;

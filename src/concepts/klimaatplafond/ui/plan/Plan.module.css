@@ -25,6 +25,8 @@
   position: absolute;
   top: 8px;
   left: 8px;
+  right: 8px;
+  max-width: max-content;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;

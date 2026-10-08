@@ -1,7 +1,13 @@
 // Zustand-store voor het klimaatplafond. De simulatiestatus staat buiten React (live) en wordt ~6× per seconde
 // naar de UI doorgegeven via `tick`; dat houdt de animatie vloeiend.
 import { create } from 'zustand';
-import { defaultConfig, normalizeConfig, withValveCount, type KlimaatplafondConfig, type ValveConfig } from './model/config';
+import {
+  defaultConfig,
+  normalizeConfig,
+  withValveCount,
+  type KlimaatplafondConfig,
+  type ValveConfig,
+} from './model/config';
 import { computeDesign, resolveAdvice, type Design } from './model/design';
 import {
   advance,
@@ -29,7 +35,16 @@ interface Highlight {
 /** Waarden die tijdens het draaien kunnen veranderen zonder de simulatie te resetten. */
 function structuralKey(cfg: KlimaatplafondConfig): string {
   const c = JSON.parse(JSON.stringify(cfg)) as KlimaatplafondConfig;
-  for (const k of ['Kp', 'Ti', 'flowChar', 'speed', 'dewProtection', 'rh', 'startTemp', 'keepCurrent'] as const) {
+  for (const k of [
+    'Kp',
+    'Ti',
+    'flowChar',
+    'speed',
+    'dewProtection',
+    'rh',
+    'startTemp',
+    'keepCurrent',
+  ] as const) {
     (c as unknown as Record<string, unknown>)[k] = 0;
   }
   for (const v of c.valves) {
@@ -113,7 +128,11 @@ function applyDesign(cfg: KlimaatplafondConfig, force = false): void {
     live.log = [];
     live.acc = 0;
   }
-  useStore.setState({ design, tick: useStore.getState().tick + 1, logVersion: useStore.getState().logVersion + 1 });
+  useStore.setState({
+    design,
+    tick: useStore.getState().tick + 1,
+    logVersion: useStore.getState().logVersion + 1,
+  });
 }
 
 function scheduleDesign(cfg: KlimaatplafondConfig): void {
@@ -164,7 +183,12 @@ export const useStore = create<State>((set, get) => ({
   applyAdvice: (valve) => {
     const cfg = get().config;
     const forced = resolveAdvice(
-      { ...cfg, valves: cfg.valves.map((v, i) => (i === valve ? { ...v, kvsKoelen: null, kvsVerwarmen: null, picv: null } : v)) },
+      {
+        ...cfg,
+        valves: cfg.valves.map((v, i) =>
+          i === valve ? { ...v, kvsKoelen: null, kvsVerwarmen: null, picv: null } : v,
+        ),
+      },
       false,
     );
     get().setConfig(() => forced);
@@ -172,7 +196,12 @@ export const useStore = create<State>((set, get) => ({
   setTab: (tab) => set({ tab }),
   setOverlay: (overlay) => set({ overlay }),
   setShowLabels: (showLabels) => set({ showLabels }),
-  select: (valve, strand = null) => set({ selValve: valve, selStrand: strand, highlight: strand === null ? null : { valve, strands: [strand] } }),
+  select: (valve, strand = null) =>
+    set({
+      selValve: valve,
+      selStrand: strand,
+      highlight: strand === null ? null : { valve, strands: [strand] },
+    }),
   setHighlight: (highlight) => set(highlight ? { highlight, selValve: highlight.valve } : { highlight }),
   setMode: (m) => {
     live.sim = setRunMode(live.sim, live.design, m);

@@ -13,13 +13,28 @@ export function ControlBar() {
 
   return (
     <div className={`${s.controlBar} noPrint`} role="group" aria-label="Bediening simulatie">
-      <button type="button" className={`${s.btn} ${s.btnWarm} ${mode === 'verwarmen' ? s.btnActive : ''}`} aria-pressed={mode === 'verwarmen'} onClick={() => setMode('verwarmen')}>
+      <button
+        type="button"
+        className={`${s.btn} ${s.btnWarm} ${mode === 'verwarmen' ? s.btnActive : ''}`}
+        aria-pressed={mode === 'verwarmen'}
+        onClick={() => setMode('verwarmen')}
+      >
         🔥 Verwarmen
       </button>
-      <button type="button" className={`${s.btn} ${s.btnCold} ${mode === 'koelen' ? s.btnActive : ''}`} aria-pressed={mode === 'koelen'} onClick={() => setMode('koelen')}>
+      <button
+        type="button"
+        className={`${s.btn} ${s.btnCold} ${mode === 'koelen' ? s.btnActive : ''}`}
+        aria-pressed={mode === 'koelen'}
+        onClick={() => setMode('koelen')}
+      >
         ❄ Koelen
       </button>
-      <button type="button" className={`${s.btn} ${mode === 'stop' && sim.t > 0 ? s.btnActive : ''}`} aria-pressed={mode === 'stop'} onClick={() => setMode('stop')}>
+      <button
+        type="button"
+        className={`${s.btn} ${mode === 'stop' && sim.t > 0 ? s.btnActive : ''}`}
+        aria-pressed={mode === 'stop'}
+        onClick={() => setMode('stop')}
+      >
         ■ Stop
       </button>
       <button type="button" className={s.btn} onClick={reset}>
@@ -27,7 +42,12 @@ export function ControlBar() {
       </button>
       <div className={s.seg} role="group" aria-label="Simulatiesnelheid">
         {([1, 10, 60, 300] as const).map((v) => (
-          <button key={v} type="button" aria-pressed={speed === v} onClick={() => setConfig((c) => ({ ...c, speed: v }))}>
+          <button
+            key={v}
+            type="button"
+            aria-pressed={speed === v}
+            onClick={() => setConfig((c) => ({ ...c, speed: v }))}
+          >
             {v}×
           </button>
         ))}

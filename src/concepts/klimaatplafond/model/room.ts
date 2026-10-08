@@ -13,7 +13,12 @@ export interface ZoneRoom {
   occupancy: number;
 }
 
-export function zoneRoom(cfg: KlimaatplafondConfig, share: number, panels: number, panelArea: number): ZoneRoom {
+export function zoneRoom(
+  cfg: KlimaatplafondConfig,
+  share: number,
+  panels: number,
+  panelArea: number,
+): ZoneRoom {
   const area = cfg.floorArea * share;
   return {
     area,

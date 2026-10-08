@@ -8,8 +8,8 @@ export default function Home() {
       <section className={s.hero}>
         <h1>Installatieconcepten</h1>
         <p className={s.lead}>
-          Interactieve rekenmodellen en visualisaties voor het kiezen en begrijpen van installatieconcepten. Pas de
-          invoer aan, zie direct wat er hydraulisch en thermisch gebeurt en waarom.
+          Interactieve rekenmodellen en visualisaties voor het kiezen en begrijpen van installatieconcepten.
+          Pas de invoer aan, zie direct wat er hydraulisch en thermisch gebeurt en waarom.
         </p>
       </section>
       <ul className={s.grid} aria-label="Concepten">

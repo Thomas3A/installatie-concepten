@@ -7,7 +7,7 @@ aangesloten op één tot drie 6-weg-kleppen in een 4-pijpssysteem.
 De tool maakt de "puzzel" zichtbaar: hoe hangen het aantal panelen in serie, buisdiameter, debiet, drukval,
 Reynoldsgetal, ΔT en vermogen samen — en wat er gebeurt als strengen ongelijk zijn zonder inregeling na de klep.
 
-**Live:** zie de GitHub Pages-link van deze repository (Settings → Pages).
+**Live:** https://thomas3a.github.io/installatie-concepten/ (na het inschakelen van GitHub Pages, zie "Deploy").
 
 > Indicatief rekenmodel voor uitleg en conceptkeuze. Geen vervanging van de productberekening van de fabrikant.
 

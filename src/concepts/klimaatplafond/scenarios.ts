@@ -1,5 +1,11 @@
 // Tien scenario's (§7.8). Basis is steeds de standaardconfiguratie, plus de genoemde wijzigingen.
-import { defaultConfig, defaultValve, normalizeConfig, type KlimaatplafondConfig, type ValveConfig } from './model/config';
+import {
+  defaultConfig,
+  defaultValve,
+  normalizeConfig,
+  type KlimaatplafondConfig,
+  type ValveConfig,
+} from './model/config';
 import { resolveAdvice } from './model/design';
 
 export interface Scenario {
@@ -40,7 +46,12 @@ export const SCENARIOS: Scenario[] = [
     probeer: 'Probeer 3 × 4 (zet de koppeling op handmatig of automatisch).',
     expect: [['W03'], ['W04']],
     tab: 'puzzel',
-    build: () => withValve(defaultConfig(), { panelCount: 12, coupling: 'manual', manualStrands: manual(...Array(12).fill(1)) }),
+    build: () =>
+      withValve(defaultConfig(), {
+        panelCount: 12,
+        coupling: 'manual',
+        manualStrands: manual(...Array(12).fill(1)),
+      }),
   },
   {
     id: 'S3',
@@ -49,7 +60,8 @@ export const SCENARIOS: Scenario[] = [
     probeer: 'Verdeel de panelen over 3 strengen van 4.',
     expect: [['W01'], ['W02'], ['W05']],
     tab: 'puzzel',
-    build: () => withValve(defaultConfig(), { panelCount: 12, coupling: 'manual', manualStrands: manual(12) }),
+    build: () =>
+      withValve(defaultConfig(), { panelCount: 12, coupling: 'manual', manualStrands: manual(12) }),
   },
   {
     id: 'S4',
@@ -58,7 +70,8 @@ export const SCENARIOS: Scenario[] = [
     probeer: 'Probeer 5·5 (de Δp wordt te hoog) of 12 panelen.',
     expect: [['W03'], ['W08']],
     tab: 'puzzel',
-    build: () => withValve(defaultConfig(), { panelCount: 10, coupling: 'manual', manualStrands: manual(4, 3, 3) }),
+    build: () =>
+      withValve(defaultConfig(), { panelCount: 10, coupling: 'manual', manualStrands: manual(4, 3, 3) }),
   },
   {
     id: 'S5',
@@ -77,7 +90,8 @@ export const SCENARIOS: Scenario[] = [
     id: 'S6',
     name: 'S6 · Eén grote klep of drie kleine',
     wat: 'Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep DN20 met 60 panelen: 15 × 4 aan één verdeelleiding 20×2, +23 % / −9 % ongelijk, Kv nodig ≈ 3,6.',
-    probeer: 'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): Kv ≈ 0,7 en de verdeling blijft binnen ±3 %.',
+    probeer:
+      'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): Kv ≈ 0,7 en de verdeling blijft binnen ±3 %.',
     expect: [['W08']],
     tab: 'puzzel',
     build: () => {
@@ -105,7 +119,8 @@ export const SCENARIOS: Scenario[] = [
     id: 'S8',
     name: 'S8 · Condensatie',
     wat: 'RV 65 %: T_dauw ≈ 17,0 °C en T_opp,min ≈ 17,5 °C, dus W09. Met dauwpuntbeveiliging blijft de klep dicht bij koelen (I04). Ook 18 °C aanvoer zit op de grens (T_dauw + 1 K ≈ 18,0 °C) en kost bovendien ca. 35 % vermogen: laminaire strengen en W11.',
-    probeer: 'Verlaag de RV naar 55 % (ontvochtigen via de ventilatie): T_dauw ≈ 14,4 °C en koelen met 16 °C werkt weer.',
+    probeer:
+      'Verlaag de RV naar 55 % (ontvochtigen via de ventilatie): T_dauw ≈ 14,4 °C en koelen met 16 °C werkt weer.',
     expect: [['W09']],
     tab: 'dynamiek',
     build: () => {
@@ -130,7 +145,8 @@ export const SCENARIOS: Scenario[] = [
     probeer: 'Klik "Advies toepassen", of zet de DN op 15.',
     expect: [['W12']],
     tab: 'klep',
-    build: () => withValve(defaultConfig(), { type: 'B', dn: 20, panelCount: 8, kvsKoelen: 4.0, kvsVerwarmen: 4.0 }),
+    build: () =>
+      withValve(defaultConfig(), { type: 'B', dn: 20, panelCount: 8, kvsKoelen: 4.0, kvsVerwarmen: 4.0 }),
   },
 ];
 

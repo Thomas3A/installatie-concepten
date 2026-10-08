@@ -8,7 +8,16 @@ import s from './ui.module.css';
 export function StrandEditor({ valve, strands }: { valve: number; strands: ManualStrand[] }) {
   const patchValve = useStore((st) => st.patchValve);
   const update = (list: ManualStrand[]): void =>
-    patchValve(valve, { manualStrands: list, panelCount: Math.min(64, Math.max(1, list.reduce((a, x) => a + x.panels, 0))) });
+    patchValve(valve, {
+      manualStrands: list,
+      panelCount: Math.min(
+        64,
+        Math.max(
+          1,
+          list.reduce((a, x) => a + x.panels, 0),
+        ),
+      ),
+    });
   const total = strands.reduce((a, x) => a + x.panels, 0);
 
   return (

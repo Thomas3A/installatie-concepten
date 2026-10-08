@@ -60,7 +60,8 @@ export interface PlanLayout {
 
 function cumulative(path: Pt[]): number[] {
   const cum = [0];
-  for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y));
+  for (let i = 1; i < path.length; i++)
+    cum.push(cum[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y));
   return cum;
 }
 
@@ -73,7 +74,13 @@ export function splitPath(path: Pt[], n: number): Float32Array[] {
     let i = 1;
     while (i < path.length - 1 && cum[i] < u) i++;
     const f = (u - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 1e-12);
-    return { p: { x: path[i - 1].x + f * (path[i].x - path[i - 1].x), y: path[i - 1].y + f * (path[i].y - path[i - 1].y) }, i };
+    return {
+      p: {
+        x: path[i - 1].x + f * (path[i].x - path[i - 1].x),
+        y: path[i - 1].y + f * (path[i].y - path[i - 1].y),
+      },
+      i,
+    };
   };
   for (let j = 0; j < n; j++) {
     const u0 = (j / n) * total;
@@ -104,7 +111,8 @@ export function buildLayout(design: Design): PlanLayout {
     vd.strands.forEach((st, k) => {
       const cx = x0 + vd.cfg.distanceFirst + k * vd.cfg.spacing;
       const panels: PlanPanel[] = [];
-      for (let p = 0; p < st.panels; p++) panels.push({ x: cx - g.B / 2, y: STRAND_Y0 + p * (g.L + PANEL_GAP) });
+      for (let p = 0; p < st.panels; p++)
+        panels.push({ x: cx - g.B / 2, y: STRAND_Y0 + p * (g.L + PANEL_GAP) });
       const height = st.panels * g.L + (st.panels - 1) * PANEL_GAP;
       const path: Pt[] = [];
       const tubeSpans: [number, number][] = [];
@@ -135,7 +143,19 @@ export function buildLayout(design: Design): PlanLayout {
       const riserX = cx + g.B / 2 + 0.05;
       path.push({ x: riserX, y: ex.y }, { x: riserX, y: RETURN_Y });
       const cum = cumulative(path);
-      strands.push({ valve: vd.index, index: k, cx, panels, height, supplyX, riserX, path, cum, tubeSpans, length: cum[cum.length - 1] });
+      strands.push({
+        valve: vd.index,
+        index: k,
+        cx,
+        panels,
+        height,
+        supplyX,
+        riserX,
+        path,
+        cum,
+        tubeSpans,
+        length: cum[cum.length - 1],
+      });
       endX = Math.max(endX, riserX);
       bottom = Math.max(bottom, STRAND_Y0 + height);
     });
@@ -148,7 +168,7 @@ export function buildLayout(design: Design): PlanLayout {
   const anyTich = design.valves.some((v) => v.cfg.layout === 'tichelmann');
   return {
     zones,
-    bounds: { minX: -1.0, minY: (anyTich ? TICH_Y : RETURN_Y) - 0.5, maxX: maxX + 0.2, maxY: maxY + 0.4 },
+    bounds: { minX: -1.0, minY: anyTich ? -1.15 : -0.65, maxX: maxX + 0.2, maxY: maxY + 0.4 },
     geom: g,
     meander,
     segPolys,
@@ -163,7 +183,11 @@ export function pointAt(s: PlanStrand, u: number, hint = 1): { x: number; y: num
   while (i < path.length - 1 && cum[i] < u) i++;
   const span = Math.max(cum[i] - cum[i - 1], 1e-12);
   const f = Math.min(Math.max((u - cum[i - 1]) / span, 0), 1);
-  return { x: path[i - 1].x + f * (path[i].x - path[i - 1].x), y: path[i - 1].y + f * (path[i].y - path[i - 1].y), i };
+  return {
+    x: path[i - 1].x + f * (path[i].x - path[i - 1].x),
+    y: path[i - 1].y + f * (path[i].y - path[i - 1].y),
+    i,
+  };
 }
 
 /**

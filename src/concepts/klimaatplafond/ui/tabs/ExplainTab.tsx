@@ -1,5 +1,5 @@
 import { EXPLAIN } from '../../texts';
-import { MathText } from "../MathText";
+import { MathText } from '../MathText';
 import s from '../ui.module.css';
 
 export function ExplainTab() {

@@ -38,7 +38,12 @@ export function thetaTarget(mode: Mode | 'stop', h: number): number {
 }
 
 /** Kv (m³/h) van Type B bij stand θ. */
-export function kvTypeB(theta: number, kvsKoelen: number, kvsVerwarmen: number, nGl: number = TYPE_B.nGl): number {
+export function kvTypeB(
+  theta: number,
+  kvsKoelen: number,
+  kvsVerwarmen: number,
+  nGl: number = TYPE_B.nGl,
+): number {
   const st = thetaToState(theta);
   if (st.seq === 'dicht') return 0;
   return (st.seq === 'koelen' ? kvsKoelen : kvsVerwarmen) * kvRel(st.h, nGl);

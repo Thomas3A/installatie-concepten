@@ -15,7 +15,15 @@ import {
   type StrandSpec,
   type ZoneNetworkSpec,
 } from './zoneHydraulics';
-import { adviceTypeA, adviceTypeB, dpNeeded, solveFlow, type AdviceA, type AdviceB, m3sToM3h } from './valves';
+import {
+  adviceTypeA,
+  adviceTypeB,
+  dpNeeded,
+  solveFlow,
+  type AdviceA,
+  type AdviceB,
+  m3sToM3h,
+} from './valves';
 
 export const MODES: Mode[] = ['koelen', 'verwarmen'];
 
@@ -167,7 +175,11 @@ export function distribute(N: number, p: number): number[] {
   return Array.from({ length: p }, (_, i) => base + (i < rest ? 1 : 0));
 }
 
-function penaltyOf(pt: DesignPoint, dpMax: number, lim: { vMin: number; vMax: number; reLaminar: number }): number {
+function penaltyOf(
+  pt: DesignPoint,
+  dpMax: number,
+  lim: { vMin: number; vMax: number; reLaminar: number },
+): number {
   return (
     Math.max(0, pt.dp / dpMax - 1) +
     Math.max(0, (lim.reLaminar - pt.re) / lim.reLaminar) +
@@ -177,11 +189,20 @@ function penaltyOf(pt: DesignPoint, dpMax: number, lim: { vMin: number; vMax: nu
   );
 }
 
-function pointValid(pt: DesignPoint, dpMax: number, lim: { vMin: number; vMax: number; reLaminar: number }): boolean {
+function pointValid(
+  pt: DesignPoint,
+  dpMax: number,
+  lim: { vMin: number; vMax: number; reLaminar: number },
+): boolean {
   return pt.dp <= dpMax && pt.re >= lim.reLaminar && pt.v >= lim.vMin && pt.v <= lim.vMax && pt.feasible;
 }
 
-export function buildCandidates(cfg: KlimaatplafondConfig, ctx: PlafondContext, N: number, cache: DesignCache): Candidate[] {
+export function buildCandidates(
+  cfg: KlimaatplafondConfig,
+  ctx: PlafondContext,
+  N: number,
+  cache: DesignCache,
+): Candidate[] {
   const out: Candidate[] = [];
   const dpMax = cfg.dpMax * 1000;
   const lim = cfg.advanced.limits;
@@ -233,7 +254,10 @@ export function chooseCandidate(cands: Candidate[]): number | null {
   for (const x of pool) {
     if (valid.length) {
       if (x.c.p < best.c.p) best = x;
-    } else if (x.c.penalty < best.c.penalty - 1e-12 || (Math.abs(x.c.penalty - best.c.penalty) <= 1e-12 && x.c.p < best.c.p)) {
+    } else if (
+      x.c.penalty < best.c.penalty - 1e-12 ||
+      (Math.abs(x.c.penalty - best.c.penalty) <= 1e-12 && x.c.p < best.c.p)
+    ) {
       best = x;
     }
   }
@@ -319,7 +343,13 @@ export function computeDesign(cfgIn: KlimaatplafondConfig): Design {
       const dist2 = chosen !== null ? candidates[chosen].distribution : [v.panelCount];
       strands = dist2.map((n) => ({ panels: n, extraLength: 0 }));
     }
-    const spec: ZoneNetworkSpec = { strands, dist: distSpec, x1: v.distanceFirst, hc: v.spacing, layout: v.layout };
+    const spec: ZoneNetworkSpec = {
+      strands,
+      dist: distSpec,
+      x1: v.distanceFirst,
+      hc: v.spacing,
+      layout: v.layout,
+    };
     const modes = {
       koelen: designMode(ctx, cache, v, strands, spec, 'koelen'),
       verwarmen: designMode(ctx, cache, v, strands, spec, 'verwarmen'),
@@ -384,7 +414,9 @@ export function computeDesign(cfgIn: KlimaatplafondConfig): Design {
 
 /** Pas het klepadvies toe op alle kleppen waar Kvs/PICV nog niet expliciet is ingesteld (null), of op alle kleppen met `force`. */
 export function resolveAdvice(cfg: KlimaatplafondConfig, force = false): KlimaatplafondConfig {
-  const needs = cfg.valves.some((v) => force || v.kvsKoelen === null || v.kvsVerwarmen === null || v.picv === null);
+  const needs = cfg.valves.some(
+    (v) => force || v.kvsKoelen === null || v.kvsVerwarmen === null || v.picv === null,
+  );
   if (!needs) return cfg;
   const design = computeDesign(cfg);
   const valves = cfg.valves.map((v, i) => {

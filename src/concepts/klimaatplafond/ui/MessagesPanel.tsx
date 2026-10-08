@@ -20,7 +20,9 @@ function MessageItem({ m }: { m: Msg }) {
   const where = m.valve >= 0 ? `zone ${m.valve + 1}` : 'algemeen';
   return (
     <details className={`${s.msg} ${SEV_CLASS[m.severity]}`}>
-      <summary onClick={() => (m.valve >= 0 ? setHighlight({ valve: m.valve, strands: m.strands }) : undefined)}>
+      <summary
+        onClick={() => (m.valve >= 0 ? setHighlight({ valve: m.valve, strands: m.strands }) : undefined)}
+      >
         <span className={s.msgIcon} role="img" aria-label={SEV_LABEL[m.severity]}>
           {ICON[m.severity]}
         </span>
@@ -53,7 +55,11 @@ function MessageItem({ m }: { m: Msg }) {
         </details>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {m.valve >= 0 && (
-            <button type="button" className={`${s.btn} ${s.btnSmall}`} onClick={() => setHighlight({ valve: m.valve, strands: m.strands })}>
+            <button
+              type="button"
+              className={`${s.btn} ${s.btnSmall}`}
+              onClick={() => setHighlight({ valve: m.valve, strands: m.strands })}
+            >
               Markeer in plattegrond
             </button>
           )}
@@ -75,7 +81,11 @@ function MessageItem({ m }: { m: Msg }) {
             </button>
           )}
           {m.action === 'tichelmann' && (
-            <button type="button" className={`${s.btn} ${s.btnSmall}`} onClick={() => patchValve(m.valve, { layout: 'tichelmann' })}>
+            <button
+              type="button"
+              className={`${s.btn} ${s.btnSmall}`}
+              onClick={() => patchValve(m.valve, { layout: 'tichelmann' })}
+            >
               Tichelmann proberen
             </button>
           )}
@@ -93,10 +103,16 @@ function Group({ title, list }: { title: string; list: Msg[] }) {
       <div className={s.groupTitle}>{title}</div>
       {zones.map((z) => (
         <div key={z}>
-          {zones.length > 1 && z >= 0 && <div className={s.hint} style={{ margin: '4px 0 2px' }}>Zone {z + 1}</div>}
-          {list.filter((m) => m.valve === z).map((m) => (
-            <MessageItem key={m.id} m={m} />
-          ))}
+          {zones.length > 1 && z >= 0 && (
+            <div className={s.hint} style={{ margin: '4px 0 2px' }}>
+              Zone {z + 1}
+            </div>
+          )}
+          {list
+            .filter((m) => m.valve === z)
+            .map((m) => (
+              <MessageItem key={m.id} m={m} />
+            ))}
         </div>
       ))}
     </div>

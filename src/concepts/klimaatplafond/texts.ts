@@ -59,7 +59,9 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
     why: [
       'Onder ca. 0,25 m/s worden luchtbellen niet meegevoerd. Dat geeft ontluchtingsproblemen, geluid en strengen die "dichtslaan".',
     ],
-    solutions: ['Dezelfde als bij laminaire stroming: meer panelen in serie, een kleinere buisdiameter of een kleinere ontwerp-ΔT.'],
+    solutions: [
+      'Dezelfde als bij laminaire stroming: meer panelen in serie, een kleinere buisdiameter of een kleinere ontwerp-ΔT.',
+    ],
   },
   W05: {
     title: 'Te hoge stroomsnelheid',
@@ -92,7 +94,8 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
     why: [
       'Zonder inregeling na de klep kiest het water de weg van de minste weerstand. Korte strengen en strengen dicht bij de klep krijgen te veel, lange en verre strengen te weinig, en kunnen daardoor zelfs laminair worden.',
     ],
-    formula: '\\Delta P_i = \\Delta P_0 - \\sum_{k\\le i} 2\\,\\Delta p_{leiding}(F_k, l_k) = \\Delta p_{streng,i}(Q_i)',
+    formula:
+      '\\Delta P_i = \\Delta P_0 - \\sum_{k\\le i} 2\\,\\Delta p_{leiding}(F_k, l_k) = \\Delta p_{streng,i}(Q_i)',
     solutions: [
       'Gelijke strengen',
       'Langere strengen dicht bij de klep',
@@ -106,7 +109,8 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
     why: [
       'Het koudste plafondoppervlak (bij de aanvoer) ligt onder het dauwpunt plus marge. Er ontstaat dan condens op het plafond.',
     ],
-    formula: '\\gamma = \\ln\\frac{RV}{100} + \\frac{17{,}62\\,T}{243{,}12+T},\\qquad T_{dauw} = \\frac{243{,}12\\,\\gamma}{17{,}62-\\gamma}',
+    formula:
+      '\\gamma = \\ln\\frac{RV}{100} + \\frac{17{,}62\\,T}{243{,}12+T},\\qquad T_{dauw} = \\frac{243{,}12\\,\\gamma}{17{,}62-\\gamma}',
     solutions: [
       'Een hogere aanvoertemperatuur (kost vermogen)',
       'De ruimte ontvochtigen via de ventilatie',
@@ -134,9 +138,7 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
   },
   W12: {
     title: 'Kvs te groot (Type B)',
-    why: [
-      'De klep regelt in een klein deel van haar slag. De regeling wordt dan grof en gaat pendelen.',
-    ],
+    why: ['De klep regelt in een klein deel van haar slag. De regeling wordt dan grof en gaat pendelen.'],
     formula: 'K_{v,nodig} = \\frac{\\dot V_{max}}{\\sqrt{\\Delta p_{klep}/100}}',
     solutions: ['Een kleinere Kvs; zie het advies bij de klepinstellingen.'],
   },
@@ -155,7 +157,9 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
   },
   W15: {
     title: 'Te veel strengen',
-    why: ['Voor een geldige koppeling zijn meer dan 16 parallelle strengen nodig. Dat is meer dan de verdeelleiding toelaat.'],
+    why: [
+      'Voor een geldige koppeling zijn meer dan 16 parallelle strengen nodig. Dat is meer dan de verdeelleiding toelaat.',
+    ],
     solutions: ['Splits de panelen over meer kleppen', 'Verleng de strengen (minder parallel)'],
   },
   W16: {
@@ -278,39 +282,105 @@ export interface FieldInfo {
 }
 
 export const FIELD_INFO: Record<string, FieldInfo> = {
-  floorArea: { label: 'Vloeroppervlak open kantoor', info: 'Totaal vloeroppervlak; wordt verdeeld over de zones naar aandeel panelen.' },
-  heatLoss: { label: 'Warmteverlies bij ontwerp', info: 'Warmteverlies van het hele kantoor bij ontwerp-buitentemperatuur (−10 °C).' },
-  coolLoad: { label: 'Koellast bij ontwerp', info: 'Koellast van het hele kantoor bij ontwerpcondities (personen, verlichting, apparatuur, zon).' },
-  mass: { label: 'Thermische massa', info: 'Warmtecapaciteit per m² vloeroppervlak: licht 15, middel 30, zwaar 60 kJ/(m²·K).' },
+  floorArea: {
+    label: 'Vloeroppervlak open kantoor',
+    info: 'Totaal vloeroppervlak; wordt verdeeld over de zones naar aandeel panelen.',
+  },
+  heatLoss: {
+    label: 'Warmteverlies bij ontwerp',
+    info: 'Warmteverlies van het hele kantoor bij ontwerp-buitentemperatuur (−10 °C).',
+  },
+  coolLoad: {
+    label: 'Koellast bij ontwerp',
+    info: 'Koellast van het hele kantoor bij ontwerpcondities (personen, verlichting, apparatuur, zon).',
+  },
+  mass: {
+    label: 'Thermische massa',
+    info: 'Warmtecapaciteit per m² vloeroppervlak: licht 15, middel 30, zwaar 60 kJ/(m²·K).',
+  },
   rh: { label: 'RV ruimte', info: 'Relatieve vochtigheid bij het koelsetpoint; bepaalt het dauwpunt.' },
-  startTemp: { label: 'Starttemperatuur', info: 'Automatisch: setpoint verwarmen − 3 K of setpoint koelen + 3 K. Of kies een vaste starttemperatuur.' },
-  tSupplyCool: { label: 'Aanvoer koelen', info: 'Aanvoertemperatuur koelwater. Dichter bij het dauwpunt betekent meer vermogen maar meer condensatierisico.' },
+  startTemp: {
+    label: 'Starttemperatuur',
+    info: 'Automatisch: setpoint verwarmen − 3 K of setpoint koelen + 3 K. Of kies een vaste starttemperatuur.',
+  },
+  tSupplyCool: {
+    label: 'Aanvoer koelen',
+    info: 'Aanvoertemperatuur koelwater. Dichter bij het dauwpunt betekent meer vermogen maar meer condensatierisico.',
+  },
   tSupplyHeat: { label: 'Aanvoer verwarmen', info: 'Aanvoertemperatuur warmwater.' },
-  dtCool: { label: 'Ontwerp-ΔT koelen', info: 'Gewenst temperatuurverschil aanvoer–retour bij ontwerpdebiet.' },
-  dtHeat: { label: 'Ontwerp-ΔT verwarmen', info: 'Gewenst temperatuurverschil aanvoer–retour bij ontwerpdebiet.' },
+  dtCool: {
+    label: 'Ontwerp-ΔT koelen',
+    info: 'Gewenst temperatuurverschil aanvoer–retour bij ontwerpdebiet.',
+  },
+  dtHeat: {
+    label: 'Ontwerp-ΔT verwarmen',
+    info: 'Gewenst temperatuurverschil aanvoer–retour bij ontwerpdebiet.',
+  },
   setHeat: { label: 'Setpoint verwarmen', info: 'Gewenste luchttemperatuur bij verwarmen.' },
-  setCool: { label: 'Setpoint koelen', info: 'Gewenste luchttemperatuur bij koelen. Minimaal 1 K boven het setpoint verwarmen (dode zone).' },
+  setCool: {
+    label: 'Setpoint koelen',
+    info: 'Gewenste luchttemperatuur bij koelen. Minimaal 1 K boven het setpoint verwarmen (dode zone).',
+  },
   panelSize: { label: 'Paneelmaat', info: 'De meanderbenen lopen parallel aan de lange zijde.' },
-  pitch: { label: 'Buissteek', info: 'Hart-op-hart afstand van de buisbenen. Kleiner = meer vermogen per m², maar langere buis en meer drukval.' },
+  pitch: {
+    label: 'Buissteek',
+    info: 'Hart-op-hart afstand van de buisbenen. Kleiner = meer vermogen per m², maar langere buis en meer drukval.',
+  },
   tube: { label: 'Koperbuis', info: 'Buisafmeting van de paneelbuis en de koppelslangen.' },
-  valveCount: { label: 'Aantal kleppen (zones)', info: 'Elke klep bedient één zone. Het kantoor wordt in zones naast elkaar verdeeld.' },
-  dpAvailable: { label: 'Beschikbaar Δp vóór klep', info: 'Verschildruk die het distributienet vóór de klep levert.' },
-  dpMax: { label: 'Max. drukval per streng', info: 'De "gevraagde drukval": bovengrens voor de drukval van één streng bij ontwerpdebiet.' },
-  type: { label: 'Kleptype', info: 'Type A: schakelende 6-weg + PICV. Type B: modulerende gekarakteriseerde 6-weg met flow- en ΔT-meting.' },
+  valveCount: {
+    label: 'Aantal kleppen (zones)',
+    info: 'Elke klep bedient één zone. Het kantoor wordt in zones naast elkaar verdeeld.',
+  },
+  dpAvailable: {
+    label: 'Beschikbaar Δp vóór klep',
+    info: 'Verschildruk die het distributienet vóór de klep levert.',
+  },
+  dpMax: {
+    label: 'Max. drukval per streng',
+    info: 'De "gevraagde drukval": bovengrens voor de drukval van één streng bij ontwerpdebiet.',
+  },
+  type: {
+    label: 'Kleptype',
+    info: 'Type A: schakelende 6-weg + PICV. Type B: modulerende gekarakteriseerde 6-weg met flow- en ΔT-meting.',
+  },
   dn: { label: 'DN', info: 'Nominale diameter van de klep.' },
   kvs: { label: 'Kvs', info: 'Doorlaatwaarde bij volledig open, per sequentie. Zie het advies.' },
   picv: { label: 'PICV-uitvoering', info: 'Drukonafhankelijk regelventiel in de plafondretour.' },
   panelCount: { label: 'Aantal panelen', info: 'Panelen aan deze klep.' },
-  coupling: { label: 'Koppeling', info: 'Automatisch: de tool kiest het aantal panelen per streng (zie tabblad Puzzel). Handmatig: stel zelf de strengen in.' },
-  vmax: { label: 'Vmax', info: 'Debietbegrenzing per sequentie. Automatisch = som van de ontwerpdebieten van de strengen.' },
-  dtManager: { label: 'ΔT-manager', info: 'Begrenst het debiet als het gemeten ΔT onder het minimum zakt (alleen Type B).' },
+  coupling: {
+    label: 'Koppeling',
+    info: 'Automatisch: de tool kiest het aantal panelen per streng (zie tabblad Puzzel). Handmatig: stel zelf de strengen in.',
+  },
+  vmax: {
+    label: 'Vmax',
+    info: 'Debietbegrenzing per sequentie. Automatisch = som van de ontwerpdebieten van de strengen.',
+  },
+  dtManager: {
+    label: 'ΔT-manager',
+    info: 'Begrenst het debiet als het gemeten ΔT onder het minimum zakt (alleen Type B).',
+  },
   distPipe: { label: 'Verdeelleiding', info: 'Leiding tussen klep en strengen (meerlagenbuis).' },
-  distanceFirst: { label: 'Afstand klep → eerste streng', info: 'Lengte van de verdeelleiding tot de eerste aftakking.' },
-  spacing: { label: 'Hart-op-hart strengen', info: 'Afstand tussen opeenvolgende aftakkingen op de verdeelleiding.' },
-  layout: { label: 'Aansluitwijze', info: 'Direct retour: kortste leiding. Tichelmann: gelijke leidinglengte voor alle strengen, meer leiding en drukval.' },
-  dewProtection: { label: 'Dauwpuntbeveiliging', info: 'Sluit de klep als de aanvoer binnen 1 K van het dauwpunt komt.' },
+  distanceFirst: {
+    label: 'Afstand klep → eerste streng',
+    info: 'Lengte van de verdeelleiding tot de eerste aftakking.',
+  },
+  spacing: {
+    label: 'Hart-op-hart strengen',
+    info: 'Afstand tussen opeenvolgende aftakkingen op de verdeelleiding.',
+  },
+  layout: {
+    label: 'Aansluitwijze',
+    info: 'Direct retour: kortste leiding. Tichelmann: gelijke leidinglengte voor alle strengen, meer leiding en drukval.',
+  },
+  dewProtection: {
+    label: 'Dauwpuntbeveiliging',
+    info: 'Sluit de klep als de aanvoer binnen 1 K van het dauwpunt komt.',
+  },
   Kp: { label: 'Kp', info: 'Proportionele versterking van de PI-regelaar (per K).' },
   Ti: { label: 'Ti', info: 'Integratietijd van de PI-regelaar.' },
-  flowChar: { label: 'Debietkarakteristiek', info: 'Vertaling van vraag naar debiet. Gelijkprocentig geeft een bijna lineair verband tussen vraag en vermogen.' },
+  flowChar: {
+    label: 'Debietkarakteristiek',
+    info: 'Vertaling van vraag naar debiet. Gelijkprocentig geeft een bijna lineair verband tussen vraag en vermogen.',
+  },
   speed: { label: 'Simulatiesnelheid', info: 'Hoeveel sneller dan real-time de simulatie loopt.' },
 };

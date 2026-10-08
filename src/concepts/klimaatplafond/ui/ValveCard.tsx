@@ -86,16 +86,19 @@ export function ValveCard({ index }: { index: number }) {
               {(['koelen', 'verwarmen'] as const)
                 .map((m) => {
                   const k = vd.advice.b.kvs[m];
-                  return k === null ? `Kvs ${m}: geen passende Kvs (Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)}; Δp te laag)` : `Kvs ${m} ${fmt(k, 2).replace(/,00$/, '')}`;
+                  return k === null
+                    ? `Kvs ${m}: geen passende Kvs (Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)}; Δp te laag)`
+                    : `Kvs ${m} ${fmt(k, 2).replace(/,00$/, '')}`;
                 })
                 .join(' · ')}
               {vd.advice.b.suggestDn20 ? ' (DN20)' : ''}
-              {vd.advice.b.opening.koelen !== null && ` · opening bij Vmax ≈ ${fmt((vd.advice.b.opening.koelen ?? 0) * 100, 0)} %`}
+              {vd.advice.b.opening.koelen !== null &&
+                ` · opening bij Vmax ≈ ${fmt((vd.advice.b.opening.koelen ?? 0) * 100, 0)} %`}
             </span>
           ) : (
             <span>
-              Advies: {vd.advice.a.picv ?? 'geen passende PICV'} · benodigd Δp {fmt(vd.advice.a.dpNeeded, 1)} kPa{' '}
-              {vd.advice.a.ok ? '≤' : '>'} beschikbaar {fmt(vd.dpAvail / 1000, 1)} kPa
+              Advies: {vd.advice.a.picv ?? 'geen passende PICV'} · benodigd Δp {fmt(vd.advice.a.dpNeeded, 1)}{' '}
+              kPa {vd.advice.a.ok ? '≤' : '>'} beschikbaar {fmt(vd.dpAvail / 1000, 1)} kPa
             </span>
           )}
           <button
@@ -103,7 +106,8 @@ export function ValveCard({ index }: { index: number }) {
             className={`${s.btn} ${s.btnSmall}`}
             disabled={!!sameAdvice}
             onClick={() => {
-              if (v.type === 'B' && vd.advice.b.suggestDn20 && v.dn === 15) patch(index, { dn: 20, kvsKoelen: null, kvsVerwarmen: null, picv: null });
+              if (v.type === 'B' && vd.advice.b.suggestDn20 && v.dn === 15)
+                patch(index, { dn: 20, kvsKoelen: null, kvsVerwarmen: null, picv: null });
               else applyAdvice(index);
             }}
           >
@@ -142,7 +146,9 @@ export function ValveCard({ index }: { index: number }) {
       {auto && vd && (
         <p className={s.hint} style={{ margin: 0 }}>
           Gekozen: {vd.strands.length} × {vd.strands[0]?.panels}
-          {vd.strands.some((x) => x.panels !== vd.strands[0].panels) ? ` (${vd.strands.map((x) => x.panels).join('·')})` : ''}{' '}
+          {vd.strands.some((x) => x.panels !== vd.strands[0].panels)
+            ? ` (${vd.strands.map((x) => x.panels).join('·')})`
+            : ''}{' '}
           panelen per streng.
         </p>
       )}
@@ -155,23 +161,61 @@ export function ValveCard({ index }: { index: number }) {
       />
       {!v.vmaxAuto && (
         <div className={s.fieldRow}>
-          <NumInput label="Vmax koelen" value={v.vmaxKoelen} min={LIMITS.vmax.min} max={LIMITS.vmax.max} step={5} unit="l/h" onChange={(x) => patch(index, { vmaxKoelen: x })} />
-          <NumInput label="Vmax verwarmen" value={v.vmaxVerwarmen} min={LIMITS.vmax.min} max={LIMITS.vmax.max} step={5} unit="l/h" onChange={(x) => patch(index, { vmaxVerwarmen: x })} />
+          <NumInput
+            label="Vmax koelen"
+            value={v.vmaxKoelen}
+            min={LIMITS.vmax.min}
+            max={LIMITS.vmax.max}
+            step={5}
+            unit="l/h"
+            onChange={(x) => patch(index, { vmaxKoelen: x })}
+          />
+          <NumInput
+            label="Vmax verwarmen"
+            value={v.vmaxVerwarmen}
+            min={LIMITS.vmax.min}
+            max={LIMITS.vmax.max}
+            step={5}
+            unit="l/h"
+            onChange={(x) => patch(index, { vmaxVerwarmen: x })}
+          />
         </div>
       )}
       {vd && v.vmaxAuto && (
         <p className={s.hint} style={{ margin: 0 }}>
-          Vmax koelen {fmt(vd.modes.koelen.vmax * 3.6e6, 0)} l/h · verwarmen {fmt(vd.modes.verwarmen.vmax * 3.6e6, 0)} l/h
+          Vmax koelen {fmt(vd.modes.koelen.vmax * 3.6e6, 0)} l/h · verwarmen{' '}
+          {fmt(vd.modes.verwarmen.vmax * 3.6e6, 0)} l/h
         </p>
       )}
 
       {v.type === 'B' && (
         <>
-          <CheckField label="ΔT-manager" info={FIELD_INFO.dtManager.info} checked={v.dtManager} onChange={(dtManager) => patch(index, { dtManager })} />
+          <CheckField
+            label="ΔT-manager"
+            info={FIELD_INFO.dtManager.info}
+            checked={v.dtManager}
+            onChange={(dtManager) => patch(index, { dtManager })}
+          />
           {v.dtManager && (
             <div className={s.fieldRow}>
-              <NumInput label="ΔT min koelen" value={v.dtMinKoelen} min={LIMITS.dtMinCool.min} max={LIMITS.dtMinCool.max} step={0.5} unit="K" onChange={(x) => patch(index, { dtMinKoelen: x })} />
-              <NumInput label="ΔT min verwarmen" value={v.dtMinVerwarmen} min={LIMITS.dtMinHeat.min} max={LIMITS.dtMinHeat.max} step={0.5} unit="K" onChange={(x) => patch(index, { dtMinVerwarmen: x })} />
+              <NumInput
+                label="ΔT min koelen"
+                value={v.dtMinKoelen}
+                min={LIMITS.dtMinCool.min}
+                max={LIMITS.dtMinCool.max}
+                step={0.5}
+                unit="K"
+                onChange={(x) => patch(index, { dtMinKoelen: x })}
+              />
+              <NumInput
+                label="ΔT min verwarmen"
+                value={v.dtMinVerwarmen}
+                min={LIMITS.dtMinHeat.min}
+                max={LIMITS.dtMinHeat.max}
+                step={0.5}
+                unit="K"
+                onChange={(x) => patch(index, { dtMinVerwarmen: x })}
+              />
             </div>
           )}
         </>
@@ -185,8 +229,26 @@ export function ValveCard({ index }: { index: number }) {
         onChange={(distPipe) => patch(index, { distPipe })}
       />
       <div className={s.fieldRow}>
-        <NumInput label="Klep → 1e streng" info={FIELD_INFO.distanceFirst.info} value={v.distanceFirst} min={LIMITS.distanceFirst.min} max={LIMITS.distanceFirst.max} step={0.5} unit="m" onChange={(x) => patch(index, { distanceFirst: x })} />
-        <NumInput label="Hart-op-hart" info={FIELD_INFO.spacing.info} value={v.spacing} min={LIMITS.spacing.min} max={LIMITS.spacing.max} step={0.1} unit="m" onChange={(x) => patch(index, { spacing: x })} />
+        <NumInput
+          label="Klep → 1e streng"
+          info={FIELD_INFO.distanceFirst.info}
+          value={v.distanceFirst}
+          min={LIMITS.distanceFirst.min}
+          max={LIMITS.distanceFirst.max}
+          step={0.5}
+          unit="m"
+          onChange={(x) => patch(index, { distanceFirst: x })}
+        />
+        <NumInput
+          label="Hart-op-hart"
+          info={FIELD_INFO.spacing.info}
+          value={v.spacing}
+          min={LIMITS.spacing.min}
+          max={LIMITS.spacing.max}
+          step={0.1}
+          unit="m"
+          onChange={(x) => patch(index, { spacing: x })}
+        />
       </div>
       <SegField
         label={FIELD_INFO.layout.label}
@@ -204,10 +266,24 @@ export function ValveCard({ index }: { index: number }) {
         onChange={(on) => patch(index, { dpAvailable: on ? config.dpAvailable : null })}
       />
       {v.dpAvailable !== null && (
-        <NumInput label="Δp vóór klep" value={v.dpAvailable} min={LIMITS.dpAvailable.min} max={LIMITS.dpAvailable.max} unit="kPa" onChange={(x) => patch(index, { dpAvailable: x })} />
+        <NumInput
+          label="Δp vóór klep"
+          value={v.dpAvailable}
+          min={LIMITS.dpAvailable.min}
+          max={LIMITS.dpAvailable.max}
+          unit="kPa"
+          onChange={(x) => patch(index, { dpAvailable: x })}
+        />
       )}
       {config.advanced.loadSplit === 'manual' && (
-        <NumInput label="Aandeel last" value={v.loadShare} min={0} max={100} unit="%" onChange={(x) => patch(index, { loadShare: x })} />
+        <NumInput
+          label="Aandeel last"
+          value={v.loadShare}
+          min={0}
+          max={100}
+          unit="%"
+          onChange={(x) => patch(index, { loadShare: x })}
+        />
       )}
     </div>
   );

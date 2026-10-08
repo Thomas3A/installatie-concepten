@@ -45,7 +45,14 @@ function cssColor(name: string, fallback: string): string {
 
 const CLOCK_STEPS = [60, 120, 300, 600, 900, 1800, 3600, 7200, 14400, 21600, 43200];
 
-function clockSplits(_u: uPlot, _ax: number, min: number, max: number, _inc: number, space: number): number[] {
+function clockSplits(
+  _u: uPlot,
+  _ax: number,
+  min: number,
+  max: number,
+  _inc: number,
+  space: number,
+): number[] {
   const span = Math.max(max - min, 1);
   const wantTicks = Math.max(2, Math.floor((space > 0 ? 700 : 700) / 80));
   const target = span / wantTicks;
@@ -55,7 +62,18 @@ function clockSplits(_u: uPlot, _ax: number, min: number, max: number, _inc: num
   return out;
 }
 
-export function UPlotChart({ data, series, xKind = 'time', xLabel, axes, scales, height = 220, syncKey, hooks, ariaLabel }: UPlotChartProps) {
+export function UPlotChart({
+  data,
+  series,
+  xKind = 'time',
+  xLabel,
+  axes,
+  scales,
+  height = 220,
+  syncKey,
+  hooks,
+  ariaLabel,
+}: UPlotChartProps) {
   const host = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
   const [theme, setTheme] = useState(0);
@@ -73,7 +91,13 @@ export function UPlotChart({ data, series, xKind = 'time', xLabel, axes, scales,
     if (!el) return;
     const text = cssColor('--text-2', '#666');
     const grid = cssColor('--border', '#ddd');
-    const axStyle = { stroke: text, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid, width: 1 }, font: '11px system-ui', labelFont: '11px system-ui' };
+    const axStyle = {
+      stroke: text,
+      grid: { stroke: grid, width: 1 },
+      ticks: { stroke: grid, width: 1 },
+      font: '11px system-ui',
+      labelFont: '11px system-ui',
+    };
     const ax: uPlot.Axis[] = [
       {
         ...axStyle,
@@ -101,7 +125,9 @@ export function UPlotChart({ data, series, xKind = 'time', xLabel, axes, scales,
       width: Math.max(el.clientWidth, 200),
       height,
       padding: [8, 8, 0, 0],
-      cursor: syncKey ? { sync: { key: syncKey }, drag: { x: true, y: false } } : { drag: { x: true, y: false } },
+      cursor: syncKey
+        ? { sync: { key: syncKey }, drag: { x: true, y: false } }
+        : { drag: { x: true, y: false } },
       legend: { show: true, live: true },
       scales: { x: { time: false }, ...scales },
       axes: ax,

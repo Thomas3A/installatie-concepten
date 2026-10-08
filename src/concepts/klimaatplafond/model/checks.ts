@@ -37,7 +37,8 @@ function strandRange(idx: number[]): string {
 
 export function sortMessages(list: Msg[]): Msg[] {
   return [...list].sort(
-    (a, b) => SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.valve - b.valve || a.code.localeCompare(b.code),
+    (a, b) =>
+      SEV_RANK[a.severity] - SEV_RANK[b.severity] || a.valve - b.valve || a.code.localeCompare(b.code),
   );
 }
 
@@ -60,15 +61,25 @@ export function designMessages(design: Design): Msg[] {
   for (const m of MODES) {
     const c = design.ctx.conditions[m];
     const limit = Math.abs(c.tRoom - c.tIn) - 0.5;
-    if (c.dt >= limit) w14.push(`${MODE_LABEL[m]}: ΔT ${fmt(c.dt, 1)} K ≥ |${fmt(c.tRoom, 1)} − ${fmt(c.tIn, 1)}| − 0,5 = ${fmt(limit, 1)} K`);
+    if (c.dt >= limit)
+      w14.push(
+        `${MODE_LABEL[m]}: ΔT ${fmt(c.dt, 1)} K ≥ |${fmt(c.tRoom, 1)} − ${fmt(c.tIn, 1)}| − 0,5 = ${fmt(limit, 1)} K`,
+      );
   }
-  if (w14.length) push(acc, { code: 'W14', severity: 'fout', group: 'ontwerp', valve: -1, strands: [], lines: w14 });
+  if (w14.length)
+    push(acc, { code: 'W14', severity: 'fout', group: 'ontwerp', valve: -1, strands: [], lines: w14 });
 
   for (const vd of design.valves) designValve(acc, design, vd, dpMax, lim);
   return sortMessages(acc.list);
 }
 
-function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, lim: Design['cfg']['advanced']['limits']): void {
+function designValve(
+  acc: Acc,
+  design: Design,
+  vd: ValveDesign,
+  dpMax: number,
+  lim: Design['cfg']['advanced']['limits'],
+): void {
   const cfg = design.cfg;
   const ctx = design.ctx;
   const v = vd.cfg;
@@ -93,15 +104,45 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
     const sel = (pred: (k: number) => boolean): number[] => q.map((_, k) => k).filter(pred);
 
     const w01 = sel((k) => dp[k] > dpMax);
-    if (w01.length) add('W01', m, w01, `${MODE_LABEL[m]}: ${strandRange(w01)}: Δp tot ${fmt(Math.max(...w01.map((k) => dp[k])) / 1000, 1)} kPa (> ${fmt(dpMax / 1000, 0)} kPa)`);
+    if (w01.length)
+      add(
+        'W01',
+        m,
+        w01,
+        `${MODE_LABEL[m]}: ${strandRange(w01)}: Δp tot ${fmt(Math.max(...w01.map((k) => dp[k])) / 1000, 1)} kPa (> ${fmt(dpMax / 1000, 0)} kPa)`,
+      );
     const w03 = sel((k) => re[k] < lim.reLaminar);
-    if (w03.length) add('W03', m, w03, `${MODE_LABEL[m]}: Re = ${fmt(Math.min(...w03.map((k) => re[k])), 0)} in ${strandRange(w03)} (< ${fmt(lim.reLaminar, 0)})`);
+    if (w03.length)
+      add(
+        'W03',
+        m,
+        w03,
+        `${MODE_LABEL[m]}: Re = ${fmt(Math.min(...w03.map((k) => re[k])), 0)} in ${strandRange(w03)} (< ${fmt(lim.reLaminar, 0)})`,
+      );
     const i01 = sel((k) => re[k] >= lim.reLaminar && re[k] < lim.reTransition);
-    if (i01.length) add('I01', m, i01, `${MODE_LABEL[m]}: Re ${fmt(Math.min(...i01.map((k) => re[k])), 0)}–${fmt(Math.max(...i01.map((k) => re[k])), 0)} in ${strandRange(i01)}`);
+    if (i01.length)
+      add(
+        'I01',
+        m,
+        i01,
+        `${MODE_LABEL[m]}: Re ${fmt(Math.min(...i01.map((k) => re[k])), 0)}–${fmt(Math.max(...i01.map((k) => re[k])), 0)} in ${strandRange(i01)}`,
+      );
     const w04 = sel((k) => vel[k] < lim.vMin);
-    if (w04.length) add('W04', m, w04, `${MODE_LABEL[m]}: v = ${fmt(Math.min(...w04.map((k) => vel[k])), 2)} m/s in ${strandRange(w04)} (< ${fmt(lim.vMin, 2)})`);
+    if (w04.length)
+      add(
+        'W04',
+        m,
+        w04,
+        `${MODE_LABEL[m]}: v = ${fmt(Math.min(...w04.map((k) => vel[k])), 2)} m/s in ${strandRange(w04)} (< ${fmt(lim.vMin, 2)})`,
+      );
     const w05 = sel((k) => vel[k] > lim.vMax);
-    if (w05.length) add('W05', m, w05, `${MODE_LABEL[m]}: v = ${fmt(Math.max(...w05.map((k) => vel[k])), 2)} m/s in ${strandRange(w05)} (> ${fmt(lim.vMax, 1)})`);
+    if (w05.length)
+      add(
+        'W05',
+        m,
+        w05,
+        `${MODE_LABEL[m]}: v = ${fmt(Math.max(...w05.map((k) => vel[k])), 2)} m/s in ${strandRange(w05)} (> ${fmt(lim.vMax, 1)})`,
+      );
 
     // W02
     if (md.vmax > 0 && vd.qMaxFeasible[m] < lim.feasibleFraction * md.vmax) {
@@ -118,8 +159,16 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
     const dtEff = Math.min(cond.dt, md.dtMix);
     if (dtEff < dtLim) add('W06', m, [], `${MODE_LABEL[m]}: ΔT ${fmt(dtEff, 1)} K (< ${fmt(dtLim, 1)} K)`);
     // W07
-    const w07 = sel((k) => Number.isFinite(th[k].tRet) && Math.abs(th[k].tRet - cond.tRoom) < lim.exhaustedDt);
-    if (w07.length) add('W07', m, w07, `${MODE_LABEL[m]}: ${strandRange(w07)}: T_ret ${fmt(th[w07[0]].tRet, 1)} °C nadert ${fmt(cond.tRoom, 1)} °C`);
+    const w07 = sel(
+      (k) => Number.isFinite(th[k].tRet) && Math.abs(th[k].tRet - cond.tRoom) < lim.exhaustedDt,
+    );
+    if (w07.length)
+      add(
+        'W07',
+        m,
+        w07,
+        `${MODE_LABEL[m]}: ${strandRange(w07)}: T_ret ${fmt(th[w07[0]].tRet, 1)} °C nadert ${fmt(cond.tRoom, 1)} °C`,
+      );
     // W08
     const devMax = Math.max(...md.deviation.map(Math.abs));
     const w08 = sel((k) => Math.abs(md.deviation[k]) > lim.maldistInfo);
@@ -136,7 +185,12 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
     if (m === 'koelen') {
       const tDew = dewPoint(cfg.setCool, cfg.rh);
       if (md.tOppMin < tDew + lim.dewMargin) {
-        add('W09', m, [], `T_opp,min ${fmt(md.tOppMin, 1)} °C < T_dauw ${fmt(tDew, 1)} °C + ${fmt(lim.dewMargin, 0)} K`);
+        add(
+          'W09',
+          m,
+          [],
+          `T_opp,min ${fmt(md.tOppMin, 1)} °C < T_dauw ${fmt(tDew, 1)} °C + ${fmt(lim.dewMargin, 0)} K`,
+        );
       }
     }
     // W10 (verwarmen)
@@ -157,15 +211,31 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
     if (v.type === 'B' && Number.isFinite(vd.advice.b.kvNodig[m])) {
       const ratio = vd.kvRatio[m];
       if (ratio < lim.kvRatioMin) {
-        add('W12', m, [], `${MODE_LABEL[m]}: Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)} / Kvs ${fmt(vd.kvs[m], 2)} = ${fmt(ratio, 2)} (< ${fmt(lim.kvRatioMin, 1)}); advies Kvs ${vd.advice.b.kvs[m] ?? '–'}`);
+        add(
+          'W12',
+          m,
+          [],
+          `${MODE_LABEL[m]}: Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)} / Kvs ${fmt(vd.kvs[m], 2)} = ${fmt(ratio, 2)} (< ${fmt(lim.kvRatioMin, 1)}); advies Kvs ${vd.advice.b.kvs[m] ?? '–'}`,
+        );
       }
     }
     if (v.type === 'A') {
       const vlh = md.vmax * 3.6e6;
       const p = vd.picv;
-      if (vlh > p.qNom) add('W13', m, [], `${MODE_LABEL[m]}: Vmax ${fmt(vlh, 0)} l/h > q_nom ${fmt(p.qNom, 0)} l/h (${p.label})`);
+      if (vlh > p.qNom)
+        add(
+          'W13',
+          m,
+          [],
+          `${MODE_LABEL[m]}: Vmax ${fmt(vlh, 0)} l/h > q_nom ${fmt(p.qNom, 0)} l/h (${p.label})`,
+        );
       else if (vlh < p.rangeMin * p.qNom) {
-        add('W13', m, [], `${MODE_LABEL[m]}: Vmax ${fmt(vlh, 0)} l/h < ${fmt(p.rangeMin * p.qNom, 0)} l/h (ondergrens instelbereik ${p.label})`);
+        add(
+          'W13',
+          m,
+          [],
+          `${MODE_LABEL[m]}: Vmax ${fmt(vlh, 0)} l/h < ${fmt(p.rangeMin * p.qNom, 0)} l/h (ondergrens instelbereik ${p.label})`,
+        );
       }
     }
   }
@@ -174,7 +244,15 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
     const items = perMode[code];
     if (!items?.length) return;
     const idx = Array.from(new Set(items.flatMap((x) => x.idx))).sort((a, b) => a - b);
-    push(acc, { code: codeOut, severity: sev, group: 'ontwerp', valve: i, strands: idx, lines: items.map((x) => x.text), action });
+    push(acc, {
+      code: codeOut,
+      severity: sev,
+      group: 'ontwerp',
+      valve: i,
+      strands: idx,
+      lines: items.map((x) => x.text),
+      action,
+    });
   };
   emit('W01', 'waarschuwing', 'puzzel');
   emit('W02', 'fout', 'advies');
@@ -196,17 +274,39 @@ function designValve(acc: Acc, design: Design, vd: ValveDesign, dpMax: number, l
   if (w13 && !w13.lines.some((l) => l.includes('> q_nom'))) w13.severity = 'waarschuwing';
 
   if (vd.tooManyStrandsNeeded) {
-    push(acc, { code: 'W15', severity: 'fout', group: 'ontwerp', valve: i, strands: [], lines: ['Alle kandidaten met ≤ 16 strengen voldoen niet; een geldige koppeling vraagt > 16 strengen.'], action: 'puzzel' });
+    push(acc, {
+      code: 'W15',
+      severity: 'fout',
+      group: 'ontwerp',
+      valve: i,
+      strands: [],
+      lines: ['Alle kandidaten met ≤ 16 strengen voldoen niet; een geldige koppeling vraagt > 16 strengen.'],
+      action: 'puzzel',
+    });
   }
   const dpKpa = vd.dpAvail / 1000;
   const dpLimit = v.type === 'B' ? lim.maxDpB : lim.maxDpA;
   if (dpKpa > dpLimit) {
-    push(acc, { code: 'W16', severity: 'fout', group: 'ontwerp', valve: i, strands: [], lines: [`Δp over de klep ≤ ${fmt(dpKpa, 0)} kPa > ${fmt(dpLimit, 0)} kPa`] });
+    push(acc, {
+      code: 'W16',
+      severity: 'fout',
+      group: 'ontwerp',
+      valve: i,
+      strands: [],
+      lines: [`Δp over de klep ≤ ${fmt(dpKpa, 0)} kPa > ${fmt(dpLimit, 0)} kPa`],
+    });
   }
   if (vd.areaZone > 0) {
     const occ = (v.panelCount * design.ctx.geom.area) / vd.areaZone;
     if (occ > lim.occupancy) {
-      push(acc, { code: 'I02', severity: 'info', group: 'ontwerp', valve: i, strands: [], lines: [`Bezetting ${fmt(occ * 100, 0)} % (> ${fmt(lim.occupancy * 100, 0)} %)`] });
+      push(acc, {
+        code: 'I02',
+        severity: 'info',
+        group: 'ontwerp',
+        valve: i,
+        strands: [],
+        lines: [`Bezetting ${fmt(occ * 100, 0)} % (> ${fmt(lim.occupancy * 100, 0)} %)`],
+      });
     }
   }
 }
@@ -222,23 +322,67 @@ export function runtimeMessages(state: SimState, design: Design): Msg[] {
     if (act !== 'stop' && z.stableTime >= 300 && Number.isFinite(z.dtMeas)) {
       const dtLim = act === 'koelen' ? lim.dtMinCool : lim.dtMinHeat;
       if (z.dtMeas < dtLim) {
-        out.push({ id: `bedrijf-W06-${i}`, code: 'W06', severity: 'waarschuwing', group: 'bedrijf', valve: i, strands: [], lines: [`Gemeten ΔT ${fmt(z.dtMeas, 1)} K (< ${fmt(dtLim, 1)} K)`] });
+        out.push({
+          id: `bedrijf-W06-${i}`,
+          code: 'W06',
+          severity: 'waarschuwing',
+          group: 'bedrijf',
+          valve: i,
+          strands: [],
+          lines: [`Gemeten ΔT ${fmt(z.dtMeas, 1)} K (< ${fmt(dtLim, 1)} K)`],
+        });
       }
     }
     if (z.hydMode === 'koelen' && z.q > 0) {
       const tDew = dewPoint(cfg.setCool, cfg.rh);
       if (z.tOppMin < tDew + lim.dewMargin) {
-        out.push({ id: `bedrijf-W09-${i}`, code: 'W09', severity: 'fout', group: 'bedrijf', valve: i, strands: [], lines: [`T_opp,min ${fmt(z.tOppMin, 1)} °C < T_dauw ${fmt(tDew, 1)} °C + ${fmt(lim.dewMargin, 0)} K`] });
+        out.push({
+          id: `bedrijf-W09-${i}`,
+          code: 'W09',
+          severity: 'fout',
+          group: 'bedrijf',
+          valve: i,
+          strands: [],
+          lines: [
+            `T_opp,min ${fmt(z.tOppMin, 1)} °C < T_dauw ${fmt(tDew, 1)} °C + ${fmt(lim.dewMargin, 0)} K`,
+          ],
+        });
       }
     }
     if (z.dtLimiting) {
-      out.push({ id: `bedrijf-I03-${i}`, code: 'I03', severity: 'info', group: 'bedrijf', valve: i, strands: [], lines: [`Debietlimiet ${fmt(z.qLimit * 3.6e6, 0)} l/h van Vmax ${fmt(vd.modes[act === 'stop' ? 'koelen' : act].vmax * 3.6e6, 0)} l/h`] });
+      out.push({
+        id: `bedrijf-I03-${i}`,
+        code: 'I03',
+        severity: 'info',
+        group: 'bedrijf',
+        valve: i,
+        strands: [],
+        lines: [
+          `Debietlimiet ${fmt(z.qLimit * 3.6e6, 0)} l/h van Vmax ${fmt(vd.modes[act === 'stop' ? 'koelen' : act].vmax * 3.6e6, 0)} l/h`,
+        ],
+      });
     }
     if (state.mode === 'koelen' && z.dew.active) {
-      out.push({ id: `bedrijf-I04-${i}`, code: 'I04', severity: 'info', group: 'bedrijf', valve: i, strands: [], lines: [`T_dauw ${fmt(z.tDew, 1)} °C, aanvoer ${fmt(cfg.tSupplyCool, 1)} °C`] });
+      out.push({
+        id: `bedrijf-I04-${i}`,
+        code: 'I04',
+        severity: 'info',
+        group: 'bedrijf',
+        valve: i,
+        strands: [],
+        lines: [`T_dauw ${fmt(z.tDew, 1)} °C, aanvoer ${fmt(cfg.tSupplyCool, 1)} °C`],
+      });
     }
     if (z.satTime >= 600) {
-      out.push({ id: `bedrijf-I05-${i}`, code: 'I05', severity: 'info', group: 'bedrijf', valve: i, strands: [], lines: [`Vraag 100 % gedurende ${fmt(z.satTime / 60, 0)} min; T_lucht ${fmt(state.tAir[i], 1)} °C`] });
+      out.push({
+        id: `bedrijf-I05-${i}`,
+        code: 'I05',
+        severity: 'info',
+        group: 'bedrijf',
+        valve: i,
+        strands: [],
+        lines: [`Vraag 100 % gedurende ${fmt(z.satTime / 60, 0)} min; T_lucht ${fmt(state.tAir[i], 1)} °C`],
+      });
     }
   });
   return sortMessages(out);

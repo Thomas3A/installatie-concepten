@@ -187,7 +187,8 @@ export const defaultConfig = (): KlimaatplafondConfig => ({
 // ---------------------------------------------------------------- validatie
 
 const clamp = (x: number, lo: number, hi: number): number => Math.min(Math.max(x, lo), hi);
-const num = (x: unknown, fallback: number): number => (typeof x === 'number' && Number.isFinite(x) ? x : fallback);
+const num = (x: unknown, fallback: number): number =>
+  typeof x === 'number' && Number.isFinite(x) ? x : fallback;
 const snap = (x: number, step: number, lo: number): number => lo + Math.round((x - lo) / step) * step;
 
 function clampRange(x: unknown, r: { min: number; max: number; step?: number }, fallback: number): number {
@@ -205,8 +206,7 @@ function normalizeValve(raw: Partial<ValveConfig> | undefined, def: ValveConfig)
   const type = oneOf<ValveType>(r.type, ['A', 'B'], def.type);
   const dn = oneOf<Dn>(r.dn, [15, 20], def.dn);
   const kvsList = TYPE_B.kvs[dn];
-  const kv = (x: unknown): number | null =>
-    typeof x === 'number' && kvsList.includes(x) ? x : null;
+  const kv = (x: unknown): number | null => (typeof x === 'number' && kvsList.includes(x) ? x : null);
   const picvIds: PicvId[] = ['DN15-LF', 'DN15', 'DN15-HF', 'DN20', 'DN20-HF'];
   let picv: PicvId | null = oneOf<PicvId | null>(r.picv ?? null, [...picvIds, null], null);
   if (picv && !picv.startsWith(`DN${dn}`)) picv = null;
@@ -245,8 +245,14 @@ function normalizeAdvanced(raw: Partial<AdvancedConfig> | undefined): AdvancedCo
   const r = raw ?? {};
   const pos = (x: unknown, fb: number, lo = 0, hi = Infinity): number => clamp(num(x, fb), lo, hi);
   return {
-    charKoelen: { K: pos(r.charKoelen?.K, d.charKoelen.K, 1, 50), n: pos(r.charKoelen?.n, d.charKoelen.n, 0.8, 1.5) },
-    charVerwarmen: { K: pos(r.charVerwarmen?.K, d.charVerwarmen.K, 1, 50), n: pos(r.charVerwarmen?.n, d.charVerwarmen.n, 0.8, 1.5) },
+    charKoelen: {
+      K: pos(r.charKoelen?.K, d.charKoelen.K, 1, 50),
+      n: pos(r.charKoelen?.n, d.charKoelen.n, 0.8, 1.5),
+    },
+    charVerwarmen: {
+      K: pos(r.charVerwarmen?.K, d.charVerwarmen.K, 1, 50),
+      n: pos(r.charVerwarmen?.n, d.charVerwarmen.n, 0.8, 1.5),
+    },
     fs: {
       75: pos(r.fs?.[75], d.fs[75], 0.5, 1.5),
       100: pos(r.fs?.[100], d.fs[100], 0.5, 1.5),
@@ -276,7 +282,10 @@ function normalizeAdvanced(raw: Partial<AdvancedConfig> | undefined): AdvancedCo
       picvStroke: pos(r.valveA?.picvStroke, d.valveA.picvStroke, 10, 600),
     },
     limits: Object.fromEntries(
-      (Object.keys(d.limits) as (keyof CheckLimits)[]).map((k) => [k, pos(r.limits?.[k], d.limits[k], 0, 1e6)]),
+      (Object.keys(d.limits) as (keyof CheckLimits)[]).map((k) => [
+        k,
+        pos(r.limits?.[k], d.limits[k], 0, 1e6),
+      ]),
     ) as unknown as CheckLimits,
   };
 }
@@ -291,7 +300,8 @@ export function normalizeConfig(raw: unknown): KlimaatplafondConfig {
   if (setCool < setHeat + 1) setCool = Math.min(LIMITS.setCool.max, setHeat + 1);
   const rawValves = Array.isArray(r.valves) ? r.valves : [];
   const valves: ValveConfig[] = [];
-  for (let i = 0; i < valveCount; i++) valves.push(normalizeValve(rawValves[i], defaultValve(d.valves[0].panelCount)));
+  for (let i = 0; i < valveCount; i++)
+    valves.push(normalizeValve(rawValves[i], defaultValve(d.valves[0].panelCount)));
   return {
     floorArea: clampRange(r.floorArea, LIMITS.floorArea, d.floorArea),
     heatLoss: clampRange(r.heatLoss, LIMITS.heatLoss, d.heatLoss),
@@ -337,7 +347,15 @@ export function withValveCount(cfg: KlimaatplafondConfig, count: 1 | 2 | 3): Kli
   for (let i = 0; i < count; i++) {
     const base = cfg.valves[i] ?? { ...cfg.valves[0], manualStrands: [], coupling: 'auto' as const };
     // Kvs/PICV-advies wordt opnieuw bepaald omdat de debieten per klep veranderen
-    valves.push({ ...base, panelCount: Math.max(1, split[i]), coupling: 'auto', manualStrands: [], kvsKoelen: null, kvsVerwarmen: null, picv: null });
+    valves.push({
+      ...base,
+      panelCount: Math.max(1, split[i]),
+      coupling: 'auto',
+      manualStrands: [],
+      kvsKoelen: null,
+      kvsVerwarmen: null,
+      picv: null,
+    });
   }
   return { ...cfg, valveCount: count, valves };
 }

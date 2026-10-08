@@ -130,7 +130,10 @@ function fallback(inp: NetworkInput, q0: number[]): number[] {
       return dpS.map((p, i) => invertDp(inp.strandDp[i], p, inp.qTot));
     };
     let lo = 0;
-    let hi = Math.max(1, inp.strandDp.reduce((a, f) => a + f(inp.qTot), 0));
+    let hi = Math.max(
+      1,
+      inp.strandDp.reduce((a, f) => a + f(inp.qTot), 0),
+    );
     for (let k = 0; k < 60; k++) {
       const mid = 0.5 * (lo + hi);
       const s = qNew(mid).reduce((a, b) => a + b, 0);
@@ -156,7 +159,14 @@ function fallback(inp: NetworkInput, q0: number[]): number[] {
 export function solveNetwork(inp: NetworkInput): NetworkResult {
   const n = inp.strandDp.length;
   if (n === 0 || inp.qTot <= 0) {
-    return { q: new Array(n).fill(0), dp0: 0, dpStrand: new Array(n).fill(0), iterations: 0, converged: true, massError: 0 };
+    return {
+      q: new Array(n).fill(0),
+      dp0: 0,
+      dpStrand: new Array(n).fill(0),
+      iterations: 0,
+      converged: true,
+      massError: 0,
+    };
   }
   const qScale = inp.qTot / n;
   // Drukschaal: de gemiddelde strengdrukval bij gelijke verdeling
@@ -164,7 +174,8 @@ export function solveNetwork(inp: NetworkInput): NetworkResult {
   // Startwaarde: gelijke verdeling
   let x: number[] = [...new Array<number>(n).fill(1), 0];
   const q0 = x.slice(0, n).map((v) => v * qScale);
-  x[n] = Math.max(...stationPressures(inp, q0, 0).map((p) => -p), 0) / pScale + inp.strandDp[0](qScale) / pScale;
+  x[n] =
+    Math.max(...stationPressures(inp, q0, 0).map((p) => -p), 0) / pScale + inp.strandDp[0](qScale) / pScale;
 
   let converged = false;
   let it = 0;
@@ -184,7 +195,10 @@ export function solveNetwork(inp: NetworkInput): NetworkResult {
       const rp = residuals(inp, xp, qScale, pScale);
       for (let i = 0; i <= n; i++) J[i][j] = (rp[i] - r[i]) / h;
     }
-    const dx = solveLinear(J, r.map((v) => -v));
+    const dx = solveLinear(
+      J,
+      r.map((v) => -v),
+    );
     if (!dx) break;
     // Gedempte stap (backtracking) met q >= 1e-9
     let lam = 1;
@@ -222,5 +236,12 @@ export function solveNetwork(inp: NetworkInput): NetworkResult {
   const dp0 = inp.strandDp[0](q[0]) - dpAt[0];
   const dpStrand = dpAt.map((p) => p + dp0);
   void dpS0;
-  return { q, dp0, dpStrand, iterations: it, converged, massError: Math.abs(q.reduce((a, b) => a + b, 0) - inp.qTot) / inp.qTot };
+  return {
+    q,
+    dp0,
+    dpStrand,
+    iterations: it,
+    converged,
+    massError: Math.abs(q.reduce((a, b) => a + b, 0) - inp.qTot) / inp.qTot,
+  };
 }

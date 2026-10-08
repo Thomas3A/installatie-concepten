@@ -25,14 +25,16 @@ export const CONCEPTS: ConceptDef[] = [
   {
     id: 'vloer',
     titel: 'Vloerverwarming/-koeling',
-    beschrijving: 'Lage-temperatuursysteem in de dekvloer: lusverdeling, regeling per ruimte en vloeroppervlaktetemperatuur.',
+    beschrijving:
+      'Lage-temperatuursysteem in de dekvloer: lusverdeling, regeling per ruimte en vloeroppervlaktetemperatuur.',
     status: 'binnenkort',
     route: '/vloer',
   },
   {
     id: 'bka',
     titel: 'Betonkernactivering',
-    beschrijving: 'Thermische massa als buffer: trage regeling, grote watertemperatuurwindows en piekverschuiving.',
+    beschrijving:
+      'Thermische massa als buffer: trage regeling, grote watertemperatuurwindows en piekverschuiving.',
     status: 'binnenkort',
     route: '/bka',
   },

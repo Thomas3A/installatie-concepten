@@ -32,7 +32,9 @@ export function solveZone(
   tPipe: number,
 ): NetworkResult {
   return solveNetwork({
-    strandDp: spec.strands.map((s, i) => (q: number) => ctx.netFactor * strandDp(ctx, s.panels, s.extraLength, q, tMean[i])),
+    strandDp: spec.strands.map(
+      (s, i) => (q: number) => ctx.netFactor * strandDp(ctx, s.panels, s.extraLength, q, tMean[i]),
+    ),
     segLen: segmentLengths(spec),
     pipeDp: (q, len) => pipeDp({ q, d: spec.dist.di, len, eps: spec.dist.eps, T: tPipe }),
     layout: spec.layout,

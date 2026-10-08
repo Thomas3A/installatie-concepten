@@ -42,7 +42,7 @@ niet als vervanging van de productberekening van de fabrikant.
   koelen `P_last = Q_koel − h_k·A·(T − T_set)` met h_k = 1,0 W/(m²K). Bij Stop blijft de laatste modus gelden.
   Zones zijn gekoppeld met H_z = 200 W/K tussen aangrenzende zones.
 - **Paneeltraagheid als eerste-orde systeem** `dP/dt = (P_ss − P)/τ` met `τ = f_τ·C_paneel·R_char(8 K) + min(V_water/Q, 300 s)`.
-  De kalibratiefactor `tauFactor` (f_τ = 0,5, Geavanceerd → Kalibratie) volgt uit de referentiedynamiek: met f_τ = 1,0 is het
+  De kalibratiefactor `tauFactor` (f*τ = 0,5, Geavanceerd → Kalibratie) volgt uit de referentiedynamiek: met f*τ = 1,0 is het
   koelgedrag gelijk aan de referentie, maar verwarmen (hogere lusversterking) is dan zwak gedempt (overshoot ≈ 0,45 K, na 5 uur
   nog ± 0,35 K). Met 0,5 volgt verwarmen vanaf 18 °C de referentie (1,0 h tot 20,7 °C, maximum 21,35 °C).
 - **PI-regelaar** op de luchttemperatuur met conditionele integratie (anti-windup): de integrator staat stil zolang de uitgang verzadigd

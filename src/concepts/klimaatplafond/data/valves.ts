@@ -57,5 +57,6 @@ export const PICVS: PicvSpec[] = [
   { id: 'DN20-HF', label: 'DN20 HF (1.900 l/h)', dn: 20, qNom: 1900, dpMin: 25, rangeMin: 0.4 },
 ];
 
-export const picvSpec = (id: PicvId | null | undefined): PicvSpec => PICVS.find((p) => p.id === id) ?? PICVS[1];
+export const picvSpec = (id: PicvId | null | undefined): PicvSpec =>
+  PICVS.find((p) => p.id === id) ?? PICVS[1];
 export const picvsForDn = (dn: Dn): PicvSpec[] => PICVS.filter((p) => p.dn === dn);
