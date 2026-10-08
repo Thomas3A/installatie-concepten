@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { solveNetwork } from '../src/core/hydraulics/network';
 import { pipeDp, reynolds, velocity } from '../src/core/hydraulics/friction';
-import { defaultConfig, normalizeConfig, type KlimaatplafondConfig } from '../src/concepts/klimaatplafond/model/config';
+import { defaultConfig, type KlimaatplafondConfig } from '../src/concepts/klimaatplafond/model/config';
 import { buildContext } from '../src/concepts/klimaatplafond/model/context';
 import { panelGeometry } from '../src/concepts/klimaatplafond/model/panel';
 import { designFlow, qChar, strandDp, strandThermal } from '../src/concepts/klimaatplafond/model/strand';

@@ -1,0 +1,142 @@
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f4;
+  --border: #d9dde2;
+  --text: #1c2229;
+  --text-2: #55606c;
+  --accent: #0f766e;
+  --accent-contrast: #ffffff;
+  --accent-soft: #d6efec;
+  --cold: #2563a8;
+  --cold-soft: #dbe8f6;
+  --warm: #c2410c;
+  --warm-soft: #fbe3d6;
+  --err: #b42318;
+  --err-soft: #fde4e1;
+  --warn: #b45309;
+  --warn-soft: #fdecd0;
+  --info: #1d4f91;
+  --info-soft: #e1ecf9;
+  --ok: #1a7f4b;
+  --ok-soft: #dcf3e6;
+  --plan-bg: #fbfbfc;
+  --shadow: 0 1px 2px rgba(20, 30, 40, 0.06), 0 1px 3px rgba(20, 30, 40, 0.05);
+  --radius: 8px;
+  --gutter: 16px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161a;
+    --surface: #1a2026;
+    --surface-2: #222a32;
+    --border: #333d47;
+    --text: #e6eaee;
+    --text-2: #9aa7b4;
+    --accent: #2dd4bf;
+    --accent-contrast: #06201d;
+    --accent-soft: #123a36;
+    --cold: #6aa7ea;
+    --cold-soft: #16304c;
+    --warm: #f59463;
+    --warm-soft: #4a2412;
+    --err: #ff8a80;
+    --err-soft: #4a1c18;
+    --warn: #f5b361;
+    --warn-soft: #473012;
+    --info: #8ebcf5;
+    --info-soft: #17304f;
+    --ok: #6fd9a0;
+    --ok-soft: #153a27;
+    --plan-bg: #161b20;
+    --shadow: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  margin: 0 0 0.5em;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+h2 {
+  font-size: 1.15rem;
+}
+h3 {
+  font-size: 1rem;
+}
+
+p {
+  margin: 0 0 0.75em;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.katex-display {
+  margin: 0.6em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11px;
+  }
+}

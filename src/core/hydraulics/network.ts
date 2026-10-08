@@ -121,7 +121,7 @@ function invertDp(dp: (q: number) => number, target: number, qMax: number): numb
 /** Fallback: successieve onderrelaxatie met bisectie op dp0. */
 function fallback(inp: NetworkInput, q0: number[]): number[] {
   const n = q0.length;
-  let q = q0.slice();
+  const q = q0.slice();
   let dp0 = 0;
   for (let it = 0; it < 400; it++) {
     // kies dp0 zodat sum(q_new) = qTot

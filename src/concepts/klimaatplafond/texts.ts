@@ -27,7 +27,7 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
       'Het beschikbare Δp vóór de klep moet het circuit én de klep dekken. Type A heeft een minimaal Δp over de PICV nodig om drukonafhankelijk te regelen. Bij Type B begrenst de Kvs het debiet bij volledig open.',
     ],
     formula:
-      '\\Delta p_{beschikbaar} \\ge \\Delta p_{circuit}(V_{max}) + 100\\left(\\frac{V_{max}}{K_{vs}}\\right)^2 \;[\\text{kPa},\\ m^3/h]',
+      '\\Delta p_{beschikbaar} \\ge \\Delta p_{circuit}(V_{max}) + 100\\left(\\frac{V_{max}}{K_{vs}}\\right)^2 \\;[\\text{kPa},\\ m^3/h]',
     solutions: [
       'Het beschikbare Δp verhogen',
       'Een grotere Kvs of DN20 kiezen',
