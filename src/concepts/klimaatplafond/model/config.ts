@@ -1,5 +1,6 @@
 // Configuratie van het klimaatplafond: types, standaardwaarden, validatie en klemmen.
 import { CEILING_DEFAULTS, type PanelSize, type Pitch } from '../data/ceiling';
+import { DEFAULTS, VALVE_DEFAULTS } from '../data/defaults';
 import { DEFAULT_CHECK_LIMITS, LIMITS, type CheckLimits } from '../data/limits';
 import { TYPE_A, TYPE_B, type Dn, type PicvId, type ValveType } from '../data/valves';
 import type { CopperTubeId, DistPipeId } from '../data/pipes';
@@ -132,9 +133,9 @@ export const defaultAdvanced = (): AdvancedConfig => ({
   limits: { ...DEFAULT_CHECK_LIMITS },
 });
 
-export const defaultValve = (panelCount = 28): ValveConfig => ({
-  type: 'B',
-  dn: 15,
+export const defaultValve = (panelCount: number = VALVE_DEFAULTS.panelCount): ValveConfig => ({
+  type: VALVE_DEFAULTS.type,
+  dn: VALVE_DEFAULTS.dn,
   kvsKoelen: null,
   kvsVerwarmen: null,
   picv: null,
@@ -142,45 +143,24 @@ export const defaultValve = (panelCount = 28): ValveConfig => ({
   coupling: 'auto',
   manualStrands: [],
   vmaxAuto: true,
-  vmaxKoelen: 400,
-  vmaxVerwarmen: 320,
+  vmaxKoelen: VALVE_DEFAULTS.vmaxKoelen,
+  vmaxVerwarmen: VALVE_DEFAULTS.vmaxVerwarmen,
   dtManager: false,
-  dtMinKoelen: 2,
-  dtMinVerwarmen: 3,
-  distPipe: '20x2',
-  distanceFirst: 1.0,
-  spacing: 1.2,
-  layout: 'direct',
+  dtMinKoelen: VALVE_DEFAULTS.dtMinKoelen,
+  dtMinVerwarmen: VALVE_DEFAULTS.dtMinVerwarmen,
+  distPipe: VALVE_DEFAULTS.distPipe,
+  distanceFirst: VALVE_DEFAULTS.distanceFirst,
+  spacing: VALVE_DEFAULTS.spacing,
+  layout: VALVE_DEFAULTS.layout,
   dpAvailable: null,
   loadShare: 100,
 });
 
 export const defaultConfig = (): KlimaatplafondConfig => ({
-  floorArea: 40,
-  heatLoss: 1000,
-  coolLoad: 1100,
-  mass: 'middel',
-  rh: 50,
+  ...DEFAULTS,
   startTemp: null,
   keepCurrent: false,
-  tSupplyCool: 16,
-  tSupplyHeat: 35,
-  dtCool: 3,
-  dtHeat: 5,
-  setHeat: 21,
-  setCool: 24,
-  panelSize: '600x1200',
-  pitch: 75,
-  tube: '8x0.5',
-  valveCount: 1,
-  dpAvailable: 30,
-  dpMax: 25,
-  valves: [defaultValve(28)],
-  dewProtection: true,
-  Kp: 0.6,
-  Ti: 900,
-  flowChar: 'gelijkprocentig',
-  speed: 60,
+  valves: [defaultValve(VALVE_DEFAULTS.panelCount)],
   advanced: defaultAdvanced(),
 });
 

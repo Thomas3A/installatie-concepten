@@ -2,6 +2,7 @@
 import { churchill, reynolds, velocity } from '../../../core/hydraulics/friction';
 import { NU_LAMINAR, nusselt, nusseltGnielinski } from '../../../core/hydraulics/heatTransfer';
 import { cp as cpW, lambda as lambdaW, mu as muW, prandtl, rho as rhoW } from '../../../core/water';
+import { rChar, innerAreaRatio, surfaceTemp } from './ceiling';
 import type { ModeConditions, PlafondContext } from './context';
 
 // ---------------------------------------------------------------- stofwaardentabel (snelheid)
@@ -43,24 +44,7 @@ function propTable(reRef: number): PropTable {
 }
 const lerp = (a: Float64Array, i: number, f: number): number => a[i] + (a[i + 1] - a[i]) * f;
 
-const MIN_DT = 0.1;
-
-/** Weerstand van de karakteristiek per m² actief oppervlak: R = ΔT/q(ΔT) = ΔT^(1−n)/(f_s·K). */
-export function rChar(dT: number, c: ModeConditions, fs: number): number {
-  return Math.max(dT, MIN_DT) ** (1 - c.n) / (fs * c.K);
-}
-
-/** Karakteristiek q(ΔT) in W/m² actief oppervlak. */
-export function qChar(dT: number, c: ModeConditions, fs: number): number {
-  return fs * c.K * Math.max(dT, 0) ** c.n;
-}
-
-/** Binnenzijdige weerstand per m² paneel: 1/(h_i·A_i'). */
-export function rInt(Re: number, T: number, ctx: PlafondContext): number {
-  const ai = (Math.PI * ctx.di * ctx.geom.Lbuis) / ctx.geom.area;
-  const hi = (nusselt(Re, prandtl(T)) * lambdaW(T)) / ctx.di;
-  return 1 / (hi * ai);
-}
+export { qChar, rChar, rInt } from './ceiling';
 
 export interface StrandThermal {
   /** debiet in m³/s */
@@ -95,7 +79,7 @@ export function strandThermal(
   const g = ctx.geom;
   const nTot = panels * g.nSeg;
   const aSeg = g.area / g.nSeg;
-  const ai = (Math.PI * ctx.di * g.Lbuis) / g.area;
+  const ai = innerAreaRatio(ctx);
   if (q <= 1e-12) {
     return {
       q: 0,
@@ -161,7 +145,7 @@ export function strandThermal(
     const tOut = tRoom - (tRoom - T) * Math.exp(-aSeg / (r2.rTot * mdot * c2));
     power += mdot * cpAt(0.5 * (T + tOut)) * (tOut - T);
     // Oppervlaktetemperatuur aan de segmentingang (koudste/warmste punt van het segment)
-    const to = T + (tRoom - T) * ((r1.rI + ctx.rCond) / r1.rTot);
+    const to = surfaceTemp(T, tRoom, r1.rI, ctx.rCond, r1.rTot);
     if (to < minOpp) minOpp = to;
     sumOpp += to;
     sumT += 0.5 * (T + tOut);

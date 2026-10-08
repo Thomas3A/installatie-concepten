@@ -1,4 +1,5 @@
 // Bereiken van de invoer (§4) en standaard-grenswaarden voor de meldingen (§6).
+// waarden uit leveranciersdocumentatie, geanonimiseerd
 
 export const LIMITS = {
   floorArea: { min: 10, max: 500, step: 1 },
