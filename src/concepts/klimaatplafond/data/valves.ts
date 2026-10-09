@@ -4,18 +4,16 @@
 export type ValveType = 'A' | 'B';
 export type Dn = 15 | 20;
 
-/** Type B: modulerende gekarakteriseerde 6-weg-klep met flow- en ΔT-meting. */
+/**
+ * Type B: modulerende gekarakteriseerde 6-weg-klep met flow- en ΔT-meting.
+ * Het debiet wordt softwarematig geregeld; er is geen Kvs-keuze (Vmax per sequentie = 100 % opening).
+ */
 export const TYPE_B = {
-  /** Beschikbare Kvs-waarden (m³/h) per DN, per sequentie afzonderlijk te kiezen. */
-  kvs: {
-    15: [0.25, 0.4, 0.63, 1.0, 1.3, 1.8],
-    20: [0.63, 1.0, 1.6, 2.5, 4.0],
-  } as Record<Dn, number[]>,
   /** Looptijd voor 90° in seconden. */
   runtime90: 90,
   /** Maximaal Δp over de klep (kPa). */
   maxDpKpa: 110,
-  /** Exponent gelijkprocentige karakteristiek. */
+  /** Exponent gelijkprocentige karakteristiek (debietfractie tegen opening). */
   nGl: 3.2,
   /** Rotatiesequenties in graden. */
   sequences: { koelen: [0, 30], dicht: [30, 60], verwarmen: [60, 90] },
@@ -25,7 +23,7 @@ export const TYPE_B = {
 
 /** Type A: schakelende 6-weg-klep met drukonafhankelijk regelventiel (PICV) in de plafondretour. */
 export const TYPE_A = {
-  /** Kvs (totaal) van de schakelende 6-weg-klep per DN (m³/h). */
+  /** Vaste weerstand (Kvs, totaal) van de schakelende 6-weg-klep per DN (m³/h); niet door de gebruiker te kiezen. */
   kvsSixWay: { 15: 2.4, 20: 4.0 } as Record<Dn, number>,
   /** Omschakeltijd 6-weg in seconden. */
   switchTime: 30,

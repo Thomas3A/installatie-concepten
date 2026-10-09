@@ -185,9 +185,7 @@ export const useStore = create<State>((set, get) => ({
     const forced = resolveAdvice(
       {
         ...cfg,
-        valves: cfg.valves.map((v, i) =>
-          i === valve ? { ...v, kvsKoelen: null, kvsVerwarmen: null, picv: null } : v,
-        ),
+        valves: cfg.valves.map((v, i) => (i === valve ? { ...v, picv: null } : v)),
       },
       false,
     );

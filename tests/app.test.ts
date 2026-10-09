@@ -6,7 +6,8 @@ import {
   withValveCount,
   distributePanels,
 } from '../src/concepts/klimaatplafond/model/config';
-import { resolveAdvice } from '../src/concepts/klimaatplafond/model/design';
+import { computeDesign, resolveAdvice } from '../src/concepts/klimaatplafond/model/design';
+import { designMessages } from '../src/concepts/klimaatplafond/model/checks';
 import { fmt, fmtClock } from '../src/core/format';
 import { piStep } from '../src/core/control/pi';
 import { CONCEPTS } from '../src/concepts';
@@ -59,6 +60,23 @@ describe('configuratie', () => {
   });
 });
 
+describe('aanvoertemperatuur verwarmen tot 45 °C', () => {
+  it('wordt geaccepteerd en daarboven geklemd', () => {
+    expect(normalizeConfig({ tSupplyHeat: 45 }).tSupplyHeat).toBe(45);
+    expect(normalizeConfig({ tSupplyHeat: 46 }).tSupplyHeat).toBe(45);
+    expect(normalizeConfig({ tSupplyHeat: 27 }).tSupplyHeat).toBe(28);
+  });
+  it('geeft een geldig ontwerp en een W10-melding (plafond te warm)', () => {
+    const cfg = resolveAdvice(normalizeConfig({ ...defaultConfig(), tSupplyHeat: 45 }));
+    const d = computeDesign(cfg);
+    for (const v of d.valves) {
+      expect(Number.isFinite(v.modes.verwarmen.vmax)).toBe(true);
+      expect(v.modes.verwarmen.tOppMean).toBeGreaterThan(35);
+    }
+    expect(designMessages(d).map((m) => m.code)).toContain('W10');
+  });
+});
+
 describe('regelaar', () => {
   it('anti-windup: integrator loopt niet door in verzadiging', () => {
     let st = { I: 0 };
@@ -92,7 +110,6 @@ describe('registry en teksten', () => {
       'W09',
       'W10',
       'W11',
-      'W12',
       'W13',
       'W14',
       'W15',

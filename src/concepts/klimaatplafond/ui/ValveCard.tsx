@@ -1,6 +1,6 @@
 import { fmt } from '../../../core/format';
 import { LIMITS } from '../data/limits';
-import { PICVS, TYPE_B, picvsForDn, type Dn } from '../data/valves';
+import { PICVS, picvsForDn, type Dn } from '../data/valves';
 import { DIST_PIPES } from '../data/pipes';
 import { FIELD_INFO } from '../texts';
 import { useStore } from '../store';
@@ -16,104 +16,66 @@ export function ValveCard({ index }: { index: number }) {
   const v = config.valves[index];
   const vd = design.valves[index];
   const auto = v.coupling === 'auto';
-  const kvOptions = TYPE_B.kvs[v.dn].map((k) => ({ value: k, label: fmt(k, 2) }));
+  const isA = v.type === 'A';
   const picvOptions = picvsForDn(v.dn).map((p) => ({ value: p.id, label: p.label }));
-
-  const sameAdvice =
-    vd &&
-    (v.type === 'B'
-      ? v.kvsKoelen === vd.advice.b.kvs.koelen && v.kvsVerwarmen === vd.advice.b.kvs.verwarmen
-      : v.picv === vd.advice.a.picv);
+  const sameAdvice = vd && v.picv === vd.advice.a.picv;
 
   return (
     <div className={s.valveCard} role="group" aria-label={`Klep ${index + 1}`}>
       <h4>Klep {index + 1}</h4>
-      <div className={s.fieldRow}>
-        <SegField
-          label="Kleptype"
-          info={FIELD_INFO.type.info}
-          value={v.type}
-          options={[
-            { value: 'A', label: 'Type A' },
-            { value: 'B', label: 'Type B' },
-          ]}
-          onChange={(type) => patch(index, { type, kvsKoelen: null, kvsVerwarmen: null, picv: null })}
-        />
-        <SegField
-          label="DN"
-          info={FIELD_INFO.dn.info}
-          value={v.dn}
-          options={[
-            { value: 15 as Dn, label: '15' },
-            { value: 20 as Dn, label: '20' },
-          ]}
-          onChange={(dn) => patch(index, { dn, kvsKoelen: null, kvsVerwarmen: null, picv: null })}
-        />
-      </div>
+      <SegField
+        label="Kleptype"
+        info={FIELD_INFO.type.info}
+        value={v.type}
+        options={[
+          { value: 'A', label: 'Type A' },
+          { value: 'B', label: 'Type B' },
+        ]}
+        onChange={(type) => patch(index, { type, picv: null })}
+      />
 
-      {v.type === 'B' ? (
-        <div className={s.fieldRow}>
-          <SelectField
-            label="Kvs koelen (m³/h)"
-            info={FIELD_INFO.kvs.info}
-            value={vd?.kvs.koelen ?? v.kvsKoelen ?? kvOptions[0].value}
-            options={kvOptions}
-            onChange={(x) => patch(index, { kvsKoelen: x })}
+      {isA ? (
+        <>
+          <SegField
+            label="DN"
+            info={FIELD_INFO.dn.info}
+            value={v.dn}
+            options={[
+              { value: 15 as Dn, label: '15' },
+              { value: 20 as Dn, label: '20' },
+            ]}
+            onChange={(dn) => patch(index, { dn, picv: null })}
           />
           <SelectField
-            label="Kvs verwarmen (m³/h)"
-            info={FIELD_INFO.kvs.info}
-            value={vd?.kvs.verwarmen ?? v.kvsVerwarmen ?? kvOptions[0].value}
-            options={kvOptions}
-            onChange={(x) => patch(index, { kvsVerwarmen: x })}
+            label="PICV-uitvoering"
+            info={FIELD_INFO.picv.info}
+            value={vd?.picv.id ?? v.picv ?? PICVS[1].id}
+            options={picvOptions}
+            onChange={(x) => patch(index, { picv: x })}
           />
-        </div>
-      ) : (
-        <SelectField
-          label="PICV-uitvoering"
-          info={FIELD_INFO.picv.info}
-          value={vd?.picv.id ?? v.picv ?? PICVS[1].id}
-          options={picvOptions}
-          onChange={(x) => patch(index, { picv: x })}
-        />
-      )}
-
-      {vd && (
-        <div className={s.advice} aria-live="polite">
-          {v.type === 'B' ? (
-            <span>
-              Advies:{' '}
-              {(['koelen', 'verwarmen'] as const)
-                .map((m) => {
-                  const k = vd.advice.b.kvs[m];
-                  return k === null
-                    ? `Kvs ${m}: geen passende Kvs (Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)}; Δp te laag)`
-                    : `Kvs ${m} ${fmt(k, 2).replace(/,00$/, '')}`;
-                })
-                .join(' · ')}
-              {vd.advice.b.suggestDn20 ? ' (DN20)' : ''}
-              {vd.advice.b.opening.koelen !== null &&
-                ` · opening bij Vmax ≈ ${fmt((vd.advice.b.opening.koelen ?? 0) * 100, 0)} %`}
-            </span>
-          ) : (
-            <span>
-              Advies: {vd.advice.a.picv ?? 'geen passende PICV'} · benodigd Δp {fmt(vd.advice.a.dpNeeded, 1)}{' '}
-              kPa {vd.advice.a.ok ? '≤' : '>'} beschikbaar {fmt(vd.dpAvail / 1000, 1)} kPa
-            </span>
+          {vd && (
+            <div className={s.advice} aria-live="polite">
+              <span>
+                Advies: {vd.advice.a.picv ?? 'geen passende PICV'} · benodigd Δp{' '}
+                {fmt(vd.advice.a.dpNeeded, 1)} kPa {vd.advice.a.ok ? '≤' : '>'} beschikbaar{' '}
+                {fmt(vd.dpAvail / 1000, 1)} kPa
+              </span>
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnSmall}`}
+                disabled={!!sameAdvice}
+                onClick={() => applyAdvice(index)}
+              >
+                Advies toepassen
+              </button>
+            </div>
           )}
-          <button
-            type="button"
-            className={`${s.btn} ${s.btnSmall}`}
-            disabled={!!sameAdvice}
-            onClick={() => {
-              if (v.type === 'B' && vd.advice.b.suggestDn20 && v.dn === 15)
-                patch(index, { dn: 20, kvsKoelen: null, kvsVerwarmen: null, picv: null });
-              else applyAdvice(index);
-            }}
-          >
-            Advies toepassen
-          </button>
-        </div>
+        </>
+      ) : (
+        <p className={s.hint} style={{ margin: 0 }}>
+          Type B regelt softwarematig op het gemeten debiet: Vmax per sequentie is 100 % opening. Er is geen
+          Kvs-keuze.
+        </p>
       )}
 
       <NumField
@@ -154,11 +116,23 @@ export function ValveCard({ index }: { index: number }) {
       )}
 
       <CheckField
-        label="Vmax automatisch (Σ ontwerpdebieten)"
+        label="Vmax automatisch"
         info={FIELD_INFO.vmax.info}
         checked={v.vmaxAuto}
         onChange={(vmaxAuto) => patch(index, { vmaxAuto })}
       />
+      {v.vmaxAuto && (
+        <SegField
+          label={FIELD_INFO.vmaxBasis.label}
+          info={FIELD_INFO.vmaxBasis.info}
+          value={v.vmaxBasis}
+          options={[
+            { value: 'plafond', label: 'Max. plafondvermogen' },
+            { value: 'last', label: 'Benodigd vermogen (last)' },
+          ]}
+          onChange={(vmaxBasis) => patch(index, { vmaxBasis })}
+        />
+      )}
       {!v.vmaxAuto && (
         <div className={s.fieldRow}>
           <NumInput
@@ -181,11 +155,22 @@ export function ValveCard({ index }: { index: number }) {
           />
         </div>
       )}
-      {vd && v.vmaxAuto && (
-        <p className={s.hint} style={{ margin: 0 }}>
-          Vmax koelen {fmt(vd.modes.koelen.vmax * 3.6e6, 0)} l/h · verwarmen{' '}
-          {fmt(vd.modes.verwarmen.vmax * 3.6e6, 0)} l/h
-        </p>
+      {vd && (
+        <div className={s.hint} style={{ display: 'grid', gap: 2 }}>
+          {(['koelen', 'verwarmen'] as const).map((m) => {
+            const md = vd.modes[m];
+            return (
+              <span key={m}>
+                {m === 'koelen' ? 'Koelen' : 'Verwarmen'}: Vmax {fmt(md.vmax * 3.6e6, 0)} l/h →
+                plafondvermogen {fmt(md.power, 0)} W (last {fmt(md.load, 0)} W
+                {md.capacity !== null && md.vmax < md.vmaxCeiling
+                  ? `; max. ${fmt(md.capacity, 0)} W bij ${fmt(md.vmaxCeiling * 3.6e6, 0)} l/h`
+                  : ''}
+                )
+              </span>
+            );
+          })}
+        </div>
       )}
 
       {v.type === 'B' && (

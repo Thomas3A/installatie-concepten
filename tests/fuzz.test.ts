@@ -29,7 +29,7 @@ function randomConfig(r: () => number): KlimaatplafondConfig {
     mass: pick(['licht', 'middel', 'zwaar'] as const),
     rh: 30 + r() * 40,
     tSupplyCool: 14 + r() * 4,
-    tSupplyHeat: 28 + r() * 12,
+    tSupplyHeat: 28 + r() * 17,
     dtCool: 1.5 + r() * 3.5,
     dtHeat: 2 + r() * 8,
     setHeat: 19 + r() * 3,

@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { solveNetwork } from '../src/core/hydraulics/network';
 import { pipeDp, reynolds, velocity } from '../src/core/hydraulics/friction';
-import { defaultConfig, type KlimaatplafondConfig } from '../src/concepts/klimaatplafond/model/config';
+import {
+  defaultConfig,
+  normalizeConfig,
+  type KlimaatplafondConfig,
+} from '../src/concepts/klimaatplafond/model/config';
 import { buildContext } from '../src/concepts/klimaatplafond/model/context';
 import { panelGeometry } from '../src/concepts/klimaatplafond/model/panel';
 import { designFlow, qChar, strandDp, strandThermal } from '../src/concepts/klimaatplafond/model/strand';
 import { computeDesign, resolveAdvice } from '../src/concepts/klimaatplafond/model/design';
+import { solveZoneCoupled } from '../src/concepts/klimaatplafond/model/zoneHydraulics';
 import { designMessages } from '../src/concepts/klimaatplafond/model/checks';
 import { SCENARIOS, buildScenario } from '../src/concepts/klimaatplafond/scenarios';
 import {
@@ -15,7 +20,12 @@ import {
   step,
   type SimState,
 } from '../src/concepts/klimaatplafond/model/simulation';
-import { kvTypeB, thetaToState } from '../src/concepts/klimaatplafond/model/valves';
+import {
+  flowFractionAtTheta,
+  flowFractionToOpening,
+  openingToFlowFraction,
+  thetaToState,
+} from '../src/concepts/klimaatplafond/model/valves';
 
 const near = (a: number, b: number, tol: number, msg?: string) =>
   expect(Math.abs(a / b - 1), msg ?? `${a} vs ${b}`).toBeLessThanOrEqual(tol);
@@ -56,11 +66,20 @@ describe('klep', () => {
   it('0,25 m³/h door Kv 1,0 = 6,25 kPa', () => {
     expect(100 * (0.25 / 1.0) ** 2).toBeCloseTo(6.25, 10);
   });
-  it('Type B: dode zone en Kv-karakteristiek', () => {
+  it('Type B: dode zone en gelijkprocentige karakteristiek (zonder Kvs)', () => {
     expect(thetaToState(45).seq).toBe('dicht');
-    expect(kvTypeB(45, 1.3, 1.0)).toBe(0);
-    expect(kvTypeB(0, 1.3, 1.0)).toBeCloseTo(1.3, 10);
-    expect(kvTypeB(90, 1.3, 1.0)).toBeCloseTo(1.0, 10);
+    expect(flowFractionAtTheta(45)).toBe(0);
+    expect(flowFractionAtTheta(30)).toBe(0); // dichtgrens koelen
+    expect(flowFractionAtTheta(0)).toBeCloseTo(1, 10); // koelen volledig open
+    expect(flowFractionAtTheta(90)).toBeCloseTo(1, 10); // verwarmen volledig open
+    for (const x of [0.02, 0.05, 0.1, 0.3, 0.7, 1]) {
+      expect(openingToFlowFraction(flowFractionToOpening(x))).toBeCloseTo(x, 8);
+    }
+  });
+  it('Type B heeft geen Kvs-instelling meer in de configuratie', () => {
+    const v = defaultConfig().valves[0] as unknown as Record<string, unknown>;
+    expect('kvsKoelen' in v).toBe(false);
+    expect('kvsVerwarmen' in v).toBe(false);
   });
 });
 
@@ -139,9 +158,14 @@ describe('standaardconfiguratie', () => {
     near(m.power, 1828, 0.03);
     near(m.dpCircuit / 1000, 10.7, 0.08);
   });
-  it('klepadvies Type B DN15: Kvs 1,3 koelen / 1,0 verwarmen', () => {
-    expect(cfg.valves[0].kvsKoelen).toBe(1.3);
-    expect(cfg.valves[0].kvsVerwarmen).toBe(1.0);
+  it('Type B: benodigd Δp is alleen de circuitdrukval (geen Kvs-weerstand)', () => {
+    near(vd.needed.koelen, vd.modes.koelen.dpCircuit / 1000, 1e-9);
+    near(vd.needed.verwarmen, vd.modes.verwarmen.dpCircuit / 1000, 1e-9);
+  });
+  it('Type A: PICV-advies DN15 (650 l/h)', () => {
+    const a = defaultConfig();
+    a.valves[0] = { ...a.valves[0], type: 'A', dn: 15 };
+    expect(resolveAdvice(a).valves[0].picv).toBe('DN15');
   });
   it('Type A DN15 bij 30 kPa: benodigd ≈ 33,6 kPa → W02', () => {
     const a = defaultConfig();
@@ -158,6 +182,94 @@ describe('standaardconfiguratie', () => {
   });
   it('context klopt', () => {
     expect(ctx.geom.nBenen).toBe(7);
+  });
+});
+
+describe('Vmax afstellen op benodigd vermogen (last) of maximaal plafondvermogen', () => {
+  const build = (basis: 'plafond' | 'last', panels = 40, type: 'A' | 'B' = 'B', patch: object = {}) => {
+    const c = defaultConfig();
+    Object.assign(c, patch);
+    c.valves[0] = { ...c.valves[0], panelCount: panels, vmaxBasis: basis, type };
+    return computeDesign(resolveAdvice(c));
+  };
+  it('plafond (standaard): Vmax = Σ ontwerpdebieten', () => {
+    const v = build('plafond').valves[0];
+    for (const m of ['koelen', 'verwarmen'] as const) {
+      expect(v.modes[m].vmax).toBe(v.modes[m].vmaxCeiling);
+      expect(v.modes[m].capacity).toBeNull();
+    }
+  });
+  it('last: het zonevermogen haalt de last (binnen 3 %) bij een lager debiet dan het plafondmaximum', () => {
+    for (const type of ['A', 'B'] as const) {
+      const v = build('last', 40, type).valves[0];
+      for (const m of ['koelen', 'verwarmen'] as const) {
+        const md = v.modes[m];
+        expect(md.vmax, `${type} ${m}`).toBeLessThan(md.vmaxCeiling);
+        expect(md.power).toBeGreaterThanOrEqual(md.load - 0.5);
+        expect(md.power).toBeLessThan(md.load * 1.03);
+        expect(md.capacity as number).toBeGreaterThan(md.load * 1.2);
+      }
+    }
+  });
+  it('last: Vmax is minimaal (1 l/h minder haalt de last niet)', () => {
+    const d = build('last');
+    const v = d.valves[0];
+    for (const m of ['koelen', 'verwarmen'] as const) {
+      const md = v.modes[m];
+      const p = solveZoneCoupled(d.ctx, md.cond, v.spec, md.vmax - 1 / 3.6e6, undefined, 2).thermal.reduce(
+        (a, t) => a + t.power,
+        0,
+      );
+      expect(p).toBeLessThan(md.load);
+    }
+  });
+  it('last: Vmax is een geheel aantal l/h', () => {
+    const v = build('last').valves[0];
+    for (const m of ['koelen', 'verwarmen'] as const) {
+      const lh1 = v.modes[m].vmax * 3.6e6;
+      expect(Math.abs(lh1 - Math.round(lh1))).toBeLessThan(1e-6);
+    }
+  });
+  it('last: te weinig plafond → Vmax blijft maximaal plafondvermogen en W11 meldt het tekort', () => {
+    const d = build('last', 28, 'B', { coolLoad: 20000 });
+    const md = d.valves[0].modes.koelen;
+    expect(md.vmax).toBe(md.vmaxCeiling);
+    expect(designMessages(d).map((m) => m.code)).toContain('W11');
+  });
+  it('last: zonder overcapaciteit-melding en met Vmax dichter bij het ontwerp bij 28 panelen en lage last', () => {
+    const v = build('last', 28, 'B', { coolLoad: 1360, heatLoss: 1828 }).valves[0];
+    // last ≈ capaciteit: Vmax ligt dicht bij Σ ontwerpdebieten
+    expect(v.modes.koelen.vmax / v.modes.koelen.vmaxCeiling).toBeGreaterThan(0.97);
+    expect(v.modes.verwarmen.vmax / v.modes.verwarmen.vmaxCeiling).toBeGreaterThan(0.97);
+  });
+  it('handmatige Vmax negeert het uitgangspunt', () => {
+    const c = defaultConfig();
+    c.valves[0] = { ...c.valves[0], panelCount: 40, vmaxBasis: 'last', vmaxAuto: false, vmaxKoelen: 200 };
+    const v = computeDesign(resolveAdvice(c)).valves[0];
+    expect(v.modes.koelen.vmax).toBeCloseTo(200 / 3.6e6, 12);
+    expect(v.modes.koelen.capacity).toBeNull();
+  });
+  it('meerdere zones: elke zone haalt zijn eigen aandeel van de last', () => {
+    const c = defaultConfig();
+    c.floorArea = 80;
+    c.valveCount = 2;
+    c.valves = [
+      { ...c.valves[0], panelCount: 44, vmaxBasis: 'last' },
+      { ...c.valves[0], panelCount: 36, vmaxBasis: 'last' },
+    ];
+    const d = computeDesign(resolveAdvice(c));
+    for (const v of d.valves) {
+      const md = v.modes.koelen;
+      expect(md.load).toBeCloseTo(c.coolLoad * v.share, 6);
+      expect(md.power).toBeGreaterThanOrEqual(md.load - 0.5);
+      expect(md.power).toBeLessThan(md.load * 1.03);
+    }
+  });
+  it('het gekozen uitgangspunt zit in de deelbare configuratie', () => {
+    const c = defaultConfig();
+    c.valves[0] = { ...c.valves[0], vmaxBasis: 'last' };
+    expect(normalizeConfig(JSON.parse(JSON.stringify(c))).valves[0].vmaxBasis).toBe('last');
+    expect(normalizeConfig({ valves: [{ vmaxBasis: 'onzin' }] }).valves[0].vmaxBasis).toBe('plafond');
   });
 });
 

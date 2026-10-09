@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import uPlot from 'uplot';
-import { fmtClock } from '../../../../core/format';
+import { fmt, fmtClock } from '../../../../core/format';
+import s from './Chart.module.css';
 
 export interface ChartSeries {
   label: string;
   color: string;
+  /** streepjespatroon in px (zoals uPlot); leeg = volle lijn */
   dash?: number[];
   width?: number;
   scale?: string;
@@ -12,6 +14,16 @@ export interface ChartSeries {
   /** vul onder de lijn */
   fill?: string;
   points?: boolean;
+  /** aantal decimalen van de cursorwaarde in de legenda */
+  digits?: number;
+}
+
+/** Extra legenda-item voor iets dat niet als reeks is getekend (verticale lijn, gearceerd venster). */
+export interface LegendExtra {
+  label: string;
+  color: string;
+  dash?: number[];
+  kind?: 'line' | 'band';
 }
 
 export interface ChartAxis {
@@ -33,8 +45,9 @@ export interface UPlotChartProps {
   scales?: Record<string, uPlot.Scale>;
   height?: number;
   syncKey?: string;
-  /** extra tekenhaken (bijv. arcering of verticale lijnen) */
+  /** extra tekenhaken (bijv. arcering of verticale lijnen): `draw` en `drawClear` volgen altijd de laatste props */
   hooks?: uPlot.Hooks.Arrays;
+  legendExtras?: LegendExtra[];
   ariaLabel: string;
 }
 
@@ -51,15 +64,54 @@ function clockSplits(
   min: number,
   max: number,
   _inc: number,
-  space: number,
+  _space: number,
 ): number[] {
   const span = Math.max(max - min, 1);
-  const wantTicks = Math.max(2, Math.floor((space > 0 ? 700 : 700) / 80));
+  const wantTicks = Math.max(2, Math.floor(700 / 80));
   const target = span / wantTicks;
-  const step = CLOCK_STEPS.find((s) => s >= target) ?? CLOCK_STEPS[CLOCK_STEPS.length - 1];
+  const step = CLOCK_STEPS.find((c) => c >= target) ?? CLOCK_STEPS[CLOCK_STEPS.length - 1];
   const out: number[] = [];
   for (let v = Math.ceil(min / step) * step; v <= max; v += step) out.push(v);
   return out;
+}
+
+/** Lijnvoorbeeld in de legenda: toont kleur én streepjespatroon (vol, gestreept, gestippeld, streep-punt). */
+function LineSwatch({
+  color,
+  dash,
+  width = 1.6,
+  dim,
+}: {
+  color: string;
+  dash?: number[];
+  width?: number;
+  dim?: boolean;
+}) {
+  return (
+    <svg
+      className={s.swatch}
+      width={34}
+      height={10}
+      viewBox="0 0 34 10"
+      aria-hidden="true"
+      opacity={dim ? 0.35 : 1}
+    >
+      <line
+        x1={1}
+        y1={5}
+        x2={33}
+        y2={5}
+        stroke={color}
+        strokeWidth={Math.max(2, width)}
+        strokeDasharray={dash && dash.length ? dash.join(' ') : undefined}
+      />
+    </svg>
+  );
+}
+
+function valueText(v: number | null | undefined, digits: number): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '–';
+  return fmt(v, Math.abs(v) >= 1000 ? 0 : digits);
 }
 
 export function UPlotChart({
@@ -72,11 +124,18 @@ export function UPlotChart({
   height = 220,
   syncKey,
   hooks,
+  legendExtras,
   ariaLabel,
 }: UPlotChartProps) {
   const host = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
   const [theme, setTheme] = useState(0);
+  const [cursorIdx, setCursorIdx] = useState<number | null>(null);
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const hiddenRef = useRef(hidden);
+  hiddenRef.current = hidden;
+  const hooksRef = useRef(hooks);
+  hooksRef.current = hooks;
   const sig = JSON.stringify([series, axes, xKind, xLabel, height, syncKey, theme]);
 
   useEffect(() => {
@@ -107,7 +166,7 @@ export function UPlotChart({
         size: 38,
       },
     ];
-    const used = new Set(series.map((s) => s.scale ?? 'y'));
+    const used = new Set(series.map((sr) => sr.scale ?? 'y'));
     const axDefs = axes ?? [{ scale: 'y' }];
     for (const a of axDefs) {
       if (!used.has(a.scale)) continue;
@@ -124,30 +183,36 @@ export function UPlotChart({
     const opts: uPlot.Options = {
       width: Math.max(el.clientWidth, 200),
       height,
-      padding: [8, 8, 0, 0],
+      padding: [8, 18, 0, 0],
       cursor: syncKey
         ? { sync: { key: syncKey }, drag: { x: true, y: false } }
         : { drag: { x: true, y: false } },
-      legend: { show: true, live: true },
+      // eigen legenda (zie onder): vaste breedtes, dus geen layoutverschuiving bij hoveren
+      legend: { show: false },
       scales: { x: { time: false }, ...scales },
       axes: ax,
       series: [
         {},
         ...series.map(
-          (s): uPlot.Series => ({
-            label: s.label,
-            stroke: s.color,
-            width: s.width ?? 1.6,
-            dash: s.dash,
-            scale: s.scale ?? 'y',
-            show: s.show ?? true,
-            fill: s.fill,
-            points: { show: s.points ?? false, size: 6 },
+          (sr): uPlot.Series => ({
+            label: sr.label,
+            stroke: sr.color,
+            width: sr.width ?? 1.6,
+            dash: sr.dash,
+            scale: sr.scale ?? 'y',
+            show: !hiddenRef.current[sr.label] && (sr.show ?? true),
+            fill: sr.fill,
+            points: { show: sr.points ?? false, size: 6 },
             spanGaps: false,
           }),
         ),
       ],
-      hooks,
+      hooks: {
+        // `draw`/`drawClear` lezen steeds de laatste hooks, zodat de arcering meebeweegt met nieuwe gegevens
+        drawClear: [(u: uPlot) => hooksRef.current?.drawClear?.forEach((fn) => fn?.(u))],
+        draw: [(u: uPlot) => hooksRef.current?.draw?.forEach((fn) => fn?.(u))],
+        setCursor: [(u: uPlot) => setCursorIdx(u.cursor.idx ?? null)],
+      },
     };
     const u = new uPlot(opts, data, el);
     plot.current = u;
@@ -166,5 +231,69 @@ export function UPlotChart({
     plot.current?.setData(data);
   }, [data]);
 
-  return <div ref={host} role="img" aria-label={ariaLabel} />;
+  const toggle = (i: number, label: string): void => {
+    const nowHidden = !hidden[label];
+    setHidden((h) => ({ ...h, [label]: nowHidden }));
+    plot.current?.setSeries(i + 1, { show: !nowHidden });
+  };
+
+  const xs = data[0] as ArrayLike<number> | undefined;
+  const xVal = cursorIdx !== null && xs ? xs[cursorIdx] : null;
+  const xText =
+    xVal === null || xVal === undefined
+      ? '–'
+      : xKind === 'time'
+        ? `t = ${fmtClock(xVal)}`
+        : `x = ${fmt(xVal, Math.abs(xVal) >= 100 ? 0 : 1)}`;
+
+  return (
+    <div className={s.wrap}>
+      <div ref={host} role="img" aria-label={ariaLabel} />
+      <div className={s.legend} role="group" aria-label="Legenda">
+        <span className={s.legendX} aria-hidden="true">
+          {xText}
+        </span>
+        {series.map((sr, i) => {
+          const on = !hidden[sr.label];
+          const v =
+            cursorIdx !== null ? (data[i + 1] as ArrayLike<number | null> | undefined)?.[cursorIdx] : null;
+          return (
+            <button
+              key={sr.label}
+              type="button"
+              className={s.item}
+              aria-pressed={on}
+              title={`${sr.label}: klik om te tonen of te verbergen`}
+              onClick={() => toggle(i, sr.label)}
+            >
+              <LineSwatch color={sr.color} dash={sr.dash} width={sr.width} dim={!on} />
+              <span className={s.label}>{sr.label}</span>
+              <span className={s.val}>{on ? valueText(v, sr.digits ?? 1) : ''}</span>
+            </button>
+          );
+        })}
+        {legendExtras?.map((x) => (
+          <span key={x.label} className={s.extra}>
+            {x.kind === 'band' ? (
+              <svg className={s.swatch} width={34} height={10} viewBox="0 0 34 10" aria-hidden="true">
+                <rect
+                  x={1}
+                  y={1}
+                  width={32}
+                  height={8}
+                  rx={2}
+                  fill={x.color}
+                  stroke={x.color}
+                  strokeOpacity={0.6}
+                />
+              </svg>
+            ) : (
+              <LineSwatch color={x.color} dash={x.dash} width={1.6} />
+            )}
+            <span>{x.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }

@@ -10,12 +10,12 @@ import { loadPower, operativeTemp, zoneRoom, type ZoneRoom } from './room';
 import { rChar, strandThermal, strandVolume, type StrandThermal } from './strand';
 import { solveZone } from './zoneHydraulics';
 import {
-  kvTypeB,
   picvKvOpen,
+  flowFractionAtTheta,
+  flowFractionToOpening,
   solveFlow,
   thetaTarget,
   thetaToState,
-  typeBTargetOpening,
   m3sToM3h,
 } from './valves';
 
@@ -269,19 +269,24 @@ function stepZone(state: SimState, design: Design, i: number, dt: number): ZoneS
   let hydMode: Mode | 'dicht' = 'dicht';
   let dpValve = vd.dpAvail;
   if (v.type === 'B') {
+    // Software-gestuurde klep met flowmeting: Vmax van de sequentie komt overeen met 100 % opening
+    // en de karakteristiek koppelt opening en debietfractie.
     if (act === 'stop') thetaTgt = 45;
     else {
-      const { h } = typeBTargetOpening(qSet, vd.dpAvail, vd.modes[act].circuit, vd.kvs[act], nGl);
-      thetaTgt = thetaTarget(act, h);
+      const frac = vd.modes[act].vmax > 0 ? Math.min(qSet / vd.modes[act].vmax, 1) : 0;
+      thetaTgt = thetaTarget(act, flowFractionToOpening(frac, nGl));
     }
     const rate = 90 / cfg.advanced.valveB.runtime90;
     theta += clamp(thetaTgt - theta, -rate * dt, rate * dt);
     const st = thetaToState(theta);
     hydMode = st.seq;
     if (st.seq !== 'dicht') {
-      const kv = kvTypeB(theta, vd.kvs.koelen, vd.kvs.verwarmen, nGl);
-      q = solveFlow(vd.dpAvail, vd.modes[st.seq].circuit, [kv]);
-      dpValve = vd.dpAvail - vd.modes[st.seq].circuit(q);
+      const md = vd.modes[st.seq];
+      const qValve = md.vmax * flowFractionAtTheta(theta, nGl);
+      // het circuit begrenst het debiet bij het beschikbare Δp
+      const qAvail = solveFlow(vd.dpAvail, md.circuit);
+      q = Math.min(qValve, qAvail);
+      dpValve = vd.dpAvail - md.circuit(q);
     }
   } else {
     const wanted: Mode | null = act === 'stop' ? null : act;

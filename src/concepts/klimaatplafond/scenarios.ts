@@ -76,7 +76,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'S5',
     name: 'S5 · Lange verdeelleiding',
-    wat: '40 panelen (automatisch 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp 60 kPa, DN20. Bij direct retour krijgt de eerste streng +28 % en de laatste −11 % (W08). Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa en dan wordt het ontwerpdebiet niet meer gehaald (W02).',
+    wat: '40 panelen (automatisch 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp 60 kPa, DN20. Bij direct retour krijgt de eerste streng +28 % en de laatste −11 % (W08). Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa en vult daarmee vrijwel het hele beschikbare Δp van 60 kPa.',
     probeer: 'Schakel de aansluitwijze om tussen direct retour en Tichelmann, of vergroot de verdeelleiding.',
     expect: [['W08']],
     tab: 'puzzel',
@@ -89,9 +89,9 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'S6',
     name: 'S6 · Eén grote klep of drie kleine',
-    wat: 'Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep DN20 met 60 panelen: 15 × 4 aan één verdeelleiding 20×2, +23 % / −9 % ongelijk, Kv nodig ≈ 3,6.',
+    wat: 'Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep DN20 met 60 panelen: 15 × 4 aan één verdeelleiding 20×2, +23 % / −9 % ongelijk, circuitdrukval ca. 25 van de 30 kPa.',
     probeer:
-      'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): Kv ≈ 0,7 en de verdeling blijft binnen ±3 %.',
+      'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): de circuitdrukval daalt naar ca. 14 kPa en de verdeling blijft binnen ±3 %.',
     expect: [['W08']],
     tab: 'puzzel',
     build: () => {
@@ -140,13 +140,13 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'S10',
-    name: 'S10 · Kvs te groot',
-    wat: '8 panelen met Type B DN20 en Kvs 4,0/4,0: Vmax koelen ≈ 112 l/h, Kv nodig ≈ 0,32. Dat geeft W12 (Kv/Kvs ≈ 0,08), ook voor verwarmen. Het advies binnen DN20 is Kvs 0,63; met DN15 wordt het advies Kvs 0,4.',
-    probeer: 'Klik "Advies toepassen", of zet de DN op 15.',
-    expect: [['W12']],
-    tab: 'klep',
-    build: () =>
-      withValve(defaultConfig(), { type: 'B', dn: 20, panelCount: 8, kvsKoelen: 4.0, kvsVerwarmen: 4.0 }),
+    name: 'S10 · Meer plafond dan nodig',
+    wat: '40 panelen (10 × 4) voor een koellast van 1.100 W en een warmteverlies van 1.000 W, met Vmax ingeregeld op het benodigde vermogen. Het plafond kan 1.941 W koelen (Σ ontwerpdebieten 558 l/h), maar Vmax wordt 148 l/h: ca. 15 l/h per streng. Bij verwarmen is Vmax 68 l/h in plaats van 453 l/h. De strengen worden laminair en de stroomsnelheid zakt onder 0,25 m/s, dus W03 en W04, en het ΔT loopt op tot ca. 6 K (koelen) en 13 K (verwarmen).',
+    probeer:
+      'Zet "Vmax afstellen op" op "Max. plafondvermogen": Vmax stijgt naar 558 l/h en het plafond levert dan 1.941 W (meer dan nodig). Probeer ook 28 panelen.',
+    expect: [['W03'], ['W04']],
+    tab: 'puzzel',
+    build: () => withValve(defaultConfig(), { panelCount: 40, vmaxBasis: 'last' }),
   },
 ];
 

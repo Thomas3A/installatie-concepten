@@ -1,4 +1,7 @@
-// Kleppen: Type A (schakelende 6-weg + PICV) en Type B (modulerende gekarakteriseerde 6-weg).
+// Kleppen: Type A (schakelende 6-weg + PICV) en Type B (modulerende 6-weg met flowmeting).
+//
+// Type B regelt het debiet softwarematig op het gemeten debiet (drukonafhankelijk via meting). Er is daarom geen Kvs-keuze:
+// Vmax per sequentie komt overeen met 100 % opening en de karakteristiek koppelt opening en debietfractie.
 import { TYPE_A, TYPE_B, picvsForDn, picvSpec, type Dn, type PicvId } from '../data/valves';
 import type { Mode } from './config';
 
@@ -7,16 +10,19 @@ export const m3sToM3h = (q: number): number => q * 3600;
 
 // ------------------------------------------------------------- Type B
 
-/** Relatieve Kv (Kv/Kvs) bij relatieve opening h in de actieve sequentie. */
-export function kvRel(h: number, nGl: number = TYPE_B.nGl): number {
+/**
+ * Debietfractie Q/Vmax bij relatieve opening h in de actieve sequentie (gelijkprocentig):
+ * exp(n_gl·(h − 1)) voor h ≥ 0,05 en lineair naar 0 daaronder.
+ */
+export function openingToFlowFraction(h: number, nGl: number = TYPE_B.nGl): number {
   if (h <= 0) return 0;
   const h0 = TYPE_B.hLinear;
   if (h >= h0) return Math.exp(nGl * (Math.min(h, 1) - 1));
   return (Math.exp(nGl * (h0 - 1)) * h) / h0;
 }
 
-/** Inverse van kvRel. */
-export function hFromKvRel(x: number, nGl: number = TYPE_B.nGl): number {
+/** Inverse van openingToFlowFraction: benodigde opening voor een debietfractie. */
+export function flowFractionToOpening(x: number, nGl: number = TYPE_B.nGl): number {
   if (x <= 0) return 0;
   const h0 = TYPE_B.hLinear;
   const x0 = Math.exp(nGl * (h0 - 1));
@@ -37,43 +43,20 @@ export function thetaTarget(mode: Mode | 'stop', h: number): number {
   return mode === 'koelen' ? 30 * (1 - h) : 60 + 30 * h;
 }
 
-/** Kv (m³/h) van Type B bij stand θ. */
-export function kvTypeB(
-  theta: number,
-  kvsKoelen: number,
-  kvsVerwarmen: number,
-  nGl: number = TYPE_B.nGl,
-): number {
+/** Debietfractie Q/Vmax van Type B bij stand θ (0 in de dode zone). */
+export function flowFractionAtTheta(theta: number, nGl: number = TYPE_B.nGl): number {
   const st = thetaToState(theta);
-  if (st.seq === 'dicht') return 0;
-  return (st.seq === 'koelen' ? kvsKoelen : kvsVerwarmen) * kvRel(st.h, nGl);
-}
-
-/**
- * Elektronische flowregeling: bepaal de doelopening h voor een gewenst debiet.
- * Kv_nodig = Q_set / √(Δp_klep(Q_set)/100) met Δp_klep = Δp_beschikbaar − Δp_circuit(Q_set).
- */
-export function typeBTargetOpening(
-  qSet: number,
-  dpAvail: number,
-  circuit: (q: number) => number,
-  kvs: number,
-  nGl: number = TYPE_B.nGl,
-): { h: number; kvNodig: number } {
-  if (qSet <= 0) return { h: 0, kvNodig: 0 };
-  const dpKlep = kPa(dpAvail - circuit(qSet));
-  if (dpKlep <= 1e-6) return { h: 1, kvNodig: Infinity };
-  const kvNodig = m3sToM3h(qSet) / Math.sqrt(dpKlep / 100);
-  return { h: hFromKvRel(kvNodig / kvs, nGl), kvNodig };
+  return st.seq === 'dicht' ? 0 : openingToFlowFraction(st.h, nGl);
 }
 
 // ------------------------------------------------------------- Gemeenschappelijk
 
 /**
  * Los het werkelijke debiet op uit Δp_beschikbaar = Δp_circuit(Q) + Σ 100·(Q/Kv_j)²  (Q in m³/s, resultaat in m³/s).
+ * Zonder extra weerstanden (lege lijst) is dit het maximale debiet dat het circuit bij het beschikbare Δp haalt.
  * Een Kv van 0 (dichte klep) geeft debiet 0.
  */
-export function solveFlow(dpAvail: number, circuit: (q: number) => number, kvs: number[]): number {
+export function solveFlow(dpAvail: number, circuit: (q: number) => number, kvs: number[] = []): number {
   if (dpAvail <= 0 || kvs.some((k) => k <= 0)) return 0;
   const total = (q: number): number => {
     let dp = circuit(q);
@@ -96,65 +79,13 @@ export function picvKvOpen(vmax: number, dpMinKpa: number): number {
   return m3sToM3h(vmax) / Math.sqrt(dpMinKpa / 100);
 }
 
-// ------------------------------------------------------------- Advies (§5.9)
-
-export interface AdviceB {
-  kind: 'B';
-  dn: Dn;
-  /** Aanbevolen Kvs per modus; null als Δp te laag is */
-  kvs: Record<Mode, number | null>;
-  kvNodig: Record<Mode, number>;
-  /** Opening bij Vmax (0..1) */
-  opening: Record<Mode, number | null>;
-  suggestDn20: boolean;
-  dpTooLow: boolean;
-}
+// ------------------------------------------------------------- Advies (Type A: PICV)
 
 export interface AdviceA {
   kind: 'A';
   picv: PicvId | null;
   dpNeeded: number; // kPa
   ok: boolean;
-}
-
-export function adviceTypeB(
-  dn: Dn,
-  vmax: Record<Mode, number>,
-  dpAvail: number,
-  dpCircuit: Record<Mode, number>,
-  nGl: number = TYPE_B.nGl,
-): AdviceB {
-  const kvs = {} as Record<Mode, number | null>;
-  const kvNodig = {} as Record<Mode, number>;
-  const opening = {} as Record<Mode, number | null>;
-  let suggestDn20 = false;
-  let dpTooLow = false;
-  for (const m of ['koelen', 'verwarmen'] as const) {
-    const dpKlep = kPa(dpAvail - dpCircuit[m]);
-    if (dpKlep <= 0) {
-      kvs[m] = null;
-      kvNodig[m] = Infinity;
-      opening[m] = null;
-      dpTooLow = true;
-      continue;
-    }
-    kvNodig[m] = m3sToM3h(vmax[m]) / Math.sqrt(dpKlep / 100);
-    const pick = (list: number[]): number | undefined => list.find((k) => kvNodig[m] <= 0.9 * k);
-    let k = pick(TYPE_B.kvs[dn]);
-    if (k === undefined && dn === 15) {
-      k = pick(TYPE_B.kvs[20]);
-      if (k !== undefined) suggestDn20 = true;
-    }
-    if (k === undefined) {
-      kvs[m] = null;
-      opening[m] = null;
-      dpTooLow = true;
-    } else {
-      kvs[m] = k;
-      opening[m] = hFromKvRel(kvNodig[m] / k, nGl);
-    }
-  }
-  return { kind: 'B', dn, kvs, kvNodig, opening, suggestDn20, dpTooLow };
 }
 
 export function adviceTypeA(
@@ -178,15 +109,18 @@ export function adviceTypeA(
   return { kind: 'A', picv: choice ? choice.id : null, dpNeeded: worst, ok: worst <= kPa(dpAvail) };
 }
 
-/** Benodigd Δp (kPa) per modus voor het kleptype, bij Vmax. */
+/**
+ * Benodigd Δp (kPa) bij Vmax.
+ * Type B: alleen het circuit (de klep regelt het debiet softwarematig; geen Kvs-weerstand).
+ * Type A: circuit + 6-weg-klep (vaste weerstand) + minimaal Δp over de PICV.
+ */
 export function dpNeeded(
   type: 'A' | 'B',
   vmax: number,
   dpCircuit: number,
-  kvsB: number,
   dn: Dn,
   picv: PicvId | null,
 ): number {
-  if (type === 'B') return kPa(dpCircuit) + 100 * (m3sToM3h(vmax) / kvsB) ** 2;
+  if (type === 'B') return kPa(dpCircuit);
   return kPa(dpCircuit) + 100 * (m3sToM3h(vmax) / TYPE_A.kvsSixWay[dn]) ** 2 + picvSpec(picv).dpMin;
 }

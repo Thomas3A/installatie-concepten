@@ -330,7 +330,7 @@ export function PlanView() {
       const cfgv = vd.cfg;
       const kvTxt =
         cfgv.type === 'B'
-          ? `Kvs ${fmt(vd.kvs.koelen, 2).replace(/,00$/, '')}/${fmt(vd.kvs.verwarmen, 2).replace(/,00$/, '')}`
+          ? 'softwarematig' // Type B: geen Kvs-keuze
           : vd.picv.label.split(' ')[0] +
             (vd.picv.label.includes('HF') ? ' HF' : vd.picv.label.includes('LF') ? ' LF' : '');
       const hydc = act === 'koelen' ? 'var(--cold)' : act === 'verwarmen' ? 'var(--warm)' : 'var(--text-2)';
@@ -348,7 +348,7 @@ export function PlanView() {
         view.k >= 22 && (
           <g key={`kl${z.valve}`}>
             <text x={z.x0 - 0.05} y={0.3} fontSize={10 / view.k} fill="var(--text-2)" textAnchor="end">
-              {`Type ${cfgv.type} · DN${cfgv.dn}`}
+              {`Type ${cfgv.type}${cfgv.type === 'A' ? ` · DN${cfgv.dn}` : ''}`}
             </text>
             <text
               x={z.x0 - 0.05}

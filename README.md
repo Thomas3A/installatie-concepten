@@ -17,7 +17,8 @@ Reynoldsgetal, ΔT en vermogen samen — en wat er gebeurt als strengen ongelijk
 - Volledige configuratie (ruimte, water, plafond, kleppen, regeling) met bereiken en toelichting per invoer.
 - Automatisch koppelen van panelen tot strengen (puzzelmatrix met ★-advies) en handmatige strengeditor.
 - Hydraulisch netwerk per klep (direct retour of Tichelmann) zonder inregeling: ongelijke verdeling blijft zichtbaar.
-- Type A (schakelende 6-weg + PICV) en Type B (modulerende 6-weg met flow- en ΔT-meting, ΔT-manager).
+- Type A (schakelende 6-weg + PICV) en Type B (modulerende 6-weg met flow- en ΔT-meting, ΔT-manager; softwarematig geregeld, dus zonder Kvs-keuze).
+- Vmax per klep afstellen op het maximale plafondvermogen of op het benodigde vermogen (last), voor als er meer plafond ligt dan nodig.
 - Dynamische simulatie met PI-regeling, dauwpuntbeveiliging, paneeltraagheid en ruimtemodel (1–3 zones).
 - Plafondplattegrond (SVG + canvas) met echte meanders, drie kleuroverlays, stromingsdeeltjes, zoomen/pannen.
 - Tabbladen Dynamiek, Puzzel, Klep en Uitleg; meldingen met "Waarom?"; tien scenario's; deelbare link; printweergave.

@@ -1,0 +1,64 @@
+/* Eigen legenda onder de grafiek: vaste breedtes, dus geen verspringen bij hoveren. */
+.wrap {
+  min-width: 0;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.legendX {
+  display: inline-block;
+  min-width: 9.5ch;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 3px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.item:hover {
+  background: var(--surface-2);
+}
+.item[aria-pressed='false'] {
+  color: var(--text-2);
+}
+.item[aria-pressed='false'] .label {
+  text-decoration: line-through;
+}
+.swatch {
+  flex: none;
+  display: block;
+}
+.val {
+  display: inline-block;
+  width: 7.5ch;
+  text-align: left;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 3px;
+  color: var(--text-2);
+  white-space: nowrap;
+}

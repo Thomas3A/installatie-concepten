@@ -9,6 +9,8 @@ export type Mode = 'koelen' | 'verwarmen';
 export type Thermal = 'licht' | 'middel' | 'zwaar';
 export type FlowChar = 'gelijkprocentig' | 'lineair';
 export type Layout = 'direct' | 'tichelmann';
+/** Waarop Vmax (bij automatisch) wordt ingeregeld: max. plafondvermogen of benodigd vermogen (last). */
+export type VmaxBasis = 'plafond' | 'last';
 
 export const MASS_KJ: Record<Thermal, number> = { licht: 15, middel: 30, zwaar: 60 };
 
@@ -20,16 +22,16 @@ export interface ManualStrand {
 
 export interface ValveConfig {
   type: ValveType;
+  /** DN van de 6-weg-klep; bepaalt de PICV-keuze (alleen Type A) */
   dn: Dn;
-  /** Type B: Kvs per sequentie (m³/h). null = advies toepassen bij laden. */
-  kvsKoelen: number | null;
-  kvsVerwarmen: number | null;
   /** Type A: PICV-uitvoering. null = advies toepassen bij laden. */
   picv: PicvId | null;
   panelCount: number;
   coupling: 'auto' | 'manual';
   manualStrands: ManualStrand[];
   vmaxAuto: boolean;
+  /** Uitgangspunt van de automatische Vmax */
+  vmaxBasis: VmaxBasis;
   /** l/h, alleen gebruikt als vmaxAuto = false */
   vmaxKoelen: number;
   vmaxVerwarmen: number;
@@ -136,13 +138,12 @@ export const defaultAdvanced = (): AdvancedConfig => ({
 export const defaultValve = (panelCount: number = VALVE_DEFAULTS.panelCount): ValveConfig => ({
   type: VALVE_DEFAULTS.type,
   dn: VALVE_DEFAULTS.dn,
-  kvsKoelen: null,
-  kvsVerwarmen: null,
   picv: null,
   panelCount,
   coupling: 'auto',
   manualStrands: [],
   vmaxAuto: true,
+  vmaxBasis: 'plafond',
   vmaxKoelen: VALVE_DEFAULTS.vmaxKoelen,
   vmaxVerwarmen: VALVE_DEFAULTS.vmaxVerwarmen,
   dtManager: false,
@@ -185,8 +186,6 @@ function normalizeValve(raw: Partial<ValveConfig> | undefined, def: ValveConfig)
   const r = raw ?? {};
   const type = oneOf<ValveType>(r.type, ['A', 'B'], def.type);
   const dn = oneOf<Dn>(r.dn, [15, 20], def.dn);
-  const kvsList = TYPE_B.kvs[dn];
-  const kv = (x: unknown): number | null => (typeof x === 'number' && kvsList.includes(x) ? x : null);
   const picvIds: PicvId[] = ['DN15-LF', 'DN15', 'DN15-HF', 'DN20', 'DN20-HF'];
   let picv: PicvId | null = oneOf<PicvId | null>(r.picv ?? null, [...picvIds, null], null);
   if (picv && !picv.startsWith(`DN${dn}`)) picv = null;
@@ -199,13 +198,12 @@ function normalizeValve(raw: Partial<ValveConfig> | undefined, def: ValveConfig)
   return {
     type,
     dn,
-    kvsKoelen: kv(r.kvsKoelen),
-    kvsVerwarmen: kv(r.kvsVerwarmen),
     picv,
     panelCount: Math.round(clampRange(r.panelCount, LIMITS.panelCount, def.panelCount)),
     coupling: oneOf(r.coupling, ['auto', 'manual'] as const, 'auto'),
     manualStrands: manual,
     vmaxAuto: typeof r.vmaxAuto === 'boolean' ? r.vmaxAuto : def.vmaxAuto,
+    vmaxBasis: oneOf<VmaxBasis>(r.vmaxBasis, ['plafond', 'last'], def.vmaxBasis),
     vmaxKoelen: clampRange(r.vmaxKoelen, LIMITS.vmax, def.vmaxKoelen),
     vmaxVerwarmen: clampRange(r.vmaxVerwarmen, LIMITS.vmax, def.vmaxVerwarmen),
     dtManager: type === 'B' && r.dtManager === true,
@@ -326,14 +324,12 @@ export function withValveCount(cfg: KlimaatplafondConfig, count: 1 | 2 | 3): Kli
   const valves: ValveConfig[] = [];
   for (let i = 0; i < count; i++) {
     const base = cfg.valves[i] ?? { ...cfg.valves[0], manualStrands: [], coupling: 'auto' as const };
-    // Kvs/PICV-advies wordt opnieuw bepaald omdat de debieten per klep veranderen
+    // PICV-advies wordt opnieuw bepaald omdat de debieten per klep veranderen
     valves.push({
       ...base,
       panelCount: Math.max(1, split[i]),
       coupling: 'auto',
       manualStrands: [],
-      kvsKoelen: null,
-      kvsVerwarmen: null,
       picv: null,
     });
   }

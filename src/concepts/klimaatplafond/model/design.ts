@@ -4,7 +4,7 @@ import type { NetworkResult } from '../../../core/hydraulics/network';
 import { rho } from '../../../core/water';
 import { distPipe } from '../data/pipes';
 import { LIMITS } from '../data/limits';
-import { TYPE_A, TYPE_B, picvSpec } from '../data/valves';
+import { TYPE_A, picvSpec } from '../data/valves';
 import { MASS_KJ, type KlimaatplafondConfig, type Mode, type ValveConfig } from './config';
 import { buildContext, type ModeConditions, type PlafondContext } from './context';
 import { designFlow, strandDp, strandThermal, type StrandThermal } from './strand';
@@ -15,15 +15,7 @@ import {
   type StrandSpec,
   type ZoneNetworkSpec,
 } from './zoneHydraulics';
-import {
-  adviceTypeA,
-  adviceTypeB,
-  dpNeeded,
-  solveFlow,
-  type AdviceA,
-  type AdviceB,
-  m3sToM3h,
-} from './valves';
+import { adviceTypeA, dpNeeded, solveFlow, type AdviceA, m3sToM3h } from './valves';
 
 export const MODES: Mode[] = ['koelen', 'verwarmen'];
 
@@ -75,7 +67,14 @@ export interface ModeDesign {
   points: DesignPoint[];
   /** Vmax in m³/s */
   vmax: number;
+  /** Automatische Vmax volgens het gekozen uitgangspunt (m³/s) */
   vmaxAutoValue: number;
+  /** Σ ontwerpdebieten, afgerond naar boven op 1 l/h = Vmax bij maximaal plafondvermogen (m³/s) */
+  vmaxCeiling: number;
+  /** Plafondvermogen (W) bij Vmax = Σ ontwerpdebieten; alleen bepaald bij uitgangspunt "last" */
+  capacity: number | null;
+  /** Benodigd vermogen van de zone volgens de last/verliesberekening (W) */
+  load: number;
   net: NetworkResult;
   thermal: StrandThermal[];
   tMean: number[];
@@ -93,8 +92,8 @@ export interface ModeDesign {
   feasible: boolean;
 }
 
+/** Klepadvies: alleen Type A heeft een keuze (PICV-uitvoering); Type B heeft geen Kvs-keuze. */
 export interface ValveAdvice {
-  b: AdviceB;
   a: AdviceA;
 }
 
@@ -114,15 +113,12 @@ export interface ValveDesign {
   chosen: number | null;
   modes: Record<Mode, ModeDesign>;
   advice: ValveAdvice;
-  /** Kvs/PICV zoals toegepast (config of advies) */
-  kvs: Record<Mode, number>;
+  /** PICV zoals toegepast (config of advies); alleen relevant bij Type A */
   picv: ReturnType<typeof picvSpec>;
   /** benodigd Δp (kPa) per modus */
   needed: Record<Mode, number>;
-  /** maximaal haalbaar debiet (m³/s) bij volledig open klep */
+  /** maximaal haalbaar debiet (m³/s) bij het beschikbare Δp */
   qMaxFeasible: Record<Mode, number>;
-  /** Kv_nodig/Kvs (type B) */
-  kvRatio: Record<Mode, number>;
   tooManyStrandsNeeded: boolean;
 }
 
@@ -266,6 +262,52 @@ export function chooseCandidate(cands: Candidate[]): number | null {
 
 // ------------------------------------------------------------------ zone-ontwerp
 
+const roundUpLh = (q: number): number => Math.ceil(q * 3.6e6 - 1e-9) / 3.6e6;
+
+/**
+ * Vmax bij het uitgangspunt "benodigd vermogen": het kleinste debiet (afgerond naar boven op 1 l/h) waarbij het
+ * zonevermogen bij ontwerpcondities, met de werkelijke verdeling over de strengen, de last haalt.
+ * Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen (Σ ontwerpdebieten).
+ */
+export function vmaxForLoad(
+  ctx: PlafondContext,
+  cond: ModeConditions,
+  spec: ZoneNetworkSpec,
+  vCeil: number,
+  load: number,
+): { vmax: number; capacity: number } {
+  const power = (V: number): number =>
+    solveZoneCoupled(ctx, cond, spec, V, undefined, 2).thermal.reduce((a, t) => a + t.power, 0);
+  const capacity = power(vCeil);
+  if (load >= capacity) return { vmax: vCeil, capacity };
+  const lo0 = Math.max(0.05 * vCeil, 10 / 3.6e6);
+  if (lo0 >= vCeil) return { vmax: vCeil, capacity };
+  if (power(lo0) >= load) return { vmax: Math.min(roundUpLh(lo0), vCeil), capacity };
+  // Illinois (regula falsi) in log-ruimte tussen a (vermogen < last) en b (vermogen ≥ last)
+  let a = Math.log(lo0);
+  let b = Math.log(vCeil);
+  let ga = power(lo0) - load;
+  let gb = capacity - load;
+  let side = 0;
+  for (let i = 0; i < 40; i++) {
+    const x = (a * gb - b * ga) / (gb - ga);
+    const gx = power(Math.exp(x)) - load;
+    if (gx >= 0) {
+      b = x;
+      gb = gx;
+      if (side === 1) ga /= 2;
+      side = 1;
+    } else {
+      a = x;
+      ga = gx;
+      if (side === -1) gb /= 2;
+      side = -1;
+    }
+    if (gb <= 1e-4 * Math.max(load, 1) || Math.abs(b - a) < 1e-7) break;
+  }
+  return { vmax: Math.min(roundUpLh(Math.exp(b)), vCeil), capacity };
+}
+
 function designMode(
   ctx: PlafondContext,
   cache: DesignCache,
@@ -273,11 +315,19 @@ function designMode(
   strands: StrandSpec[],
   spec: ZoneNetworkSpec,
   mode: Mode,
+  load: number,
 ): ModeDesign {
   const cond = ctx.conditions[mode];
   const points = strands.map((s) => cache.point(cond, s.panels, s.extraLength));
   const sumQ = points.reduce((a, p) => a + p.q, 0);
-  const vmaxAutoValue = Math.ceil(sumQ * 3.6e6) / 3.6e6;
+  const vmaxCeiling = roundUpLh(sumQ);
+  let vmaxAutoValue = vmaxCeiling;
+  let capacity: number | null = null;
+  if (v.vmaxAuto && v.vmaxBasis === 'last') {
+    const r = vmaxForLoad(ctx, cond, spec, vmaxCeiling, load);
+    vmaxAutoValue = r.vmax;
+    capacity = r.capacity;
+  }
   const vmax = v.vmaxAuto ? vmaxAutoValue : (mode === 'koelen' ? v.vmaxKoelen : v.vmaxVerwarmen) / 3.6e6;
   const zs = solveZoneCoupled(ctx, cond, spec, vmax, undefined, 3, true);
   const circuit = buildCircuit(ctx, cond, spec, vmax, zs.tMean);
@@ -300,6 +350,9 @@ function designMode(
     points,
     vmax,
     vmaxAutoValue,
+    vmaxCeiling,
+    capacity,
+    load,
     net: zs.net,
     thermal: zs.thermal,
     tMean: zs.tMean,
@@ -350,14 +403,17 @@ export function computeDesign(cfgIn: KlimaatplafondConfig): Design {
       hc: v.spacing,
       layout: v.layout,
     };
+    const share = shares[index];
+    const areaZone = cfg.floorArea * share;
+    const loadHeat = cfg.heatLoss * share;
+    const loadCool = cfg.coolLoad * share;
     const modes = {
-      koelen: designMode(ctx, cache, v, strands, spec, 'koelen'),
-      verwarmen: designMode(ctx, cache, v, strands, spec, 'verwarmen'),
+      koelen: designMode(ctx, cache, v, strands, spec, 'koelen', loadCool),
+      verwarmen: designMode(ctx, cache, v, strands, spec, 'verwarmen', loadHeat),
     };
     const vmaxM = { koelen: modes.koelen.vmax, verwarmen: modes.verwarmen.vmax };
     const dpC = { koelen: modes.koelen.dpCircuit, verwarmen: modes.verwarmen.dpCircuit };
     const advice: ValveAdvice = {
-      b: adviceTypeB(v.dn, vmaxM, dp * 1000, dpC, cfg.advanced.valveB.nGl),
       a: adviceTypeA(
         v.dn,
         { koelen: vmaxM.koelen * 3.6e6, verwarmen: vmaxM.verwarmen * 3.6e6 },
@@ -366,34 +422,27 @@ export function computeDesign(cfgIn: KlimaatplafondConfig): Design {
         vmaxM,
       ),
     };
-    const kvList = TYPE_B.kvs[v.dn];
-    const kvsPick = (m: Mode, given: number | null): number =>
-      given ?? advice.b.kvs[m] ?? kvList[kvList.length - 1];
-    const kvs = { koelen: kvsPick('koelen', v.kvsKoelen), verwarmen: kvsPick('verwarmen', v.kvsVerwarmen) };
     const picv = picvSpec(v.picv ?? advice.a.picv);
     const needed = {} as Record<Mode, number>;
     const qMax = {} as Record<Mode, number>;
-    const kvRatio = {} as Record<Mode, number>;
     for (const m of MODES) {
       const md = modes[m];
-      needed[m] = dpNeeded(v.type, md.vmax, md.dpCircuit, kvs[m], v.dn, picv.id);
+      needed[m] = dpNeeded(v.type, md.vmax, md.dpCircuit, v.dn, picv.id);
       if (v.type === 'B') {
-        qMax[m] = solveFlow(dp * 1000, md.circuit, [kvs[m]]);
+        // Type B regelt softwarematig: alleen het circuit begrenst het debiet bij het beschikbare Δp
+        qMax[m] = solveFlow(dp * 1000, md.circuit);
       } else {
         const kvOpen = md.vmax > 0 ? m3sToM3h(md.vmax) / Math.sqrt(picv.dpMin / 100) : 1e9;
         qMax[m] = solveFlow(dp * 1000, md.circuit, [TYPE_A.kvsSixWay[v.dn], kvOpen]);
       }
-      kvRatio[m] = Number.isFinite(advice.b.kvNodig[m]) ? advice.b.kvNodig[m] / kvs[m] : Infinity;
     }
-    const share = shares[index];
-    const areaZone = cfg.floorArea * share;
     return {
       index,
       cfg: v,
       share,
       areaZone,
-      loadHeat: cfg.heatLoss * share,
-      loadCool: cfg.coolLoad * share,
+      loadHeat,
+      loadCool,
       dpAvail: dp * 1000,
       strands,
       spec,
@@ -401,51 +450,24 @@ export function computeDesign(cfgIn: KlimaatplafondConfig): Design {
       chosen,
       modes,
       advice,
-      kvs,
       picv,
       needed,
       qMaxFeasible: qMax,
-      kvRatio,
       tooManyStrandsNeeded: candidates.every((c) => !c.valid) && candidates.some((c) => c.validIgnoringCount),
     };
   });
   return { cfg, ctx, valves, cFloor: MASS_KJ[cfg.mass] * 1000 };
 }
 
-/** Pas het klepadvies toe op alle kleppen waar Kvs/PICV nog niet expliciet is ingesteld (null), of op alle kleppen met `force`. */
+/** Pas het PICV-advies (Type A) toe op alle kleppen waar de PICV nog niet expliciet is ingesteld (null), of op alle met `force`. */
 export function resolveAdvice(cfg: KlimaatplafondConfig, force = false): KlimaatplafondConfig {
-  const needs = cfg.valves.some(
-    (v) => force || v.kvsKoelen === null || v.kvsVerwarmen === null || v.picv === null,
-  );
+  const needs = cfg.valves.some((v) => force || v.picv === null);
   if (!needs) return cfg;
   const design = computeDesign(cfg);
   const valves = cfg.valves.map((v, i) => {
     const d = design.valves[i];
-    let dn = v.dn;
-    let b = d.advice.b;
-    // Past de klep niet in DN15, adviseer dan DN20 en bepaal de Kvs binnen DN20.
-    if (v.type === 'B' && (force || v.kvsKoelen === null || v.kvsVerwarmen === null) && b.suggestDn20) {
-      dn = 20;
-      b = adviceTypeB(
-        20,
-        { koelen: d.modes.koelen.vmax, verwarmen: d.modes.verwarmen.vmax },
-        d.dpAvail,
-        { koelen: d.modes.koelen.dpCircuit, verwarmen: d.modes.verwarmen.dpCircuit },
-        cfg.advanced.valveB.nGl,
-      );
-    }
-    const list = TYPE_B.kvs[dn];
-    const fb = list[list.length - 1];
-    const keepK = !force && v.kvsKoelen !== null && dn === v.dn;
-    const keepV = !force && v.kvsVerwarmen !== null && dn === v.dn;
-    const picvAdvice = dn === v.dn ? d.advice.a.picv : null;
-    return {
-      ...v,
-      dn,
-      kvsKoelen: keepK ? v.kvsKoelen : (b.kvs.koelen ?? fb),
-      kvsVerwarmen: keepV ? v.kvsVerwarmen : (b.kvs.verwarmen ?? fb),
-      picv: !force && v.picv !== null && dn === v.dn ? v.picv : (picvAdvice ?? d.picv.id),
-    };
+    if (!force && v.picv !== null) return v;
+    return { ...v, picv: d.advice.a.picv ?? d.picv.id };
   });
   return { ...cfg, valves };
 }

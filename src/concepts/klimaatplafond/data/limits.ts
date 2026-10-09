@@ -8,7 +8,7 @@ export const LIMITS = {
   rh: { min: 30, max: 70, step: 1 },
   startTemp: { min: 10, max: 30, step: 0.5 },
   tSupplyCool: { min: 14, max: 18, step: 0.5 },
-  tSupplyHeat: { min: 28, max: 40, step: 0.5 },
+  tSupplyHeat: { min: 28, max: 45, step: 0.5 },
   dtCool: { min: 1.5, max: 5, step: 0.5 },
   dtHeat: { min: 2, max: 10, step: 0.5 },
   setHeat: { min: 19, max: 22, step: 0.5 },
@@ -47,8 +47,6 @@ export interface CheckLimits {
   dewMargin: number;
   /** W10: max gemiddelde plafondtemperatuur bij verwarmen (°C) */
   ceilingMaxHeat: number;
-  /** W12: Kv_nodig/Kvs onder deze waarde */
-  kvRatioMin: number;
   /** W02: haalbaar debiet onder deze fractie van Vmax */
   feasibleFraction: number;
   /** W16: max Δp over de klep (kPa) */
@@ -70,7 +68,6 @@ export const DEFAULT_CHECK_LIMITS: CheckLimits = {
   maldistInfo: 0.05,
   dewMargin: 1,
   ceilingMaxHeat: 35,
-  kvRatioMin: 0.3,
   feasibleFraction: 0.98,
   maxDpB: 110,
   maxDpA: 600,

@@ -24,15 +24,15 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
   W02: {
     title: 'Ontwerpdebiet niet haalbaar',
     why: [
-      'Het beschikbare Δp vóór de klep moet het circuit én de klep dekken. Type A heeft een minimaal Δp over de PICV nodig om drukonafhankelijk te regelen. Bij Type B begrenst de Kvs het debiet bij volledig open.',
+      'Het beschikbare Δp vóór de klep moet het circuit dekken. Type A heeft daarnaast een minimaal Δp over de PICV nodig om drukonafhankelijk te regelen en een kleine vaste weerstand in de 6-weg-klep. Type B regelt softwarematig op het gemeten debiet; daar bepaalt alleen de circuitdrukval of Vmax haalbaar is.',
     ],
     formula:
-      '\\Delta p_{beschikbaar} \\ge \\Delta p_{circuit}(V_{max}) + 100\\left(\\frac{V_{max}}{K_{vs}}\\right)^2 \\;[\\text{kPa},\\ m^3/h]',
+      '\\Delta p_{beschikbaar} \\ge \\Delta p_{circuit}(V_{max}) \\quad (\\text{Type A: } + \\Delta p_{6\\text{-}weg} + \\Delta p_{min,PICV})',
     solutions: [
       'Het beschikbare Δp verhogen',
-      'Een grotere Kvs of DN20 kiezen',
-      'De circuitweerstand verlagen (kortere strengen, ruimere verdeelleiding)',
+      'De circuitweerstand verlagen (kortere strengen, ruimere verdeelleiding, geen Tichelmann)',
       'Vmax verlagen',
+      'Type A: een andere PICV-uitvoering of DN20 kiezen',
     ],
   },
   W03: {
@@ -136,12 +136,6 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
       'De last verlagen',
     ],
   },
-  W12: {
-    title: 'Kvs te groot (Type B)',
-    why: ['De klep regelt in een klein deel van haar slag. De regeling wordt dan grof en gaat pendelen.'],
-    formula: 'K_{v,nodig} = \\frac{\\dot V_{max}}{\\sqrt{\\Delta p_{klep}/100}}',
-    solutions: ['Een kleinere Kvs; zie het advies bij de klepinstellingen.'],
-  },
   W13: {
     title: 'PICV buiten instelbereik (Type A)',
     why: [
@@ -238,7 +232,7 @@ export const EXPLAIN: ExplainSection[] = [
     body: [
       'Een 6-weg-klep schakelt één plafondcircuit tussen een koud- en een warmwatercircuit (4-pijpssysteem), met een dode zone ertussen. Dit model kent twee uitvoeringen.',
       'Type A combineert een schakelende 6-weg-klep (alleen koelen of verwarmen, 30 s omschakeltijd) met een drukonafhankelijk regelventiel (PICV) in de retour. De PICV regelt het debiet onafhankelijk van het beschikbare Δp zolang het Δp over de PICV boven het minimum ligt; Vmax wordt softwarematig per sequentie ingesteld.',
-      'Type B is één modulerende kogelklep: 0–30° koelen, 30–60° dicht, 60–90° verwarmen. De klep meet debiet en temperaturen en regelt het debiet elektronisch (drukonafhankelijk via meting). Met de gelijkprocentige karakteristiek $K_v(h) = K_{vs}\\,e^{n(h-1)}$ krijg je ook bij lage debieten een fijne regeling. Omdat de klep ΔT en debiet meet, levert hij direct energiemeting (P = ρ·c_p·Q·ΔT) en kan de ΔT-manager het debiet begrenzen als het gemeten ΔT onder de minimale ΔT zakt.',
+      'Type B is één modulerende kogelklep: 0–30° koelen, 30–60° dicht, 60–90° verwarmen. De klep meet debiet en temperaturen en regelt het debiet softwarematig op het gemeten debiet (drukonafhankelijk via meting). Vmax per sequentie is 100 % opening, dus een Kvs-keuze is niet nodig; de gelijkprocentige karakteristiek $Q/V_{max} = e^{n(h-1)}$ geeft ook bij lage debieten een fijne regeling. Omdat de klep ΔT en debiet meet, levert hij direct energiemeting (P = ρ·c_p·Q·ΔT) en kan de ΔT-manager het debiet begrenzen als het gemeten ΔT onder de minimale ΔT zakt.',
     ],
   },
   {
@@ -344,16 +338,19 @@ export const FIELD_INFO: Record<string, FieldInfo> = {
     info: 'Type A: schakelende 6-weg + PICV. Type B: modulerende gekarakteriseerde 6-weg met flow- en ΔT-meting.',
   },
   dn: { label: 'DN', info: 'Nominale diameter van de klep.' },
-  kvs: { label: 'Kvs', info: 'Doorlaatwaarde bij volledig open, per sequentie. Zie het advies.' },
   picv: { label: 'PICV-uitvoering', info: 'Drukonafhankelijk regelventiel in de plafondretour.' },
   panelCount: { label: 'Aantal panelen', info: 'Panelen aan deze klep.' },
   coupling: {
     label: 'Koppeling',
     info: 'Automatisch: de tool kiest het aantal panelen per streng (zie tabblad Puzzel). Handmatig: stel zelf de strengen in.',
   },
+  vmaxBasis: {
+    label: 'Vmax afstellen op',
+    info: 'Waarop de automatische Vmax wordt ingeregeld. Max. plafondvermogen: Vmax is de som van de ontwerpdebieten van alle strengen (het plafond levert zijn volle vermogen). Benodigd vermogen: Vmax is het kleinste debiet waarbij de zone de last volgens de koellast-/warmteverliesberekening haalt; bedoeld voor situaties met meer plafond dan nodig. Het debiet per streng en dus Re en v dalen dan; het ΔT stijgt. Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen.',
+  },
   vmax: {
     label: 'Vmax',
-    info: 'Debietbegrenzing per sequentie. Automatisch = som van de ontwerpdebieten van de strengen.',
+    info: 'Debietbegrenzing per sequentie. Automatisch (zie "Vmax afstellen op") of handmatig in l/h.',
   },
   dtManager: {
     label: 'ΔT-manager',

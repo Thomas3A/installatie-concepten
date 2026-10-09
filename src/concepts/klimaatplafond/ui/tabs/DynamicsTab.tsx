@@ -87,16 +87,16 @@ export function DynamicsTab() {
     for (let z = 0; z < nz; z++) {
       const c = ZONE_COLORS[z];
       const sfx = nz > 1 ? ` z${z + 1}` : '';
-      series.push({ label: `T lucht${sfx}`, color: c, width: 2 });
+      series.push({ label: `T lucht${sfx}`, color: c, width: 2, digits: 2 });
       cols.push(log.map((e) => e.tAir[z]));
-      series.push({ label: `T operatief${sfx}`, color: c, dash: [6, 4] });
+      series.push({ label: `T operatief${sfx}`, color: c, dash: [6, 4], digits: 2 });
       cols.push(log.map((e) => e.tOp[z]));
-      series.push({ label: `T aanvoer${sfx}`, color: c, dash: [2, 3], width: 1.2 });
+      series.push({ label: `T aanvoer${sfx}`, color: c, dash: [2, 3], width: 1.2, digits: 1 });
       cols.push(log.map((e) => nan(e.tSupply[z])));
-      series.push({ label: `T retour${sfx}`, color: c, dash: [10, 3, 2, 3], width: 1.2 });
+      series.push({ label: `T retour${sfx}`, color: c, dash: [10, 3, 2, 3], width: 1.2, digits: 1 });
       cols.push(log.map((e) => nan(e.tReturn[z])));
     }
-    series.push({ label: 'Setpoint', color: '#6b7280', dash: [1, 4], width: 1.6 });
+    series.push({ label: 'Setpoint', color: '#6b7280', dash: [1, 4], width: 1.6, digits: 1 });
     cols.push(log.map((e) => e.tSet));
     return { series, cols };
   }, [log, nz, log.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -106,9 +106,9 @@ export function DynamicsTab() {
     const cols: (number | null)[][] = [log.map((e) => e.t)];
     for (let z = 0; z < nz; z++) {
       const sfx = nz > 1 ? ` z${z + 1}` : '';
-      series.push({ label: `P plafond${sfx}`, color: ZONE_COLORS[z], width: 2 });
+      series.push({ label: `P plafond${sfx}`, color: ZONE_COLORS[z], width: 2, digits: 0 });
       cols.push(log.map((e) => e.pCeiling[z]));
-      series.push({ label: `−Last${sfx}`, color: ZONE_COLORS[z], dash: [6, 4] });
+      series.push({ label: `−Last${sfx}`, color: ZONE_COLORS[z], dash: [6, 4], digits: 0 });
       cols.push(log.map((e) => -e.pLoad[z]));
     }
     return { series, cols };
@@ -118,10 +118,16 @@ export function DynamicsTab() {
     const z = sel;
     const type = design.valves[z]?.cfg.type ?? 'B';
     const series: ChartSeries[] = [
-      { label: 'Q (l/h)', color: ZONE_COLORS[0], width: 2, scale: 'flow' },
-      { label: 'Vmax (l/h)', color: '#6b7280', dash: [6, 4], scale: 'flow' },
-      { label: 'Vraag (%)', color: ZONE_COLORS[1], scale: 'pct' },
-      { label: type === 'B' ? 'θ (°)' : 'PICV-slag (%)', color: ZONE_COLORS[2], dash: [2, 3], scale: 'pct' },
+      { label: 'Q (l/h)', color: ZONE_COLORS[0], width: 2, scale: 'flow', digits: 0 },
+      { label: 'Vmax (l/h)', color: '#6b7280', dash: [6, 4], scale: 'flow', digits: 0 },
+      { label: 'Vraag (%)', color: ZONE_COLORS[1], scale: 'pct', digits: 0 },
+      {
+        label: type === 'B' ? 'θ (°)' : 'PICV-slag (%)',
+        color: ZONE_COLORS[2],
+        dash: [2, 3],
+        scale: 'pct',
+        digits: 1,
+      },
     ];
     const cols: (number | null)[][] = [
       log.map((e) => e.t),

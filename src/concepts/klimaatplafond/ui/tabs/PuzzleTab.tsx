@@ -401,13 +401,14 @@ export function PuzzleTab() {
             data={g1.data}
             ariaLabel="Drukval per streng tegen het aantal panelen per streng"
             series={[
-              { label: 'Koelen (kPa)', color: COLD, width: 2, points: true },
-              { label: 'Verwarmen (kPa)', color: WARM, width: 2, points: true },
+              { label: 'Koelen (kPa)', color: COLD, width: 2, points: true, digits: 1 },
+              { label: 'Verwarmen (kPa)', color: WARM, width: 2, points: true, digits: 1 },
               { label: `Max ${fmt(cfg.dpMax, 0)} kPa`, color: '#6b7280', dash: [6, 4] },
             ]}
             axes={[{ scale: 'y', label: 'kPa (log)', format: (v) => fmt(v, v < 10 ? 1 : 0) }]}
             scales={{ x: { time: false, range: (_u, a, b) => [a - 0.5, b + 0.5] }, y: { distr: 3, log: 10 } }}
             hooks={bandHook(cands)}
+            legendExtras={[{ label: 'geldig venster', color: 'rgba(15,118,110,0.25)', kind: 'band' }]}
           />
         </div>
         <div className={s.chartBox}>
@@ -418,14 +419,15 @@ export function PuzzleTab() {
             height={150}
             ariaLabel="Reynoldsgetal tegen het aantal panelen per streng"
             series={[
-              { label: 'Re koelen', color: COLD, width: 2, points: true },
-              { label: 'Re verwarmen', color: WARM, width: 2, points: true },
+              { label: 'Re koelen', color: COLD, width: 2, points: true, digits: 0 },
+              { label: 'Re verwarmen', color: WARM, width: 2, points: true, digits: 0 },
               { label: 'Re 2.300', color: '#6b7280', dash: [6, 4] },
               { label: 'Re 4.000', color: '#6b7280', dash: [2, 3] },
             ]}
             axes={[{ scale: 'y', label: 'Re' }]}
             scales={{ x: { time: false, range: (_u, a, b) => [a - 0.5, b + 0.5] } }}
             hooks={bandHook(cands)}
+            legendExtras={[{ label: 'geldig venster', color: 'rgba(15,118,110,0.25)', kind: 'band' }]}
           />
           <UPlotChart
             xKind="number"
@@ -434,14 +436,15 @@ export function PuzzleTab() {
             height={150}
             ariaLabel="Stroomsnelheid tegen het aantal panelen per streng"
             series={[
-              { label: 'v koelen', color: COLD, width: 2, points: true },
-              { label: 'v verwarmen', color: WARM, width: 2, points: true },
+              { label: 'v koelen', color: COLD, width: 2, points: true, digits: 2 },
+              { label: 'v verwarmen', color: WARM, width: 2, points: true, digits: 2 },
               { label: 'v min', color: '#6b7280', dash: [6, 4] },
               { label: 'v max', color: '#6b7280', dash: [2, 3] },
             ]}
             axes={[{ scale: 'y', label: 'm/s', format: (v) => fmt(v, 2) }]}
             scales={{ x: { time: false, range: (_u, a, b) => [a - 0.5, b + 0.5] } }}
             hooks={bandHook(cands)}
+            legendExtras={[{ label: 'geldig venster', color: 'rgba(15,118,110,0.25)', kind: 'band' }]}
           />
         </div>
         <div className={s.chartBox}>
@@ -461,8 +464,14 @@ export function PuzzleTab() {
             data={[g3.flows, g3.power, g3.dp] as never}
             ariaLabel="Vermogen en drukval tegen het debiet van de gekozen streng"
             series={[
-              { label: 'Vermogen (W)', color: mode3 === 'koelen' ? COLD : WARM, width: 2, scale: 'p' },
-              { label: 'Δp (kPa)', color: '#6b7280', width: 2, dash: [6, 3], scale: 'dp' },
+              {
+                label: 'Vermogen (W)',
+                color: mode3 === 'koelen' ? COLD : WARM,
+                width: 2,
+                scale: 'p',
+                digits: 0,
+              },
+              { label: 'Δp (kPa)', color: '#6b7280', width: 2, dash: [6, 3], scale: 'dp', digits: 1 },
             ]}
             axes={[
               { scale: 'p', label: 'W' },
@@ -472,6 +481,10 @@ export function PuzzleTab() {
               { x: g3.qd, color: '#0f766e' },
               { x: g3.qa, color: '#b45309', dash: [2, 3] },
             ])}
+            legendExtras={[
+              { label: 'ontwerpdebiet', color: '#0f766e', dash: [5, 4] },
+              { label: 'werkelijk debiet', color: '#b45309', dash: [2, 3] },
+            ]}
           />
           <p className={s.hint} style={{ margin: '4px 0 0' }}>
             Groene lijn: ontwerpdebiet ({fmt(g3.qd, 1)} l/h). Oranje stippellijn: werkelijk debiet in het

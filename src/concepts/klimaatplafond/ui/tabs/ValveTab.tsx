@@ -1,7 +1,7 @@
 import { fmt } from '../../../../core/format';
 import { cp, rho } from '../../../../core/water';
 import { TYPE_A, TYPE_B } from '../../data/valves';
-import { kvRel, thetaToState } from '../../model/valves';
+import { m3sToM3h, openingToFlowFraction, thetaToState } from '../../model/valves';
 import { live, useStore } from '../../store';
 import s from '../ui.module.css';
 
@@ -9,7 +9,7 @@ const COLD = 'var(--cold)';
 const WARM = 'var(--warm)';
 
 const HOW_B =
-  'Eén kogelklep doet zowel de omschakeling als de modulatie: 0–30° is sequentie koelen (0° = volledig open), 30–60° is dicht (de dode zone) en 60–90° is sequentie verwarmen (90° = volledig open). De klep draait met 1°/s, dus omschakelen duurt minimaal 30 s waarin het debiet nul is. Hij meet debiet en temperaturen en regelt het debiet elektronisch, onafhankelijk van drukschommelingen. Zo is er direct energiemeting en kan de ΔT-manager het debiet begrenzen.';
+  'Eén kogelklep doet zowel de omschakeling als de modulatie: 0–30° is sequentie koelen (0° = volledig open), 30–60° is dicht (de dode zone) en 60–90° is sequentie verwarmen (90° = volledig open). De klep draait met 1°/s, dus omschakelen duurt minimaal 30 s waarin het debiet nul is. Hij meet debiet en temperaturen en regelt het debiet softwarematig op het gemeten debiet, onafhankelijk van drukschommelingen. Vmax per sequentie is 100 % opening; een Kvs-keuze is daarom niet nodig. Zo is er direct energiemeting en kan de ΔT-manager het debiet begrenzen.';
 const HOW_A =
   'Een schakelende 6-weg-klep kiest alleen tussen koelen en verwarmen (omschakeltijd 30 s, debiet nul). De modulatie gebeurt door een drukonafhankelijk regelventiel (PICV) in de plafondretour. Het PICV houdt het debiet constant zolang het Δp erover boven het minimum ligt; daaronder is het niet meer drukonafhankelijk en zakt het debiet. Vmax wordt softwarematig per sequentie ingesteld. Bij een omschakeling sluit eerst de PICV, schakelt dan de 6-weg en opent de PICV daarna weer.';
 
@@ -252,16 +252,15 @@ export function ValveTab() {
     );
   }
 
-  // Kv/Kvs-grafiek (type B)
+  // Karakteristiek Q/Vmax tegen θ (type B)
   const curve: string[] = [];
   for (let d = 0; d <= 90; d += 1) {
     const stt = thetaToState(d);
-    const y = stt.seq === 'dicht' ? 0 : kvRel(stt.h, nGl);
+    const y = stt.seq === 'dicht' ? 0 : openingToFlowFraction(stt.h, nGl);
     curve.push(`${d === 0 ? 'M' : 'L'} ${30 + (d / 90) * 260} ${110 - y * 90}`);
   }
   const stNow = thetaToState(z.theta);
-  const yNow = stNow.seq === 'dicht' ? 0 : kvRel(stNow.h, nGl);
-  const kvsNow = stNow.seq === 'koelen' ? vd.kvs.koelen : stNow.seq === 'verwarmen' ? vd.kvs.verwarmen : 0;
+  const yNow = stNow.seq === 'dicht' ? 0 : openingToFlowFraction(stNow.h, nGl);
 
   // Type A
   const mdPos = vd.modes[z.sixWay];
@@ -340,7 +339,7 @@ export function ValveTab() {
                 {z.switchLeft > 0
                   ? `schakelt om naar ${z.switchTarget} (nog ${fmt(z.switchLeft, 0)} s)`
                   : `staat op ${z.sixWay}`}{' '}
-                (Kvs {TYPE_A.kvsSixWay[v.dn]} m³/h)
+                (vaste weerstand {fmt(100 * (m3sToM3h(Math.max(q, 0)) / TYPE_A.kvsSixWay[v.dn]) ** 2, 1)} kPa)
               </p>
             </div>
           )}
@@ -355,7 +354,7 @@ export function ValveTab() {
                   label="Opening h"
                   value={stNow.seq === 'dicht' ? '0 % (dicht)' : `${fmt(stNow.h * 100, 0)} %`}
                 />
-                <Reading label="Kv(θ)" value={`${fmt(kvsNow * yNow, 3)} m³/h`} />
+                <Reading label="Q / Vmax (karakteristiek)" value={`${fmt(yNow * 100, 0)} %`} />
                 <Reading label="Δp over klep" value={q > 0 ? `${fmt(z.dpValve / 1000, 1)} kPa` : '–'} />
               </>
             ) : (
@@ -377,13 +376,13 @@ export function ValveTab() {
           </dl>
           {v.type === 'B' && (
             <>
-              <h3 style={{ marginTop: 14 }}>Kv/Kvs tegen θ (gelijkprocentig)</h3>
+              <h3 style={{ marginTop: 14 }}>Debietfractie Q/Vmax tegen θ (gelijkprocentig)</h3>
               <svg
                 viewBox="0 0 320 135"
                 width="100%"
                 style={{ maxWidth: 400 }}
                 role="img"
-                aria-label="Kv gedeeld door Kvs tegen de klepstand"
+                aria-label="Debietfractie Q gedeeld door Vmax tegen de klepstand"
               >
                 <rect
                   x={30 + (30 / 90) * 260}
@@ -426,8 +425,9 @@ export function ValveTab() {
                 </text>
               </svg>
               <p className={s.hint}>
-                Looptijd {TYPE_B.runtime90} s per 90°, max. Δp {TYPE_B.maxDpKpa} kPa. Kvs koelen{' '}
-                {fmt(vd.kvs.koelen, 2)} · verwarmen {fmt(vd.kvs.verwarmen, 2)} m³/h.
+                Looptijd {TYPE_B.runtime90} s per 90°, max. Δp {TYPE_B.maxDpKpa} kPa. Vmax koelen{' '}
+                {fmt(vd.modes.koelen.vmax * 3.6e6, 0)} l/h · verwarmen{' '}
+                {fmt(vd.modes.verwarmen.vmax * 3.6e6, 0)} l/h (100 % opening).
               </p>
             </>
           )}

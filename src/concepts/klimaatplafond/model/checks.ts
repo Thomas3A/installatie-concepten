@@ -199,7 +199,8 @@ function designValve(
     }
     // W11
     const load = m === 'koelen' ? vd.loadCool : vd.loadHeat;
-    if (md.power < load) {
+    // kleine tolerantie: bij uitgangspunt "last" is het vermogen per constructie gelijk aan de last
+    if (md.power < load - 0.5) {
       add(
         'W11',
         m,
@@ -207,18 +208,7 @@ function designValve(
         `${MODE_LABEL[m]}: ${fmt(md.power, 0)} W < last ${fmt(load, 0)} W; tekort ${fmt(load - md.power, 0)} W (${fmt((load - md.power) / Math.max(vd.areaZone, 1e-9), 1)} W/m²)`,
       );
     }
-    // W12 / W13
-    if (v.type === 'B' && Number.isFinite(vd.advice.b.kvNodig[m])) {
-      const ratio = vd.kvRatio[m];
-      if (ratio < lim.kvRatioMin) {
-        add(
-          'W12',
-          m,
-          [],
-          `${MODE_LABEL[m]}: Kv nodig ${fmt(vd.advice.b.kvNodig[m], 2)} / Kvs ${fmt(vd.kvs[m], 2)} = ${fmt(ratio, 2)} (< ${fmt(lim.kvRatioMin, 1)}); advies Kvs ${vd.advice.b.kvs[m] ?? '–'}`,
-        );
-      }
-    }
+    // W13 (alleen Type A: PICV-instelbereik)
     if (v.type === 'A') {
       const vlh = md.vmax * 3.6e6;
       const p = vd.picv;
@@ -255,7 +245,7 @@ function designValve(
     });
   };
   emit('W01', 'waarschuwing', 'puzzel');
-  emit('W02', 'fout', 'advies');
+  emit('W02', 'fout', v.type === 'A' ? 'advies' : undefined);
   emit('W03', 'waarschuwing', 'puzzel');
   emit('I01', 'info');
   emit('W04', 'waarschuwing', 'puzzel');
@@ -267,7 +257,6 @@ function designValve(
   emit('W09', 'fout');
   emit('W10', 'waarschuwing');
   emit('W11', 'waarschuwing', 'puzzel');
-  emit('W12', 'waarschuwing', 'advies');
   emit('W13', 'fout', 'advies');
   // W13 is 🔴 bij Vmax > q_nom en 🟠 bij te klein: verfijn de ernst
   const w13 = acc.list.find((m) => m.code === 'W13' && m.valve === i);

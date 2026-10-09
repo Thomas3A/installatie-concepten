@@ -55,12 +55,22 @@ niet als vervanging van de productberekening van de fabrikant.
 
 ## Kleppen
 
-- **Type B:** elektronische flowregeling: het debiet volgt Q_set zolang de klep niet volledig open is; θ is snelheidsbegrensd (1°/s).
-  In de dode zone (30°–60°) is het debiet 0. De ΔT-manager past de limiet met 0,1 % van Vmax per seconde aan, begrensd tot 2 %…100 %.
-- **Type A:** de PICV regelt het debiet drukonafhankelijk zolang het Δp ≥ Δp_min; daaronder zakt het debiet (`Q_haalbaar`).
-  Omschakelen: PICV sluit (snelheidsbegrensd), 6-weg schakelt 30 s met debiet 0, PICV opent weer.
-- **Klepadvies:** het advies is gebaseerd op het netwerk bij Vmax en dus op de (gekalibreerde) circuitdrukval. Bij laden van de app of een
-  scenario zonder expliciete Kvs/PICV wordt het advies automatisch toegepast.
+- **Type B (geen Kvs-keuze):** de klep regelt softwarematig op het gemeten debiet (drukonafhankelijk via meting). Vmax per sequentie
+  komt overeen met 100 % opening; de gelijkprocentige karakteristiek `Q/Vmax = exp(n_gl·(h − 1))` koppelt opening en debietfractie
+  (de vraag-naar-debiet-karakteristiek `g(u)` is dezelfde functie, dus bij gelijkprocentig geldt h ≈ vraag). θ is snelheidsbegrensd (1°/s);
+  in de dode zone (30°–60°) is het debiet 0. Het circuit begrenst het debiet bij het beschikbare Δp; een eigen klepweerstand wordt niet
+  gemodelleerd (de klepselectie volgt uit de rekentool van de fabrikant). De ΔT-manager past de limiet met 0,1 % van Vmax per seconde
+  aan, begrensd tot 2 %…100 %.
+- **Type A:** de PICV regelt het debiet drukonafhankelijk zolang het Δp ≥ Δp_min; daaronder zakt het debiet (`Q_haalbaar`). De 6-weg-klep
+  heeft een vaste weerstand (Kvs 2,4 / 4,0 m³/h) die niet door de gebruiker wordt gekozen. Omschakelen: PICV sluit
+  (snelheidsbegrensd), 6-weg schakelt 30 s met debiet 0, PICV opent weer.
+- **Klepadvies:** alleen voor Type A (PICV-uitvoering, op basis van Vmax en het netwerk bij Vmax). Bij laden van de app of een scenario
+  zonder expliciete PICV wordt het advies automatisch toegepast.
+- **Vmax afstellen op benodigd vermogen:** Vmax is het kleinste debiet (naar boven afgerond op 1 l/h) waarbij het zonevermogen bij
+  ontwerpcondities de last haalt (zonelast = aandeel × koellast of warmteverlies). Het vermogen wordt bepaald met de werkelijke verdeling over
+  de strengen (netwerk bij dat debiet, twee iteraties hydrauliek/thermiek) en gezocht met regula falsi (Illinois) in log-ruimte tussen 5 % van
+  het maximale plafondvermogen (minimaal 10 l/h) en dat maximum. Is de last groter dan het plafond kan leveren, dan is Vmax het maximale
+  plafondvermogen. Gevolg: het debiet per streng daalt, dus Re en v dalen (W03/W04) en ΔT stijgt.
 
 ## Meldingen
 
@@ -69,9 +79,12 @@ niet als vervanging van de productberekening van de fabrikant.
   op Vmax (bij handmatig ingestelde Vmax blijft de vergelijking zinvol).
 - W06 gebruikt het kleinste van het ontwerp-ΔT en het ΔT van de gemengde retour bij Vmax.
 - Laminaire stroming tijdens bedrijf wordt alleen als badge op de streng getoond, niet als waarschuwing.
+- W11 heeft een tolerantie van 0,5 W, omdat bij Vmax op benodigd vermogen het zonevermogen per constructie gelijk is aan de last.
+- W12 (Kvs te groot) vervalt, omdat Type B geen Kvs-keuze heeft.
 
 ## Overig
 
+- Aanvoer verwarmen is instelbaar tot 45 °C; stofwaarden gelden tot 100 °C. Bij hoge aanvoer geeft W10 een melding bij een gemiddelde plafondtemperatuur > 35 °C.
 - Geen leidingverliezen (warmte) en geen glycol; stofwaarden van water van 0–100 °C. Stofwaarden worden in de strenginnerlus uit een tabel
   (stap 0,05 K, lineair geïnterpoleerd) gehaald; de afwijking t.o.v. de formules is < 1e-6 relatief.
 - Het ontwerpdebiet wordt met een regula falsi (Illinois-variant) in log-ruimte bepaald in plaats van 60 bisectiestappen; de wortel is

@@ -142,7 +142,8 @@ export function drawColors(a: DrawArgs): void {
       const total = st.panels.length * nSeg;
       const md = vd.modes[mode];
       const qDesign = md.points[k]?.q ?? 1;
-      const dev = zs && zs.q > 0 ? zs.qStrand[k] / (qDesign * (zs.q / md.vmax)) - 1 : 0;
+      const sumQd = md.points.reduce((a, pt) => a + pt.q, 0);
+      const dev = zs && zs.q > 0 && sumQd > 0 ? zs.qStrand[k] / ((qDesign * zs.q) / sumQd) - 1 : 0;
       for (let p = 0; p < st.panels.length; p++) {
         const pn = st.panels[p];
         if (overlay === 'oppervlak') {
