@@ -214,7 +214,8 @@ function normalizeValve(raw: Partial<ValveConfig> | undefined, def: ValveConfig)
     spacing: clampRange(r.spacing, LIMITS.spacing, def.spacing),
     layout: oneOf<Layout>(r.layout, ['direct', 'tichelmann'], 'direct'),
     dpAvailable: r.dpAvailable == null ? null : clampRange(r.dpAvailable, LIMITS.dpAvailable, 30),
-    loadShare: clamp(num(r.loadShare, def.loadShare), 0, 100),
+    // minimaal 1 %: een zone zonder vloeroppervlak heeft geen warmtecapaciteit en geeft NaN in de ruimtemodel
+    loadShare: clamp(num(r.loadShare, def.loadShare), 1, 100),
   };
 }
 

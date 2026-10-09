@@ -1,7 +1,7 @@
 // Ontwerp: ontwerpdebieten, automatisch koppelen (de puzzel), netwerk bij Vmax en klepadvies (§5.8, §5.9).
 import { reynolds, velocity } from '../../../core/hydraulics/friction';
 import type { NetworkResult } from '../../../core/hydraulics/network';
-import { rho } from '../../../core/water';
+import { rho, water } from '../../../core/water';
 import { distPipe } from '../data/pipes';
 import { LIMITS } from '../data/limits';
 import { TYPE_A, picvSpec } from '../data/valves';
@@ -264,6 +264,9 @@ export function chooseCandidate(cands: Candidate[]): number | null {
 
 const roundUpLh = (q: number): number => Math.ceil(q * 3.6e6 - 1e-9) / 3.6e6;
 
+/** Iteraties hydrauliek/thermiek in het ontwerp; de zoekfunctie en de eindberekening gebruiken dezelfde diepte. */
+const DESIGN_ITERATIONS = 3;
+
 /**
  * Vmax bij het uitgangspunt "benodigd vermogen": het kleinste debiet (afgerond naar boven op 1 l/h) waarbij het
  * zonevermogen bij ontwerpcondities, met de werkelijke verdeling over de strengen, de last haalt.
@@ -277,16 +280,23 @@ export function vmaxForLoad(
   load: number,
 ): { vmax: number; capacity: number } {
   const power = (V: number): number =>
-    solveZoneCoupled(ctx, cond, spec, V, undefined, 2).thermal.reduce((a, t) => a + t.power, 0);
+    solveZoneCoupled(ctx, cond, spec, V, undefined, DESIGN_ITERATIONS).thermal.reduce(
+      (a, t) => a + t.power,
+      0,
+    );
   const capacity = power(vCeil);
   if (load >= capacity) return { vmax: vCeil, capacity };
-  const lo0 = Math.max(0.05 * vCeil, 10 / 3.6e6);
+  // Ondergrens uit de energiebalans: zelfs bij het maximaal mogelijke ΔT = |T_aanvoer − T_ruimte| is minimaal
+  // V = P/(ρ·cp·ΔT) nodig; onder dat debiet haalt het plafond de last nooit.
+  const w = water(cond.tIn);
+  const lo0 = Math.max(load / (w.rho * w.cp * Math.max(Math.abs(cond.tRoom - cond.tIn), 0.5)), 1 / 3.6e6);
   if (lo0 >= vCeil) return { vmax: vCeil, capacity };
-  if (power(lo0) >= load) return { vmax: Math.min(roundUpLh(lo0), vCeil), capacity };
+  const pLo = power(lo0);
+  if (pLo >= load) return { vmax: Math.min(roundUpLh(lo0), vCeil), capacity };
   // Illinois (regula falsi) in log-ruimte tussen a (vermogen < last) en b (vermogen ≥ last)
   let a = Math.log(lo0);
   let b = Math.log(vCeil);
-  let ga = power(lo0) - load;
+  let ga = pLo - load;
   let gb = capacity - load;
   let side = 0;
   for (let i = 0; i < 40; i++) {
@@ -305,7 +315,10 @@ export function vmaxForLoad(
     }
     if (gb <= 1e-4 * Math.max(load, 1) || Math.abs(b - a) < 1e-7) break;
   }
-  return { vmax: Math.min(roundUpLh(Math.exp(b)), vCeil), capacity };
+  // afronden naar boven op 1 l/h en controleren met dezelfde berekening als de eindberekening
+  let vmax = Math.min(roundUpLh(Math.exp(b)), vCeil);
+  for (let k = 0; k < 4 && vmax < vCeil && power(vmax) < load; k++) vmax = Math.min(vmax + 1 / 3.6e6, vCeil);
+  return { vmax, capacity };
 }
 
 function designMode(
@@ -329,7 +342,7 @@ function designMode(
     capacity = r.capacity;
   }
   const vmax = v.vmaxAuto ? vmaxAutoValue : (mode === 'koelen' ? v.vmaxKoelen : v.vmaxVerwarmen) / 3.6e6;
-  const zs = solveZoneCoupled(ctx, cond, spec, vmax, undefined, 3, true);
+  const zs = solveZoneCoupled(ctx, cond, spec, vmax, undefined, DESIGN_ITERATIONS, true);
   const circuit = buildCircuit(ctx, cond, spec, vmax, zs.tMean);
   const scale = sumQ > 0 ? vmax / sumQ : 1;
   const deviation = zs.net.q.map((q, i) => q / (points[i].q * scale) - 1);
@@ -467,7 +480,7 @@ export function resolveAdvice(cfg: KlimaatplafondConfig, force = false): Klimaat
   const valves = cfg.valves.map((v, i) => {
     const d = design.valves[i];
     if (!force && v.picv !== null) return v;
-    return { ...v, picv: d.advice.a.picv ?? d.picv.id };
+    return { ...v, picv: d.advice.a.picv };
   });
   return { ...cfg, valves };
 }

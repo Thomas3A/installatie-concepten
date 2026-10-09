@@ -68,9 +68,15 @@ niet als vervanging van de productberekening van de fabrikant.
   zonder expliciete PICV wordt het advies automatisch toegepast.
 - **Vmax afstellen op benodigd vermogen:** Vmax is het kleinste debiet (naar boven afgerond op 1 l/h) waarbij het zonevermogen bij
   ontwerpcondities de last haalt (zonelast = aandeel × koellast of warmteverlies). Het vermogen wordt bepaald met de werkelijke verdeling over
-  de strengen (netwerk bij dat debiet, twee iteraties hydrauliek/thermiek) en gezocht met regula falsi (Illinois) in log-ruimte tussen 5 % van
-  het maximale plafondvermogen (minimaal 10 l/h) en dat maximum. Is de last groter dan het plafond kan leveren, dan is Vmax het maximale
-  plafondvermogen. Gevolg: het debiet per streng daalt, dus Re en v dalen (W03/W04) en ΔT stijgt.
+  de strengen (netwerk bij dat debiet, drie iteraties hydrauliek/thermiek, dezelfde berekening als de eindberekening, zodat het vermogen bij het
+  gekozen Vmax de last gegarandeerd haalt) en gezocht met regula falsi (Illinois) in log-ruimte. De ondergrens volgt uit de energiebalans:
+  V ≥ last/(ρ·cp·|T_aanvoer − T_ruimte|); onder dat debiet haalt het plafond de last nooit. De bovengrens is het maximale plafondvermogen
+  (Σ ontwerpdebieten). Is de last groter dan het plafond kan leveren, dan is Vmax dat maximum (W11 meldt het tekort). Vmax hangt dus niet af
+  van het ontwerp-ΔT. Gevolg: het debiet per streng daalt, dus Re en v dalen (W03/W04) en ΔT stijgt. Er is geen regelreserve: de last wordt
+  precies bij het setpoint gehaald, dus opwarmen of terugkoelen duurt lang (de regelaar blijft op 100 %, I05).
+- **Lastaandeel per zone** (bij handmatige lastverdeling) is minimaal 1 %: een zone zonder vloeroppervlak heeft geen warmtecapaciteit.
+- **PICV-advies** blijft binnen het gekozen DN: past Vmax in geen enkele PICV van dat DN, dan wordt de best passende van dat DN
+  aanbevolen en meldt W13 dat Vmax buiten het instelbereik valt.
 
 ## Meldingen
 

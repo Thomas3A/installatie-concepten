@@ -1,6 +1,6 @@
 import { fmt } from '../../../core/format';
 import { LIMITS } from '../data/limits';
-import { PICVS, picvsForDn, type Dn } from '../data/valves';
+import { PICVS, picvSpec, picvsForDn, type Dn } from '../data/valves';
 import { DIST_PIPES } from '../data/pipes';
 import { FIELD_INFO } from '../texts';
 import { useStore } from '../store';
@@ -56,7 +56,8 @@ export function ValveCard({ index }: { index: number }) {
           {vd && (
             <div className={s.advice} aria-live="polite">
               <span>
-                Advies: {vd.advice.a.picv ?? 'geen passende PICV'} · benodigd Δp{' '}
+                Advies: {picvSpec(vd.advice.a.picv).label}
+                {vd.advice.a.fits ? '' : ' (Vmax valt buiten het instelbereik)'} · benodigd Δp{' '}
                 {fmt(vd.advice.a.dpNeeded, 1)} kPa {vd.advice.a.ok ? '≤' : '>'} beschikbaar{' '}
                 {fmt(vd.dpAvail / 1000, 1)} kPa
               </span>
@@ -264,7 +265,7 @@ export function ValveCard({ index }: { index: number }) {
         <NumInput
           label="Aandeel last"
           value={v.loadShare}
-          min={0}
+          min={1}
           max={100}
           unit="%"
           onChange={(x) => patch(index, { loadShare: x })}

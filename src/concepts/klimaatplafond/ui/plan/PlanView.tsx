@@ -41,6 +41,7 @@ export function PlanView() {
   viewRef.current = view;
   const userMoved = useRef(false);
   const [tip, setTip] = useState<{ x: number; y: number; valve: number; strand: number } | null>(null);
+  useEffect(() => setTip(null), [design]);
 
   const layout = useMemo(() => buildLayout(design), [design]);
   const particles = useMemo(() => new Particles(layout, design), [layout, design]);
@@ -565,7 +566,8 @@ export function PlanView() {
 
   // ----- tooltip
   let tipEl: React.ReactNode = null;
-  if (tip && wrapRef.current) {
+  // de tooltip kan naar een streng of klep verwijzen die na een ontwerpwijziging niet meer bestaat
+  if (tip && wrapRef.current && design.valves[tip.valve]?.strands[tip.strand]) {
     const vd = design.valves[tip.valve];
     const zs = sim.zones[tip.valve];
     const th = zs?.thermal[tip.strand];

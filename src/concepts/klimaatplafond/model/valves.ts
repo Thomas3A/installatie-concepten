@@ -83,7 +83,10 @@ export function picvKvOpen(vmax: number, dpMinKpa: number): number {
 
 export interface AdviceA {
   kind: 'A';
-  picv: PicvId | null;
+  /** Aanbevolen PICV binnen het gekozen DN; zonder passende PICV de best passende van dat DN */
+  picv: PicvId;
+  /** Past Vmax binnen q_nom en instelbereik van de aanbevolen PICV? */
+  fits: boolean;
   dpNeeded: number; // kPa
   ok: boolean;
 }
@@ -99,14 +102,15 @@ export function adviceTypeA(
   const small = Math.min(vmaxLh.koelen, vmaxLh.verwarmen);
   const list = [...picvsForDn(dn)].sort((a, b) => a.qNom - b.qNom);
   const choice = list.find((p) => p.qNom >= big && small >= p.rangeMin * p.qNom);
-  const spec = choice ?? list[list.length - 1];
+  // Zonder passende PICV: de kleinste van dit DN die het debiet aankan, anders de grootste (nooit een ander DN)
+  const spec = choice ?? list.find((p) => p.qNom >= big) ?? list[list.length - 1];
   const kvSix = TYPE_A.kvsSixWay[dn];
   let worst = 0;
   for (const m of ['koelen', 'verwarmen'] as const) {
     const needed = kPa(dpCircuit[m]) + 100 * (m3sToM3h(vmax[m]) / kvSix) ** 2 + spec.dpMin;
     worst = Math.max(worst, needed);
   }
-  return { kind: 'A', picv: choice ? choice.id : null, dpNeeded: worst, ok: worst <= kPa(dpAvail) };
+  return { kind: 'A', picv: spec.id, fits: !!choice, dpNeeded: worst, ok: worst <= kPa(dpAvail) };
 }
 
 /**

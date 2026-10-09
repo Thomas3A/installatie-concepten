@@ -11,7 +11,7 @@ Deze wijzigingen gaan vóór de oorspronkelijke tekst hieronder.
 1. **Aanvoer verwarmen** is instelbaar van 28 tot **45 °C** (was 28–40 °C, §4.2). Bij hoge aanvoertemperaturen waarschuwt W10 voor een te warm plafond (> 35 °C gemiddeld).
 2. **Vmax afstellen op** (per klep, §4.4, alleen bij Vmax automatisch):
    - *Max. plafondvermogen* (standaard, zoals voorheen): Vmax = Σ ontwerpdebieten van de strengen;
-   - *Benodigd vermogen (last)*: Vmax = het kleinste debiet (naar boven afgerond op 1 l/h) waarbij het zonevermogen bij ontwerpcondities, met de werkelijke verdeling over de strengen, het aandeel van de zone in de koellast / het warmteverlies haalt. Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen (W11 meldt het tekort). Bedoeld voor situaties waarin meer plafond is geactiveerd dan nodig.
+   - *Benodigd vermogen (last)*: Vmax = het kleinste debiet (naar boven afgerond op 1 l/h) waarbij het zonevermogen bij ontwerpcondities, met de werkelijke verdeling over de strengen, het aandeel van de zone in de koellast / het warmteverlies haalt. Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen (W11 meldt het tekort). Bedoeld voor situaties waarin meer plafond is geactiveerd dan nodig. Er is geen regelreserve: opwarmen of terugkoelen duurt dan lang, en het debiet per streng daalt (W03/W04).
 3. **Geen Kvs bij Type B** (§4.4, §5.7, §5.9, §6, §7.3, §7.8, §9). Type B regelt softwarematig op het gemeten debiet; Vmax per sequentie is 100 % opening:
    - vervallen: de Kvs-keuze per sequentie, het Kvs-advies (en "Advies toepassen" voor Type B), melding **W12**, Kv(θ) en het Kv/Kvs-diagram, de DN-keuze bij Type B;
    - het debiet volgt de gelijkprocentige karakteristiek `Q/Vmax = exp(n_gl·(h − 1))` (h ≥ 0,05, daaronder lineair) met θ-snelheidsbegrenzing 1°/s en de dode zone 30°–60°;
@@ -19,7 +19,7 @@ Deze wijzigingen gaan vóór de oorspronkelijke tekst hieronder.
    - Type A blijft ongewijzigd: de PICV-uitvoering (q_nom, Δp_min) en de vaste weerstand van de 6-weg-klep blijven (geen Kvs-keuze voor de gebruiker);
    - scenario **S10** is vervangen door "Meer plafond dan nodig" (40 panelen, Vmax op benodigd vermogen); de verwachte meldingen zijn W03 en W04. In S5 en S6 vervallen de verwijzingen naar W02 via de klep en naar Kv;
    - het referentiegetal "Klepadvies Type B DN15: Kvs koelen 1,3 / verwarmen 1,0" vervalt.
-4. **Grafieklegenda:** eigen legenda onder elke grafiek met vaste breedtes (geen verspringen bij hoveren), lijnvoorbeelden die vol, gestreept, gestippeld en streep-punt onderscheiden, de cursorwaarden, klikken om een reeks te tonen of te verbergen, en extra items voor verticale lijnen en het gearceerde geldige venster.
+4. **Grafieklegenda:** eigen legenda onder elke grafiek met vaste breedtes (geen verspringen bij hoveren), lijnvoorbeelden die vol, gestreept, gestippeld en streep-punt onderscheiden, de cursorwaarden, klikken om een reeks te tonen of te verbergen, en extra items voor verticale lijnen en het gearceerde geldige venster. De assen gebruiken de nl-NL-notatie.
 
 ---
 
@@ -192,7 +192,7 @@ Regel: setpoint koelen ≥ setpoint verwarmen + 1 K (dode zone). Dwing dit af in
 | Beschikbaar Δp vóór elke klep | 10–60 kPa | 30 kPa | globaal (per klep te overschrijven in geavanceerd) |
 | Max. drukval per streng ("gevraagde drukval") | 10–40 kPa | 25 kPa | globaal |
 | Kleptype | Type A / Type B | Type B | per klep |
-| DN | 15 / 20 | 15 | per klep |
+| DN (alleen Type A: bepaalt de PICV-keuze en de 6-weg-weerstand) | 15 / 20 | 15 | per klep |
 | ~~Type B: Kvs koelen en Kvs verwarmen~~ | *vervallen, zie wijzigingen* | – | – |
 | Type A: PICV-uitvoering | lijst per DN (§5.7) | advies | per klep |
 | Aantal panelen | 1–64 | 28 | per klep |
@@ -834,8 +834,8 @@ Een scenario laadt een configuratie, reset de simulatie en toont een kaart met *
 | S2 | Elk paneel apart | 12 panelen, handmatig 12 × 1 | Re ≈ 620, v ≈ 0,09 m/s → W03 en W04; lager vermogen per paneel. Probeer 3 × 4 |
 | S3 | Alles in serie | 12 panelen, handmatig 1 × 12 | Ca. 180 l/h door Cu 8 mm: v ≈ 1,3 m/s, Δp > 400 kPa → W01, W02, W05 |
 | S4 | Ongelijke strengen zonder inregeling | 10 panelen, handmatig 4·3·3 | De 4-panelenstreng krijgt ca. 39 l/h in plaats van 56 (−29 %) en wordt laminair; de 3-panelenstrengen krijgen +21 % → W08, W03. Probeer 5·5 (Δp te hoog) of 12 panelen |
-| S5 | Lange verdeelleiding | 40 panelen (auto 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp beschikbaar 60 kPa, DN20 | Direct retour: +28 % / −11 % → W08. Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa → W02 |
-| S6 | Eén grote klep of drie kleine | Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep DN20, 60 panelen | 15 × 4 aan één verdeelleiding 20×2: +23 % / −9 % ongelijk, Kv_nodig ≈ 3,6. Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): Kv ≈ 0,7, verdeling binnen ±3 % |
+| S5 | Lange verdeelleiding | 40 panelen (auto 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp beschikbaar 60 kPa | Direct retour: +28 % / −11 % → W08. Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa en vult daarmee vrijwel het hele beschikbare Δp |
+| S6 | Eén grote klep of drie kleine | Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep, 60 panelen | 15 × 4 aan één verdeelleiding 20×2: +23 % / −9 % ongelijk, circuitdrukval ca. 25 van de 30 kPa. Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4): circuitdrukval ca. 14 kPa, verdeling binnen ±3 % |
 | S7 | Te kleine ΔT | Ontwerp-ΔT koelen 1,5 K | Het debiet per streng verdubbelt ruwweg. Bij 2 panelen per streng is koelen in orde (Δp ≈ 14 kPa), maar wordt verwarmen laminair (Re ≈ 1.420). Bij 3 panelen loopt de koel-Δp op tot ca. 44 kPa. Er is geen geldige koppeling meer → W06 plus W01 of W03. Vmax koelen stijgt naar ca. 650–900 l/h, waardoor klep en verdeelleiding zwaar belast worden. Zet de ΔT-manager aan en zie debiet én vermogen dalen |
 | S8 | Condensatie | RV 65 % | T_dauw ≈ 17,0 °C en T_opp,min ≈ 17,5 °C → W09. Met dauwpuntbeveiliging blijft de klep dicht bij koelen (I04). Ook 18 °C aanvoer zit op de grens (T_dauw + 1 K ≈ 18,0 °C) en kost bovendien ca. 35 % vermogen: laminaire strengen en W11. Verlaag de RV naar 55 % (ontvochtigen via de ventilatie): T_dauw ≈ 14,4 °C en koelen met 16 °C werkt weer |
 | S9 | Type A bij beperkt Δp | Type A, DN15 | Benodigd ca. 34 kPa (circuit 15 + 6-weg 2,6 + PICV 16) > 30 kPa → W02. Zet Δp op 40 kPa → OK. Vergelijk met Type B, dat bij 30 kPa wel voldoet |

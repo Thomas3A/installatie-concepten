@@ -45,6 +45,7 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
       'Meer panelen in serie (meer debiet per streng)',
       'Een kleinere buisdiameter',
       'Een kleinere ontwerp-ΔT',
+      'Vmax afstellen op "Max. plafondvermogen", of minder panelen activeren (bij Vmax op benodigd vermogen is het debiet per streng bewust laag)',
     ],
   },
   I01: {
@@ -61,6 +62,7 @@ export const MESSAGE_TEXTS: Record<string, MessageText> = {
     ],
     solutions: [
       'Dezelfde als bij laminaire stroming: meer panelen in serie, een kleinere buisdiameter of een kleinere ontwerp-ΔT.',
+      'Vmax afstellen op "Max. plafondvermogen", of minder panelen activeren (bij Vmax op benodigd vermogen is het debiet per streng bewust laag).',
     ],
   },
   W05: {
@@ -346,7 +348,7 @@ export const FIELD_INFO: Record<string, FieldInfo> = {
   },
   vmaxBasis: {
     label: 'Vmax afstellen op',
-    info: 'Waarop de automatische Vmax wordt ingeregeld. Max. plafondvermogen: Vmax is de som van de ontwerpdebieten van alle strengen (het plafond levert zijn volle vermogen). Benodigd vermogen: Vmax is het kleinste debiet waarbij de zone de last volgens de koellast-/warmteverliesberekening haalt; bedoeld voor situaties met meer plafond dan nodig. Het debiet per streng en dus Re en v dalen dan; het ΔT stijgt. Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen.',
+    info: 'Waarop de automatische Vmax wordt ingeregeld. Max. plafondvermogen: Vmax is de som van de ontwerpdebieten van alle strengen (het plafond levert zijn volle vermogen). Benodigd vermogen: Vmax is het kleinste debiet waarbij de zone de last volgens de koellast-/warmteverliesberekening haalt; bedoeld voor situaties met meer plafond dan nodig. Het debiet per streng en dus Re en v dalen dan; het ΔT stijgt. Is het plafond kleiner dan de last, dan blijft Vmax gelijk aan het maximale plafondvermogen. Er is geen regelreserve: de last wordt precies bij het setpoint gehaald, dus opwarmen of terugkoelen duurt dan lang.',
   },
   vmax: {
     label: 'Vmax',

@@ -282,7 +282,8 @@ export function ValveTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         <div>
           <h3>
-            Klep {vi + 1}: Type {v.type} · DN{v.dn}
+            Klep {vi + 1}: Type {v.type}
+            {v.type === 'A' ? ` · DN${v.dn}` : ''}
           </h3>
           {schema}
           {v.type === 'B' ? (

@@ -109,6 +109,12 @@ function LineSwatch({
   );
 }
 
+/** Aantal decimalen dat bij een tickstap past (0 bij stap ≥ 1). */
+function tickDigits(incr: number): number {
+  if (!Number.isFinite(incr) || incr <= 0 || incr >= 1) return 0;
+  return Math.min(4, Math.ceil(-Math.log10(incr) - 1e-9));
+}
+
 function valueText(v: number | null | undefined, digits: number): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '–';
   return fmt(v, Math.abs(v) >= 1000 ? 0 : digits);
@@ -161,7 +167,10 @@ export function UPlotChart({
       {
         ...axStyle,
         label: xLabel,
-        values: xKind === 'time' ? (_u, vals) => vals.map((v) => fmtClock(v)) : undefined,
+        values:
+          xKind === 'time'
+            ? (_u, vals) => vals.map((v) => fmtClock(v))
+            : (_u, vals, _ax, _space, incr) => vals.map((v) => fmt(v, tickDigits(incr))),
         splits: xKind === 'time' ? clockSplits : undefined,
         size: 38,
       },
@@ -176,7 +185,10 @@ export function UPlotChart({
         label: a.label,
         side: a.side ?? 3,
         grid: a.grid === false ? { show: false } : { stroke: grid, width: 1 },
-        values: a.format ? (_u, vals) => vals.map((v) => a.format!(v)) : undefined,
+        // standaard nl-NL notatie (decimale komma, punt als duizendtalscheiding), decimalen volgens de tickstap
+        values: a.format
+          ? (_u, vals) => vals.map((v) => a.format!(v))
+          : (_u, vals, _ax, _space, incr) => vals.map((v) => fmt(v, tickDigits(incr))),
         size: 52,
       });
     }
@@ -241,7 +253,7 @@ export function UPlotChart({
   const xVal = cursorIdx !== null && xs ? xs[cursorIdx] : null;
   const xText =
     xVal === null || xVal === undefined
-      ? '–'
+      ? '\u00a0' // plaats blijft gereserveerd, geen verspringen
       : xKind === 'time'
         ? `t = ${fmtClock(xVal)}`
         : `x = ${fmt(xVal, Math.abs(xVal) >= 100 ? 0 : 1)}`;
@@ -268,7 +280,7 @@ export function UPlotChart({
             >
               <LineSwatch color={sr.color} dash={sr.dash} width={sr.width} dim={!on} />
               <span className={s.label}>{sr.label}</span>
-              <span className={s.val}>{on ? valueText(v, sr.digits ?? 1) : ''}</span>
+              <span className={s.val}>{on && cursorIdx !== null ? valueText(v, sr.digits ?? 1) : ''}</span>
             </button>
           );
         })}

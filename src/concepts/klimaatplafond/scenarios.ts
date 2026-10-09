@@ -76,22 +76,22 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'S5',
     name: 'S5 · Lange verdeelleiding',
-    wat: '40 panelen (automatisch 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp 60 kPa, DN20. Bij direct retour krijgt de eerste streng +28 % en de laatste −11 % (W08). Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa en vult daarmee vrijwel het hele beschikbare Δp van 60 kPa.',
+    wat: '40 panelen (automatisch 10 × 4), verdeelleiding 16×2, eerste streng op 2,0 m, Δp 60 kPa. Bij direct retour krijgt de eerste streng +28 % en de laatste −11 % (W08). Schakel naar Tichelmann: +7 % / −5 %, maar de circuitdrukval stijgt van ca. 33 naar ca. 58 kPa en vult daarmee vrijwel het hele beschikbare Δp van 60 kPa.',
     probeer: 'Schakel de aansluitwijze om tussen direct retour en Tichelmann, of vergroot de verdeelleiding.',
     expect: [['W08']],
     tab: 'puzzel',
     build: () => {
       const cfg = defaultConfig();
       cfg.dpAvailable = 60;
-      return withValve(cfg, { panelCount: 40, distPipe: '16x2', distanceFirst: 2, dn: 20 });
+      return withValve(cfg, { panelCount: 40, distPipe: '16x2', distanceFirst: 2 });
     },
   },
   {
     id: 'S6',
     name: 'S6 · Eén grote klep of drie kleine',
-    wat: 'Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep DN20 met 60 panelen: 15 × 4 aan één verdeelleiding 20×2, +23 % / −9 % ongelijk, circuitdrukval ca. 25 van de 30 kPa.',
+    wat: 'Vloer 86 m², koellast 2.400 W, warmteverlies 2.100 W, 1 klep met 60 panelen: 15 × 4 aan één verdeelleiding 20×2, +23 % / −9 % ongelijk, circuitdrukval ca. 25 van de 30 kPa.',
     probeer:
-      'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4, DN15): de circuitdrukval daalt naar ca. 14 kPa en de verdeling blijft binnen ±3 %.',
+      'Zet het aantal kleppen op 3 (elk 20 panelen, 5 × 4): de circuitdrukval daalt naar ca. 14 kPa en de verdeling blijft binnen ±3 %.',
     expect: [['W08']],
     tab: 'puzzel',
     build: () => {
@@ -99,7 +99,7 @@ export const SCENARIOS: Scenario[] = [
       cfg.floorArea = 86;
       cfg.coolLoad = 2400;
       cfg.heatLoss = 2100;
-      return withValve(cfg, { panelCount: 60, dn: 20 });
+      return withValve(cfg, { panelCount: 60 });
     },
   },
   {
@@ -141,7 +141,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'S10',
     name: 'S10 · Meer plafond dan nodig',
-    wat: '40 panelen (10 × 4) voor een koellast van 1.100 W en een warmteverlies van 1.000 W, met Vmax ingeregeld op het benodigde vermogen. Het plafond kan 1.941 W koelen (Σ ontwerpdebieten 558 l/h), maar Vmax wordt 148 l/h: ca. 15 l/h per streng. Bij verwarmen is Vmax 68 l/h in plaats van 453 l/h. De strengen worden laminair en de stroomsnelheid zakt onder 0,25 m/s, dus W03 en W04, en het ΔT loopt op tot ca. 6 K (koelen) en 13 K (verwarmen).',
+    wat: '40 panelen (10 × 4) voor een koellast van 1.100 W en een warmteverlies van 1.000 W, met Vmax ingeregeld op het benodigde vermogen. Het plafond kan 1.941 W koelen (Σ ontwerpdebieten 558 l/h), maar Vmax wordt 148 l/h: ca. 15 l/h per streng. Bij verwarmen is Vmax 68 l/h in plaats van 453 l/h. De strengen worden laminair en de stroomsnelheid zakt onder 0,25 m/s (W03, W04); het ΔT loopt op tot ca. 6 K (koelen) en 13 K (verwarmen). Er is geen regelreserve: Vmax levert alleen de last bij het setpoint, dus opwarmen of terugkoelen duurt lang en de regelaar blijft op 100 % (I05).',
     probeer:
       'Zet "Vmax afstellen op" op "Max. plafondvermogen": Vmax stijgt naar 558 l/h en het plafond levert dan 1.941 W (meer dan nodig). Probeer ook 28 panelen.',
     expect: [['W03'], ['W04']],

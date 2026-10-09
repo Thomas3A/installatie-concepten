@@ -62,7 +62,8 @@ function PrintHeader() {
       <ul>
         {design.valves.map((v) => (
           <li key={v.index}>
-            Klep {v.index + 1}: Type {v.cfg.type} DN{v.cfg.dn}, {v.cfg.panelCount} panelen, strengen{' '}
+            Klep {v.index + 1}: Type {v.cfg.type}
+            {v.cfg.type === 'A' ? ` DN${v.cfg.dn}` : ''}, {v.cfg.panelCount} panelen, strengen{' '}
             {v.strands.map((x) => x.panels).join('·')},{' '}
             {v.cfg.layout === 'direct' ? 'direct retour' : 'Tichelmann'}, Vmax koelen{' '}
             {fmt(v.modes.koelen.vmax * 3.6e6, 0)} l/h, verwarmen {fmt(v.modes.verwarmen.vmax * 3.6e6, 0)} l/h

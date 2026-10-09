@@ -41,6 +41,7 @@ function randomConfig(r: () => number): KlimaatplafondConfig {
     dpAvailable: 10 + r() * 50,
     dpMax: 10 + r() * 30,
     flowChar: pick(['gelijkprocentig', 'lineair'] as const),
+    advanced: { ...base.advanced, loadSplit: pick(['panels', 'manual'] as const) },
     valves: Array.from({ length: n }, () => ({
       ...base.valves[0],
       type: pick(['A', 'B'] as const),
@@ -51,6 +52,8 @@ function randomConfig(r: () => number): KlimaatplafondConfig {
       spacing: 0.6 + r() * 2.4,
       layout: pick(['direct', 'tichelmann'] as const),
       dtManager: r() < 0.3,
+      vmaxBasis: pick(['plafond', 'last'] as const),
+      loadShare: 1 + r() * 99,
       coupling: r() < 0.3 ? ('manual' as const) : ('auto' as const),
       manualStrands: Array.from({ length: 1 + Math.floor(r() * 16) }, () => ({
         panels: 1 + Math.floor(r() * 16),

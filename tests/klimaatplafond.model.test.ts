@@ -216,12 +216,47 @@ describe('Vmax afstellen op benodigd vermogen (last) of maximaal plafondvermogen
     const v = d.valves[0];
     for (const m of ['koelen', 'verwarmen'] as const) {
       const md = v.modes[m];
-      const p = solveZoneCoupled(d.ctx, md.cond, v.spec, md.vmax - 1 / 3.6e6, undefined, 2).thermal.reduce(
+      const p = solveZoneCoupled(d.ctx, md.cond, v.spec, md.vmax - 1 / 3.6e6, undefined, 3).thermal.reduce(
         (a, t) => a + t.power,
         0,
       );
       expect(p).toBeLessThan(md.load);
     }
+  });
+  it('last bij 45 °C aanvoer: haalt de last (zonder vals W11) en Vmax is minimaal', () => {
+    for (const panels of [28, 40]) {
+      const d = build('last', panels, 'B', { tSupplyHeat: 45 });
+      const v = d.valves[0];
+      for (const m of ['koelen', 'verwarmen'] as const) {
+        const md = v.modes[m];
+        expect(md.capacity as number, `${panels} ${m}`).toBeGreaterThan(md.load); // overcapaciteit
+        expect(md.power).toBeGreaterThanOrEqual(md.load - 0.5);
+        const p = solveZoneCoupled(d.ctx, md.cond, v.spec, md.vmax - 1 / 3.6e6, undefined, 3).thermal.reduce(
+          (a, t) => a + t.power,
+          0,
+        );
+        expect(p, `${panels} ${m}: 1 l/h minder haalt de last niet`).toBeLessThan(md.load);
+      }
+      // bij overcapaciteit is het vermogen nooit de reden voor een W11-melding
+      expect(designMessages(d).map((m) => m.code)).not.toContain('W11');
+    }
+  });
+  it('last: Vmax hangt niet af van het ontwerp-ΔT (vaste strengen, geen kunstmatige ondergrens)', () => {
+    const vm = (dtHeat: number) => {
+      const c = defaultConfig();
+      c.dtHeat = dtHeat;
+      c.tSupplyHeat = 45;
+      c.valves[0] = {
+        ...c.valves[0],
+        panelCount: 28,
+        vmaxBasis: 'last',
+        coupling: 'manual',
+        manualStrands: Array.from({ length: 7 }, () => ({ panels: 4, extraLength: 0 })),
+      };
+      return computeDesign(resolveAdvice(c)).valves[0].modes.verwarmen.vmax * 3.6e6;
+    };
+    expect(Math.abs(vm(2) - vm(5))).toBeLessThanOrEqual(1.01);
+    expect(Math.abs(vm(3) - vm(8))).toBeLessThanOrEqual(1.01);
   });
   it('last: Vmax is een geheel aantal l/h', () => {
     const v = build('last').valves[0];
