@@ -99,4 +99,24 @@ describe('peakshaving-pagina', () => {
     expect((screen.getByLabelText('Buffervolume') as HTMLInputElement).value).toBe('12,50');
     expect(decodeInput('%%%')).toBeNull();
   });
+
+  it('tabbladen Koude week, Jaar en Gevoeligheid renderen met resultaten', async () => {
+    useStore.getState().applyScenario('woning-buffer-batterij');
+    renderPage();
+    await waitFor(() => expect(useStore.getState().analysis?.input.buffer.volumeM3).toBe(1), {
+      timeout: 20000,
+    });
+    // koude week (standaardtabblad) met scrubber
+    await waitFor(() => expect(screen.getByLabelText('Uur in de koude week')).toBeTruthy());
+    expect(screen.getByText(/Koudste week \(hoogste warmtevraag\)/)).toBeTruthy();
+    act(() => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Jaar' }));
+    });
+    expect(screen.getByText(/Maandbalans/)).toBeTruthy();
+    act(() => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Gevoeligheid' }));
+    });
+    await waitFor(() => expect(useStore.getState().sensitivity?.done).toBe(true), { timeout: 30000 });
+    expect(screen.getByText(/Tabel met alle punten/)).toBeTruthy();
+  }, 60000);
 });

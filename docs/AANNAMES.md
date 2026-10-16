@@ -196,3 +196,27 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 - **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gekozen gebouwfunctie, plus
   een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
 - **Footer:** de klimaatzin van spec §0.1 staat alleen op de pagina's van dit concept (veld `disclaimer` in de registry).
+
+### Grafieken
+
+- **Koude week:** uurwaarden staan als punt op het begin van het uur (x = t ↔ "t:00"); arcering van weekend,
+  gebruikstijd, opstookuren, comfortverlies en overschrijding beslaat het interval [t, t+1). In het warmtepaneel zijn WP
+  direct, buffer ontladen, bijstook en boiler laden in die volgorde gestapeld; de lijn "Gevraagd" (Q_req) betreft alleen
+  ruimteverwarming en hoort dus bij de bovenkant van de laag bijstook. Omdat het overschrijdingsvlak bij een venster van 9
+  dagen vaak maar enkele pixels breed is, krijgt elk overschrijdingsuur ook een rood streepje onderaan. Laadtoestand buffer
+  = SoC / nuttige inhoud, batterij = SoC / (capaciteit × 0,9); reeksen zonder opslag vervallen.
+- **Scrubber:** "Terug naar koude week" zet de zoom terug; "Naar piekuur" zet het gekozen uur terug op het uur met de
+  hoogste P_net in de koude week. Afspelen vanaf het laatste uur begint opnieuw aan het begin van het venster; een klik
+  direct na slepen (inzoomen) kiest geen uur.
+- **Jaar:** de x-as van de duurkrommen is het rangnummer van het uur (1 = hoogste uur), standaard logaritmisch omdat de
+  beslissende piekuren de eerste paar honderd zijn. Als referentie worden de direct kleinere en de direct grotere
+  standaardaansluiting getoond (zelfde aandeel); "uren erboven" telt uren met P > P_limiet + 1e-6 kW, net als de simulatie.
+  De lijnen in de thermische duurkromme zijn het WP-vermogen bij −10 °C (nominaal × capaciteitsfactor) met en zonder
+  buffer. De maandbalans toont elektriciteit inclusief bijstook; maanden zonder elektriciteitsgebruik hebben geen SCOP.
+- **Gevoeligheid:** beide y-assen krijgen een eigen band van de grafiekhoogte (elektrisch onder, thermisch boven) zodat de
+  lijnen elkaar niet bedekken; de assen beginnen daardoor niet altijd bij 0. Referentielijnen worden getekend voor de
+  standaardaansluitingen in het relevante bereik, de huidige aansluiting en elke aansluiting met een overgangsstip. Een
+  aansluiting is "toereikend" in een punt als de kleinste passende aansluiting van die cel (met de toegestane
+  overschrijdingsuren) niet groter is; de stip staat op het eerste buffervolume V > 0 vanaf waar dat zo blijft, alleen voor
+  aansluitingen die bij V = 0 nog niet toereikend waren. Klikken zet het buffervolume (afgerond op de schuifstap); in de
+  tabel is per punt een knop "kies" als toetsenbordalternatief.

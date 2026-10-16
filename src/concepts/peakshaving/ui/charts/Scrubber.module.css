@@ -1,0 +1,64 @@
+/* Scrubber onder de koude-weekpanelen (ook gebruikt in het tabblad Concept). */
+.scrubber {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.range {
+  flex: 1 1 260px;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.playBtn {
+  min-width: 8.5em;
+}
+.icon {
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+.values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 16px;
+  margin: 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+.item dt {
+  color: var(--text-2);
+}
+.item dd {
+  margin: 0;
+  font-weight: 600;
+}
+.when dd {
+  min-width: 8.5em;
+  font-weight: 650;
+}
+.exceed dd {
+  color: var(--err);
+}
+.unit {
+  font-weight: 400;
+  color: var(--text-2);
+}
+.note {
+  font-size: 0.78rem;
+  color: var(--text-2);
+}

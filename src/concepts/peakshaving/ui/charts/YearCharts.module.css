@@ -1,0 +1,26 @@
+/* Tabblad Jaar: duurkromme elektrisch over de volle breedte, thermisch en maandbalans ernaast. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+}
+.toolbarLabel {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.lead {
+  margin: 0 0 6px;
+}
+/* lange legenda-items (aansluitingen met uren erboven) mogen afbreken op smalle schermen */
+.wrapLegend [role='group'] > span {
+  white-space: normal;
+}
+/* bij staven zijn de cursorpunten van uPlot verwarrend (ze staan midden tussen de staven) */
+.noCursorPoints :global(.u-cursor-pt) {
+  display: none;
+}

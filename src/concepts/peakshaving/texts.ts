@@ -163,6 +163,12 @@ export const MODE_LABELS = {
   limited: 'aansluiting begrenst',
 } as const;
 
+/** Begin van de secundaire regel met de waarde in de andere modus (spec §5.8). */
+export const COUNTERPART_PREFIX = {
+  exceedance: 'Zonder begrenzer',
+  limited: 'Als de aansluiting begrenst',
+} as const;
+
 export const UNIT_HOURS_PER_YEAR = 'uren/jaar';
 
 // ---------------------------------------------------------------------------------------------------------------

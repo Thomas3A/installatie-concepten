@@ -1269,7 +1269,7 @@ describe("review: meldingen, advies en KPI's", () => {
     expect(a.main.kpis.exceedanceHours).toBe(0);
     // de kaart "Uren overschrijding" toont de tegenhanger zonder begrenzer
     const card = buildKpiCards(a).find((c) => c.id === 'exceedance')!;
-    expect(card.lines.some((l) => l.text.startsWith('Bij overschrijding tonen:'))).toBe(true);
+    expect(card.lines.some((l) => l.text.startsWith('Zonder begrenzer:'))).toBe(true);
     expect(card.lines.some((l) => l.text.includes(`${a.counterpart.kpis.exceedanceHours} uur`))).toBe(true);
   });
 

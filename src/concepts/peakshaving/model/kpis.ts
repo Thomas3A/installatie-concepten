@@ -1,7 +1,7 @@
 // KPI-kaarten en advies-banner (spec §6.1, §6.2) uit de doorrekening; puur, de UI tekent alleen.
 // De kaarten tonen de gekozen modus en, waar relevant, de tegenhanger in de andere modus (spec §5.8).
 import { fmt } from '../../../core/format';
-import { KPI_TITLES, MODE_LABELS, UNIT_HOURS_PER_YEAR } from '../texts';
+import { COUNTERPART_PREFIX, KPI_TITLES, UNIT_HOURS_PER_YEAR } from '../texts';
 import type { Analysis } from './analysis';
 import { capacityFactor } from './heatPump';
 import type { SimulationKpis } from './types';
@@ -72,7 +72,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
   const lim = limitedKpis(a);
   const ex = exceedanceKpis(a);
   const limitedMain = a.main.mode === 'limited';
-  const otherMode = MODE_LABELS[a.counterpart.mode];
+  const other = COUNTERPART_PREFIX[a.counterpart.mode];
   const allowedEx = a.input.grid.allowedExceedanceH;
   const share = a.input.grid.heatPumpShare;
   const auto = a.input.heatPump.sizingMode === 'auto';
@@ -146,7 +146,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
       lines: [
         { text: `WP-budget ${Number.isFinite(a.pLimitKw) ? kw(a.pLimitKw, 2) : 'onbegrensd'}` },
         { text: `Zonder batterij ${kw(a.noBattery.pGridMaxKw, 2)}` },
-        { text: `Bij ${otherMode}: ${kw(c.pGridMaxKw, 2)}` },
+        { text: `${other}: ${kw(c.pGridMaxKw, 2)}` },
       ],
     },
     {
@@ -165,7 +165,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
             : 'boven toegestaan',
       lines: [
         { text: `Max. ${kw(k.maxExceedanceKw, 2)} · ${fmt(k.exceedanceKwh, 0)} kWh/jaar boven budget` },
-        ...(limitedMain ? [{ text: `Bij ${otherMode}: ${fmt(ex.exceedanceHours, 0)} uur` }] : []),
+        ...(limitedMain ? [{ text: `${other}: ${fmt(ex.exceedanceHours, 0)} uur` }] : []),
         ...(batteryLine ? [{ text: batteryLine }] : []),
       ],
     },
@@ -194,9 +194,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
           text: `Laagste binnentemperatuur ${fmt(lim.minIndoorC, 1)} °C · tekort ${fmt(lim.shortfallKwh, 0)} kWh`,
         },
         { text: `Tapwatertekort ${fmt(lim.dhwShortfallHours, 0)} uur` },
-        ...(limitedMain
-          ? [{ text: `Bij ${otherMode}: ${fmt(ex.comfortLossHours, 0)} uur comfortverlies` }]
-          : []),
+        ...(limitedMain ? [{ text: `${other}: ${fmt(ex.comfortLossHours, 0)} uur comfortverlies` }] : []),
       ],
     },
     {

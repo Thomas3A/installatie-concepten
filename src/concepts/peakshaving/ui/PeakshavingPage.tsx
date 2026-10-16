@@ -18,6 +18,9 @@ import { AdviceBanner } from './results/AdviceBanner';
 import { KpiCards } from './results/KpiCards';
 import { Messages } from './results/Messages';
 import { RobustnessTable } from './results/RobustnessTable';
+import { ColdWeekCharts } from './charts/ColdWeekCharts';
+import { SensitivityChart } from './charts/SensitivityChart';
+import { YearCharts } from './charts/YearCharts';
 import p from './peakshaving.module.css';
 
 const TABS = Object.keys(TAB_LABELS) as TabId[];
@@ -187,7 +190,12 @@ export default function PeakshavingPage() {
               ))}
             </div>
             <div role="tabpanel" id={`ps-panel-${tab}`} aria-labelledby={`ps-tab-${tab}`}>
-              <p className={p.placeholder}>Dit tabblad volgt in de volgende fase.</p>
+              {tab === 'koude-week' && <ColdWeekCharts />}
+              {tab === 'jaar' && <YearCharts />}
+              {tab === 'gevoeligheid' && <SensitivityChart />}
+              {(tab === 'concept' || tab === 'uitleg') && (
+                <p className={p.placeholder}>Dit tabblad volgt in een volgende fase.</p>
+              )}
             </div>
           </section>
         </main>
