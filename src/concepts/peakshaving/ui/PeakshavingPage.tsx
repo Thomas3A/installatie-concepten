@@ -22,6 +22,8 @@ import { ColdWeekCharts } from './charts/ColdWeekCharts';
 import { SensitivityChart } from './charts/SensitivityChart';
 import { YearCharts } from './charts/YearCharts';
 import { ConceptDiagram } from './concept/ConceptDiagram';
+import { ExplainTab } from './explain/ExplainTab';
+import { PrintView } from './PrintView';
 import p from './peakshaving.module.css';
 
 const TABS = Object.keys(TAB_LABELS) as TabId[];
@@ -64,6 +66,8 @@ export default function PeakshavingPage() {
   const error = useStore((st) => st.error);
   const copied = useStore((st) => st.copied);
   const markCopied = useStore((st) => st.markCopied);
+  const printing = useStore((st) => st.printing);
+  const requestPrint = useStore((st) => st.requestPrint);
   const [params] = useSearchParams();
   const [shareErr, setShareErr] = useState(false);
   const lastCode = useRef<string | null>(null);
@@ -80,6 +84,30 @@ export default function PeakshavingPage() {
 
   useEffect(() => {
     document.title = 'Peakshaving · Installatieconcepten';
+    // printen op A4 staand (zie peakshaving.module.css)
+    document.body.classList.add('ps-print-page');
+    return () => document.body.classList.remove('ps-print-page');
+  }, []);
+
+  // printen (ook met Ctrl+P): inklapbare blokken met data-print-open tijdelijk openklappen
+  useEffect(() => {
+    let opened: HTMLDetailsElement[] = [];
+    const before = (): void => {
+      opened = Array.from(document.querySelectorAll<HTMLDetailsElement>('details[data-print-open]')).filter(
+        (d) => !d.open,
+      );
+      opened.forEach((d) => (d.open = true));
+    };
+    const after = (): void => {
+      opened.forEach((d) => (d.open = false));
+      opened = [];
+    };
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('afterprint', after);
+    };
   }, []);
 
   const scenario = SCENARIOS.find((s) => s.id === scenarioId);
@@ -125,8 +153,14 @@ export default function PeakshavingPage() {
           <button type="button" className={u.btn} onClick={share} aria-live="polite">
             {copied ? (shareErr ? 'Link getoond' : '✓ Link gekopieerd') : 'Deel link'}
           </button>
-          <button type="button" className={u.btn} onClick={() => window.print()}>
-            Print / PDF
+          <button
+            type="button"
+            className={u.btn}
+            onClick={requestPrint}
+            disabled={printing}
+            aria-live="polite"
+          >
+            {printing ? 'Printversie voorbereiden…' : 'Print / PDF'}
           </button>
         </div>
       </div>
@@ -155,7 +189,9 @@ export default function PeakshavingPage() {
           <KpiCards />
           <AdviceBanner />
           <RobustnessTable />
-          <Messages />
+          <div className="noPrint">
+            <Messages />
+          </div>
           <section className={`${u.card} noPrint`} aria-label="Detailweergave">
             <div
               className={u.tabList}
@@ -195,11 +231,12 @@ export default function PeakshavingPage() {
               {tab === 'jaar' && <YearCharts />}
               {tab === 'gevoeligheid' && <SensitivityChart />}
               {tab === 'concept' && <ConceptDiagram />}
-              {tab === 'uitleg' && <p className={p.placeholder}>Dit tabblad volgt in de volgende fase.</p>}
+              {tab === 'uitleg' && <ExplainTab />}
             </div>
           </section>
         </main>
       </div>
+      <PrintView />
     </div>
   );
 }

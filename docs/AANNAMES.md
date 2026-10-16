@@ -241,3 +241,13 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   genormaliseerd op het grootste vermogen in het venster; onder 0,005 kW staat een stroom stil. De ventilator draait in
   vijf snelheden naar Q_wp. Bij bewegingsarme weergave en bij afdrukken beweegt niets en tonen pijltjes de richting.
 - Onder ongeveer 620 px breedte scrolt het schema binnen zijn kader; de pagina zelf scrolt niet horizontaal.
+
+### Uitleg en printen
+
+- **Printweergave** (spec §2.2): A4 staand, twee pagina's. Pagina 1: invoersamenvatting, KPI-kaarten, advies en
+  robuustheidstabel; pagina 2: de koude week (panelen warmte en elektrisch; het toestandspaneel en de scrubber vallen weg)
+  en de gevoeligheidsgrafiek. Meldingen, invoerblokken en tabbladen worden niet geprint. De knop "Print / PDF" rekent zo
+  nodig eerst het gevoeligheidsraster uit en bouwt de grafieken buiten beeld op de printbreedte op; daarna opent het
+  printvenster. Printen met Ctrl+P geeft dezelfde eerste pagina, maar zonder de grafieken.
+- **Uitleg-tab:** de teksten staan in `texts.ts` (sectie per onderwerp van spec §11, één of meer formules per sectie,
+  KaTeX); **vet** en _cursief_ worden in de gedeelde `MathText` alleen opgemaakt waar dat expliciet is aangezet.

@@ -283,3 +283,36 @@
     break-inside: avoid;
   }
 }
+
+/* ---- printversie: grafieken buiten beeld opbouwen op de breedte van een A4 staand (190 mm ≈ 718 px) */
+.printArea {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 718px;
+}
+@page peakshaving {
+  size: A4 portrait;
+  margin: 10mm;
+}
+@media print {
+  /* de hele pagina (ook de footer) op A4 staand; zonder wissel van paginanaam dus geen extra pagina */
+  :global(body.ps-print-page) {
+    page: peakshaving;
+  }
+  .printArea {
+    position: static;
+    width: auto;
+    break-before: page;
+  }
+  .printArea h2 {
+    font-size: 1rem;
+    margin: 6px 0 4px;
+  }
+  .kpiRow {
+    gap: 6px;
+  }
+  .kpiValue {
+    font-size: 1.15rem;
+  }
+}

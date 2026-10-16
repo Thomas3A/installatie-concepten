@@ -413,6 +413,11 @@ const monthSplits = (min: number, max: number): number[] => {
   return out;
 };
 const monthFormat = (v: number): string => (Number.isInteger(v) ? (MONTH_SHORT[v] ?? '') : '');
+/** Ticklabels: bij een smalle grafiek alleen de beginletter (j f m a …), anders de afkorting. */
+const monthTick = (v: number, plotWidthPx: number): string => {
+  const m = monthFormat(v);
+  return plotWidthPx < 12 * 34 ? m.charAt(0) : m;
+};
 
 function YearChartsView({ a }: { a: Analysis }) {
   const dark = useDarkScheme();
@@ -515,6 +520,7 @@ function YearChartsView({ a }: { a: Analysis }) {
             series={month.series}
             xKind="custom"
             xFormat={monthFormat}
+            xTickFormat={monthTick}
             xSplits={monthSplits}
             xLabel="Maand"
             axes={[

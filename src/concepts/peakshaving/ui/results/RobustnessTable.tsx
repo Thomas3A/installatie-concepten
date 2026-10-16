@@ -11,7 +11,7 @@ export function RobustnessTable({ open = false }: { open?: boolean }) {
   if (!analysis) return null;
   const rows = analysis.robustness;
   return (
-    <details className={u.acc} open={open}>
+    <details className={u.acc} open={open} data-print-open="">
       <summary>Robuustheid: zelfde configuratie in andere klimaatjaren</summary>
       <div className={u.accBody}>
         <p className={u.hint} style={{ margin: 0 }}>

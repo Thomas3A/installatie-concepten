@@ -1,9 +1,18 @@
 import { useMemo } from 'react';
 import katex from 'katex';
 
-/** Render tekst met $...$ (inline) en $$...$$ (blok) wiskunde via KaTeX. */
-export function renderMath(src: string): string {
-  const esc = (t: string): string => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (t: string): string => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Lichte opmaak in gewone tekst: **vet** en *cursief* (na het escapen van HTML). */
+function emphasize(html: string): string {
+  return html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+/**
+ * Render tekst met $...$ (inline) en $$...$$ (blok) wiskunde via KaTeX.
+ * Met `emphasis` worden **vet** en *cursief* in de tekst buiten de formules opgemaakt.
+ */
+export function renderMath(src: string, emphasis = false): string {
   const parts = src.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g);
   return parts
     .map((p) => {
@@ -13,13 +22,21 @@ export function renderMath(src: string): string {
       if (p.startsWith('$') && p.endsWith('$') && p.length > 2) {
         return katex.renderToString(p.slice(1, -1), { displayMode: false, throwOnError: false });
       }
-      return esc(p);
+      return emphasis ? emphasize(esc(p)) : esc(p);
     })
     .join('');
 }
 
-export function MathText({ text, as: Tag = 'p' }: { text: string; as?: 'p' | 'span' | 'div' }) {
-  const html = useMemo(() => renderMath(text), [text]);
+export function MathText({
+  text,
+  as: Tag = 'p',
+  emphasis = false,
+}: {
+  text: string;
+  as?: 'p' | 'span' | 'div';
+  emphasis?: boolean;
+}) {
+  const html = useMemo(() => renderMath(text, emphasis), [text, emphasis]);
   return <Tag dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

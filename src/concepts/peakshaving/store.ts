@@ -39,6 +39,8 @@ interface State {
   scrubHour: number | null;
   playing: boolean;
   copied: boolean;
+  /** printversie wordt opgebouwd (grafieken buiten beeld, daarna window.print()) */
+  printing: boolean;
   // acties
   update: (fn: (i: PeakshavingInput) => PeakshavingInput) => void;
   setDesignLoad: (kw: number) => void;
@@ -52,6 +54,9 @@ interface State {
   setScrubHour: (h: number | null) => void;
   setPlaying: (p: boolean) => void;
   markCopied: (b: boolean) => void;
+  /** printversie opbouwen: rekent zo nodig ook het gevoeligheidsraster en print als alles klaar is */
+  requestPrint: () => void;
+  endPrint: () => void;
 }
 
 let client: EngineClient | null = null;
@@ -107,7 +112,7 @@ function computeNow(): void {
   latestAnalyze = nextId++;
   useStore.setState({ busy: true });
   engine().post({ type: 'analyze', id: latestAnalyze, input });
-  if (tab === 'gevoeligheid') requestSensitivity();
+  if (tab === 'gevoeligheid' || useStore.getState().printing) requestSensitivity();
 }
 
 function schedule(): void {
@@ -145,6 +150,7 @@ export const useStore = create<State>((set, get) => ({
   scrubHour: null,
   playing: false,
   copied: false,
+  printing: false,
 
   update: (fn) => {
     const next = normalizeInput(fn(get().input));
@@ -188,6 +194,12 @@ export const useStore = create<State>((set, get) => ({
   setScrubHour: (scrubHour) => set({ scrubHour }),
   setPlaying: (playing) => set({ playing }),
   markCopied: (copied) => set({ copied }),
+  requestPrint: () => {
+    set({ printing: true, playing: false });
+    if (timer) computeNow();
+    requestSensitivity();
+  },
+  endPrint: () => set({ printing: false }),
 }));
 
 /** Eerste berekening starten (aangeroepen door de pagina bij het openen). */

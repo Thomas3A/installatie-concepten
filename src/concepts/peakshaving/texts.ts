@@ -248,3 +248,100 @@ export const MASS_PRESETS = [
   { label: 'Gemiddeld', value: 40 },
   { label: 'Zwaar', value: 80 },
 ] as const;
+
+// ---------------------------------------------------------------------------------------------------------------
+// Uitleg-tab (spec §11). Wiskunde in KaTeX-notatie tussen $...$ (inline) of $$...$$ (blok).
+
+export interface ExplainSection {
+  id: string;
+  title: string;
+  body: string[];
+}
+
+export const EXPLAIN: ExplainSection[] = [
+  {
+    id: 'wat',
+    title: '1. Wat de tool berekent',
+    body: [
+      'De tool simuleert uur voor uur een heel jaar (8760 uur, na een inregelweek): de warmtevraag van het gebouw, wat de lucht/water-warmtepomp daarvan direct kan leveren, wat het buffervat aanvult of opslaat, het tapwater in de boiler en wat de batterij aan de meterkant afschaaft.',
+      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven het WP-budget $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt.',
+      'De modus *overschrijding tonen* laat de warmtepomp altijd leveren en telt de uren boven het budget; de modus *aansluiting begrenst* houdt het budget hard aan, zodat tekorten als comfortverlies zichtbaar worden. De KPI-kaarten tonen altijd beide gezichtspunten.',
+    ],
+  },
+  {
+    id: 'gebouw',
+    title: '2. Warmtevraag van het gebouw',
+    body: [
+      'Het gebouw is één thermische knoop met warmteverliescoëfficiënt $UA$ en warmtecapaciteit $C$. $UA$ volgt uit het ontwerpwarmteverlies bij −10 °C: $UA = P_{ontwerp} / (T_{i,ontwerp} - T_{e,ontwerp})$; de gebouwmassa is een tijdconstante $\\tau$ met $C = \\tau \\cdot UA$.',
+      '$$Q = UA\\,(T_i - T_{e,f}) - G$$',
+      'Hierin is $T_{e,f}$ de buitentemperatuur na een eerste-orde filter (traagheid van de gevel) en $G$ de interne winst, die via de stookgrens wordt ingevoerd: $G = UA\\,(T_{set} - T_{stookgrens})$. Boven de stookgrens is er dus geen warmtevraag. Na een nachtverlaging mag de regelaar tot de opwarmfactor × het piekvermogen extra leveren om het setpoint terug te winnen; dat geeft de opstookpiek van een kantoor.',
+    ],
+  },
+  {
+    id: 'wp',
+    title: '3. Lucht/water-warmtepomp',
+    body: [
+      'Het vermogen wordt opgegeven bij A7/W35. Bij kou daalt het beschikbare vermogen (inclusief ontdooien): factor 0,55 bij −20 °C, 0,70 bij −10 °C, 0,76 bij −7 °C, 0,86 bij 2 °C, 1,00 bij 7 °C en 1,10–1,15 daarboven.',
+      '$$COP = \\eta \\, \\frac{T_{aanvoer}}{T_{aanvoer} - T_e} \\cdot f_{ontdooi}$$',
+      'met $T$ in kelvin in de teller, een minimale temperatuurlift van 8 K, Carnot-rendement $\\eta$ (standaard 0,45) en een ontdooifactor van 0,9 tussen −5 en 5 °C. De aanvoertemperatuur volgt de stooklijn: de ontwerpaanvoer bij −10 °C, lineair dalend naar de minimale aanvoer bij 15 °C. Bufferladen gebeurt op de maximale aanvoertemperatuur − 2 K en boilerladen op de boilertemperatuur; beide kosten COP.',
+    ],
+  },
+  {
+    id: 'buffer',
+    title: '4. Warmtebuffer',
+    body: [
+      '$$E = V \\cdot 1{,}163 \\cdot \\Delta T \\cdot f_{strat}$$',
+      'De nuttige temperatuurslag $\\Delta T$ is de laadtemperatuur (maximale WP-aanvoer − 2 K) min de retourtemperatuur van het afgiftesysteem: verder kan het vat niet ontladen. Met MT-afgifte (retour 35 °C) en 60 °C maximale aanvoer is dat 23 K, dus 24 kWh per m³; met HT-afgifte (retour 45 °C) slaat dezelfde kuub maar 14 kWh op. $f_{strat} = 0{,}9$ verdisconteert menging.',
+      'Het vat verliest warmte met $UA = 1{,}5\\ \\mathrm{W/K} \\cdot V^{2/3}$ naar een omgeving van 15 °C. *Voorspellend* laden gebeurt alleen als de warmtepomp binnen 24 uur tekortschiet (of als reserve voor de ruimteverwarming tijdens boilerbedrijf); *altijd* laden houdt het vat vol, wat meer stilstandsverlies geeft.',
+      'Een buffer overbrugt **uren, geen dagen**: hij vangt opstoken, tapwater en de avondpiek op, zodat de warmtepomp op het gemiddelde van de koude dag kan worden gedimensioneerd. Tegen een koudegolf van dagen helpt hij niet; daarom vlakt de gevoeligheidsgrafiek af.',
+    ],
+  },
+  {
+    id: 'batterij',
+    title: '5. Batterij',
+    body: [
+      'Van de bruto capaciteit is 90 % bruikbaar; het rendement is 90 % heen en terug ($\\sqrt{0{,}9} \\approx 0{,}949$ per richting). Het vermogen is standaard 0,5 C (een batterij van 10 kWh levert 5 kW).',
+      '$$P_{net} = P_{el} - P_{bat}, \\qquad P_{bat} = \\min(P_{el} - P_{limiet},\\ P_{bat,max},\\ SoC \\cdot \\eta)$$',
+      'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de budgetlijn bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
+    ],
+  },
+  {
+    id: 'aansluiting',
+    title: '6. Aansluiting en budget',
+    body: [
+      'De standaardaansluitwaarden zijn 1×25, 1×35 en 1×40 A en 3×25 tot 3×80 A; het vermogen is $P = U\\,I$ bij 1-fase (230 V) en',
+      '$$P = \\sqrt{3}\\,U\\,I \\quad (U = 400\\ \\mathrm{V},\\ \\cos\\varphi = 1)$$',
+      'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. Het WP-budget is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
+      'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van het WP-budget is daarmee overschrijding van de aansluiting.',
+    ],
+  },
+  {
+    id: 'dimensioneren',
+    title: '7. Dimensioneren',
+    body: [
+      'Het benodigde WP-vermogen is het kleinste vermogen (A7/W35) waarbij, zonder elektrische begrenzing en zonder batterij, het comfort in het gekozen klimaatjaar gehaald wordt en er geen tapwatertekort is. Dat wordt gevonden met bisectie tussen 0,1 en 3 × het piekvermogen (14 stappen).',
+      '$$P_{th,min}(V) = \\min \\{ P : \\text{uren comfortverlies}(P, V) \\le \\text{toegestaan} \\}$$',
+      'De kleinste passende aansluiting is de eerste standaardaansluiting (zelfde aandeel) waarbij de uren overschrijding niet boven het toegestane aantal komen. De benodigde batterij is de kleinste capaciteit (0,5 C) die de overschrijding bij de huidige aansluiting op 0 uur brengt.',
+      'De **gevoeligheidsgrafiek** zet beide samen uit tegen het buffervolume: de oranje lijn (benodigd WP-vermogen) daalt eerst snel en vlakt dan af; de lijnen per batterijgrootte tonen de piek aan de meter. Duikt een lijn onder de referentielijn van een aansluiting, dan is die aansluiting vanaf dat buffervolume toereikend.',
+    ],
+  },
+  {
+    id: 'klimaat',
+    title: '8. Klimaatjaren',
+    body: [
+      'NEN 5060:2018 bevat referentiejaren voor De Bilt die zijn samengesteld uit werkelijke kalendermaanden uit 1996–2015: het **energiejaar** (langjarig gemiddeld, voor jaarverbruik en SCOP) en de ontwerpjaren **T5** en **T1** (5 % en 1 % overschrijdingskans, voor pieken). De officiële uurdata zijn niet vrij beschikbaar.',
+      'Deze tool gebruikt daarom een **reconstructie** uit open KNMI-uurdata van De Bilt: per maand is de werkelijke maand gekozen waarvan het maandgemiddelde overeenkomt met de gepubliceerde maandgemiddelden van NEN 5060:2018 (binnen 0,05 K), met vloeiende overgangen over 16 uur. Het jaar begint op een maandag, in MET zonder zomertijd, zonder 29 februari. Het is geen officiële NEN 5060-data.',
+      '$$\\overline{T}_{maand,reconstructie} - \\overline{T}_{maand,NEN} \\le 0{,}05\\ \\mathrm{K}$$',
+      'Daarnaast zijn de werkelijke jaren 1991–2025 beschikbaar als stresstest met echt weer (bijvoorbeeld januari 1997, december 2010, februari 2012). De koude week in de grafieken is de week met de hoogste warmtevraag, niet per se de koudste week.',
+    ],
+  },
+  {
+    id: 'beperkingen',
+    title: '9. Beperkingen',
+    body: [
+      'Het gebouw is één knoop zonder zonnewinsten (conservatief); het opwarmen gebeurt met een vaste opstooktijd. De warmtepompcapaciteit hangt alleen af van de buitentemperatuur; COP via Carnot met een vast rendement; geen cycling of minimale modulatie.',
+      'De buffer is een ideale opslag met vaste nuttige ΔT; de batterij is alleen voor de WP-groep, zonder degradatie of tariefsturing. Tapwater volgt een vast dagprofiel. Aansluitingen rekenen met cos φ = 1 en een volledig benut overig gebruik. De voorspellende laadregel kent het weer van de komende 24 uur.',
+      'De uitkomsten zijn indicatief voor conceptkeuze. Productselectie gebeurt altijd met fabrikantdata (capaciteitstabellen, geluid, hydrauliek).',
+    ],
+  },
+];

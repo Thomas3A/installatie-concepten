@@ -55,6 +55,8 @@ export interface UPlotChartProps {
   xFormat?: (v: number) => string;
   /** eigen tickposities voor de x-as */
   xSplits?: (min: number, max: number) => number[];
+  /** tick-labels bij xKind 'custom' als die anders moeten dan de cursortekst; krijgt de plotbreedte in CSS-px */
+  xTickFormat?: (v: number, plotWidthPx: number) => string;
   /** tweede x-as bovenaan (zelfde schaal), bijv. buffervolume in uren piekvermogen */
   topAxis?: { label?: string; format: (x: number) => string };
   axes?: ChartAxis[];
@@ -179,6 +181,7 @@ export function UPlotChart({
   xLabel,
   xFormat,
   xSplits,
+  xTickFormat,
   topAxis,
   axes,
   scales,
@@ -202,8 +205,8 @@ export function UPlotChart({
   hiddenRef.current = hidden;
   const hooksRef = useRef(hooks);
   hooksRef.current = hooks;
-  const cbRef = useRef({ onCursor, onClickX, onReady, xFormat, xSplits, topAxis });
-  cbRef.current = { onCursor, onClickX, onReady, xFormat, xSplits, topAxis };
+  const cbRef = useRef({ onCursor, onClickX, onReady, xFormat, xSplits, xTickFormat, topAxis });
+  cbRef.current = { onCursor, onClickX, onReady, xFormat, xSplits, xTickFormat, topAxis };
   const sig = JSON.stringify([
     series,
     axes,
@@ -244,7 +247,11 @@ export function UPlotChart({
           xKind === 'time'
             ? (_u, vals) => vals.map((v) => fmtClock(v))
             : xKind === 'custom'
-              ? (_u, vals) => vals.map((v) => cbRef.current.xFormat?.(v) ?? fmt(v, 0))
+              ? (u, vals) => {
+                  const tick = cbRef.current.xTickFormat;
+                  const w = u.bbox.width / (window.devicePixelRatio || 1);
+                  return vals.map((v) => (tick ? tick(v, w) : (cbRef.current.xFormat?.(v) ?? fmt(v, 0))));
+                }
               : (_u, vals, _ax, _space, incr) => vals.map((v) => fmt(v, tickDigits(incr))),
         splits:
           xKind === 'time'

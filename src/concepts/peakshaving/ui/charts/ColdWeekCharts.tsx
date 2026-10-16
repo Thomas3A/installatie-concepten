@@ -38,6 +38,7 @@ const HOURS_X = Float64Array.from({ length: N }, (_, i) => i);
 /** lege reeks (houdt de linker as van paneel 3 aan als er geen opslag is) */
 const NULLS: null[] = new Array<null>(N).fill(null);
 const PANEL_HEIGHT = 210;
+const PRINT_PANEL_HEIGHT = 170;
 const SYNC_KEY = 'ps-koude-week';
 /** breedte van een y-as met label in de wrapper (52 px as + 30 px label) */
 const AXIS_WITH_LABEL_PX = 82;
@@ -155,7 +156,8 @@ function tempRange(_u: uPlot, min: number | null, max: number | null): [number, 
   return [Math.floor(mid - half), Math.ceil(mid + half)];
 }
 
-export function ColdWeekCharts() {
+/** `print`: compacte weergave voor de printversie (warmte en elektrisch, zonder bediening en scrubber). */
+export function ColdWeekCharts({ print = false }: { print?: boolean }) {
   const analysis = useStore((st) => st.analysis);
   const setScrubHour = useStore((st) => st.setScrubHour);
   const selected = useSelectedHour();
@@ -442,8 +444,8 @@ export function ColdWeekCharts() {
     xKind: 'custom' as const,
     xFormat,
     xSplits,
-    height: PANEL_HEIGHT,
-    syncKey: SYNC_KEY,
+    height: print ? PRINT_PANEL_HEIGHT : PANEL_HEIGHT,
+    syncKey: print ? `${SYNC_KEY}-print` : SYNC_KEY,
     onClickX,
   };
 
@@ -457,18 +459,22 @@ export function ColdWeekCharts() {
           </strong>
           , gemiddeld <strong>{`${fmt(meanOutdoorC, 1)}\u00a0°C`}</strong>; getoond met 24 uur ervoor en erna.
         </p>
-        <button
-          type="button"
-          className={`${u.btn} ${u.btnSmall}`}
-          onClick={resetView}
-          title="Zoom terug naar de koude week met 24 uur ervoor en erna"
-        >
-          Terug naar koude week
-        </button>
+        {!print && (
+          <button
+            type="button"
+            className={`${u.btn} ${u.btnSmall}`}
+            onClick={resetView}
+            title="Zoom terug naar de koude week met 24 uur ervoor en erna"
+          >
+            Terug naar koude week
+          </button>
+        )}
       </div>
-      <p className={c.hint}>
-        Sleep in een grafiek om in te zoomen; klik om een uur te kiezen. De panelen bewegen samen.
-      </p>
+      {!print && (
+        <p className={c.hint}>
+          Sleep in een grafiek om in te zoomen; klik om een uur te kiezen. De panelen bewegen samen.
+        </p>
+      )}
       <div className={c.panels}>
         <section className={c.panel} aria-label="Warmte">
           <h3>Warmte</h3>
@@ -499,24 +505,26 @@ export function ColdWeekCharts() {
             exportName="koude-week-elektrisch"
           />
         </section>
-        <section className={c.panel} aria-label="Toestand">
-          <h3>Toestand</h3>
-          <UPlotChart
-            {...common}
-            data={data.state}
-            series={stateSeries}
-            axes={stateAxes}
-            scales={stateScales}
-            hooks={stateHooks}
-            legendExtras={stateLegend}
-            ariaLabel="Toestand in de koude week: laadtoestand van buffer en batterij, binnentemperatuur en setpoint"
-            onReady={onReady(2)}
-            exportName="koude-week-toestand"
-          />
-          {storageNote && <p className={c.hint}>{storageNote}</p>}
-        </section>
+        {!print && (
+          <section className={c.panel} aria-label="Toestand">
+            <h3>Toestand</h3>
+            <UPlotChart
+              {...common}
+              data={data.state}
+              series={stateSeries}
+              axes={stateAxes}
+              scales={stateScales}
+              hooks={stateHooks}
+              legendExtras={stateLegend}
+              ariaLabel="Toestand in de koude week: laadtoestand van buffer en batterij, binnentemperatuur en setpoint"
+              onReady={onReady(2)}
+              exportName="koude-week-toestand"
+            />
+            {storageNote && <p className={c.hint}>{storageNote}</p>}
+          </section>
+        )}
       </div>
-      <Scrubber />
+      {!print && <Scrubber />}
     </div>
   );
 }

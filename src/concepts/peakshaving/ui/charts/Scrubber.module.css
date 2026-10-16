@@ -29,9 +29,9 @@
 .values {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px 16px;
+  gap: 3px 12px;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
 }
 .item {
@@ -48,7 +48,7 @@
   font-weight: 600;
 }
 .when dd {
-  min-width: 8.5em;
+  min-width: 7.5em;
   font-weight: 650;
 }
 .exceed dd {

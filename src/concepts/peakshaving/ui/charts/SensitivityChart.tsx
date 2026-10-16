@@ -758,7 +758,7 @@ function PointsTable({
   );
 }
 
-function SensitivityView({ sens }: { sens: SensitivityState }) {
+function SensitivityView({ sens, print }: { sens: SensitivityState; print: boolean }) {
   const ranges = useStore((st) => st.ranges);
   const input = useStore((st) => st.input);
   const update = useStore((st) => st.update);
@@ -862,19 +862,22 @@ function SensitivityView({ sens }: { sens: SensitivityState }) {
         designLoadKw={designLoadKw}
         netDigits={chart.netDigits}
       />
-      <PointsTable
-        m={m}
-        input={input}
-        kwhPerM3={kwhPerM3}
-        stepM3={ranges.bufferStepM3}
-        netDigits={chart.netDigits}
-        onPick={pick}
-      />
+      {!print && (
+        <PointsTable
+          m={m}
+          input={input}
+          kwhPerM3={kwhPerM3}
+          stepM3={ranges.bufferStepM3}
+          netDigits={chart.netDigits}
+          onPick={pick}
+        />
+      )}
     </>
   );
 }
 
-export function SensitivityChart() {
+/** `print`: printversie zonder klikhint, voortgang en tabel. */
+export function SensitivityChart({ print = false }: { print?: boolean }) {
   const sens = useStore((st) => st.sensitivity);
   const ranges = useStore((st) => st.ranges);
   const n = sens && sens.total > 0 ? sens.total : SENSITIVITY_VOLUME_FRACTIONS.length;
@@ -891,8 +894,8 @@ export function SensitivityChart() {
         piek vaak precies op het budget van de huidige aansluiting, omdat de batterij de ruimte tot dat budget
         gebruikt om bij te laden.
       </p>
-      <p className={css.clickHint}>Klik in de grafiek om het buffervolume te kiezen.</p>
-      {!done && (
+      {!print && <p className={css.clickHint}>Klik in de grafiek om het buffervolume te kiezen.</p>}
+      {!done && !print && (
         <div className={css.progress}>
           <progress max={n} value={computed} aria-label="Voortgang gevoeligheidsberekening" />
           <span>
@@ -901,7 +904,7 @@ export function SensitivityChart() {
         </div>
       )}
       {sens && computed > 0 ? (
-        <SensitivityView sens={sens} />
+        <SensitivityView sens={sens} print={print} />
       ) : (
         <p className={css.placeholder}>
           De gevoeligheid wordt berekend: per buffervolume eerst het benodigde WP-vermogen, daarna per

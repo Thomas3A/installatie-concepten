@@ -119,4 +119,34 @@ describe('peakshaving-pagina', () => {
     await waitFor(() => expect(useStore.getState().sensitivity?.done).toBe(true), { timeout: 30000 });
     expect(screen.getByText(/Tabel met alle punten/)).toBeTruthy();
   }, 60000);
+
+  it('tabblad Uitleg toont de negen secties met formules', () => {
+    renderPage();
+    act(() => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Uitleg' }));
+    });
+    for (const t of ['1. Wat de tool berekent', '4. Warmtebuffer', '9. Beperkingen']) {
+      expect(screen.getByRole('heading', { name: t })).toBeTruthy();
+    }
+    expect(document.querySelectorAll('.katex').length).toBeGreaterThan(9);
+    // **vet** wordt opgemaakt, niet letterlijk getoond
+    expect(document.body.textContent).not.toContain('**');
+  });
+
+  it('printen: bouwt de printversie met grafieken op en opent dan het printvenster', async () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    renderPage();
+    await waitFor(() => expect(useStore.getState().analysis).not.toBeNull(), { timeout: 20000 });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Print / PDF' }));
+    });
+    expect(useStore.getState().printing).toBe(true);
+    await waitFor(() => expect(print).toHaveBeenCalledTimes(1), { timeout: 30000 });
+    expect(useStore.getState().sensitivity?.done).toBe(true);
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    expect(useStore.getState().printing).toBe(false);
+    print.mockRestore();
+  }, 60000);
 });
