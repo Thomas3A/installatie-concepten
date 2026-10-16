@@ -1,0 +1,1342 @@
+{
+ "cases": [
+  {
+   "naam": "W1 woning 8kW, WP 8kW, geen buffer/batterij",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 0.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 78,
+    "min_T_i": 17.513,
+    "kWh_tekort": 811.381,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.746,
+    "P_net_max": 2.746,
+    "Q_wp_max": 7.759,
+    "E_el_wp": 4965.889,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13539.04,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 0.0,
+    "E_th_buf_uit": 0.0,
+    "E_buf_verlies": 0.0,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 4965.889,
+    "SCOP": 3.461,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 0.0,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 0.0,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314,
+    "P_th_min": 10.562
+   }
+  },
+  {
+   "naam": "W2 woning 8kW, WP 8kW, buffer 1 m3",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 1.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 15,
+    "min_T_i": 18.318,
+    "kWh_tekort": 49.105,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.746,
+    "P_net_max": 2.746,
+    "Q_wp_max": 8.836,
+    "E_el_wp": 5116.255,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13574.606,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 725.237,
+    "E_th_buf_uit": 500.794,
+    "E_buf_verlies": 227.37,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5116.255,
+    "SCOP": 3.367,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 20.802,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 24.074,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314,
+    "P_th_min": 8.717
+   }
+  },
+  {
+   "naam": "W3 woning 8kW, WP 8kW, buffer 1 m3 + batterij 10 kWh",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 1.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 10.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 15,
+    "min_T_i": 18.318,
+    "kWh_tekort": 49.105,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.746,
+    "P_net_max": 2.746,
+    "Q_wp_max": 8.836,
+    "E_el_wp": 5116.255,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13574.606,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 725.237,
+    "E_th_buf_uit": 500.794,
+    "E_buf_verlies": 227.37,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5116.255,
+    "SCOP": 3.367,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 20.802,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 24.074,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314
+   }
+  },
+  {
+   "naam": "W4 woning 8kW, WP 6kW, buffer 1 m3 + batterij 10 kWh (hard)",
+   "jaar": "T5",
+   "hard": true,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 6.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 1.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 10.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 520,
+    "min_T_i": 13.663,
+    "kWh_tekort": 1461.61,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.118,
+    "P_net_max": 2.118,
+    "Q_wp_max": 6.651,
+    "E_el_wp": 5001.307,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13235.67,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 893.77,
+    "E_th_buf_uit": 685.787,
+    "E_buf_verlies": 207.806,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5001.307,
+    "SCOP": 3.376,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 28.487,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 24.074,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314
+   }
+  },
+  {
+   "naam": "W5 woning 8kW, WP 8kW, buffer 1 m3 'altijd' laden",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 1.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "altijd",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 6,
+    "min_T_i": 19.14,
+    "kWh_tekort": 24.961,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.746,
+    "P_net_max": 2.746,
+    "Q_wp_max": 7.787,
+    "E_el_wp": 5225.254,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13578.189,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 1075.162,
+    "E_th_buf_uit": 513.621,
+    "E_buf_verlies": 561.541,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5225.254,
+    "SCOP": 3.297,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 21.335,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 24.074,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314
+   }
+  },
+  {
+   "naam": "W6 woning 8kW, WP 8kW, buffer 2 m3, 1x35A",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 2.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 15,
+    "min_T_i": 18.255,
+    "kWh_tekort": 51.212,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.746,
+    "P_net_max": 2.746,
+    "Q_wp_max": 8.96,
+    "E_el_wp": 5151.674,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 13574.245,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 821.728,
+    "E_th_buf_uit": 500.042,
+    "E_buf_verlies": 331.939,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5151.674,
+    "SCOP": 3.343,
+    "Q_ideaal_max": 7.524,
+    "E_th_vraag": 13579.733,
+    "cycli_buffer": 10.385,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 48.148,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 314,
+    "P_th_min": 8.742
+   }
+  },
+  {
+   "naam": "W7 woning 8kW, WP 8kW, geen buffer (T1)",
+   "jaar": "T1",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 0.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 253,
+    "min_T_i": 13.881,
+    "kWh_tekort": 1297.334,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.737,
+    "P_net_max": 2.737,
+    "Q_wp_max": 7.731,
+    "E_el_wp": 5273.661,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 14226.032,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 0.0,
+    "E_th_buf_uit": 0.0,
+    "E_buf_verlies": 0.0,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 5273.661,
+    "SCOP": 3.39,
+    "Q_ideaal_max": 8.152,
+    "E_th_vraag": 14378.214,
+    "cycli_buffer": 0.0,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 0.0,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 4,
+    "P_th_min": 12.93
+   }
+  },
+  {
+   "naam": "W8 woning 8kW, WP 8kW, geen buffer (energie)",
+   "jaar": "energie",
+   "hard": false,
+   "gebouw": {
+    "functie": "woning",
+    "P_ontwerp": 8.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 20.0,
+    "T_set_gebruik": 20.0,
+    "T_set_nacht": 20.0,
+    "stookgrens": 15.0,
+    "tau_gebouw_h": 40.0,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 0,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": true,
+    "E_tap_dag": 10.0,
+    "V_boiler_l": 200.0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 8.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 0.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 8.05,
+    "aandeel_wp": 0.4
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 2,
+    "min_T_i": 19.472,
+    "kWh_tekort": 296.602,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 2.733,
+    "P_net_max": 2.733,
+    "Q_wp_max": 7.731,
+    "E_el_wp": 4187.535,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 12197.954,
+    "E_th_tap": 3650.0,
+    "E_th_buf_in": 0.0,
+    "E_th_buf_uit": 0.0,
+    "E_buf_verlies": 0.0,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 4187.535,
+    "SCOP": 3.785,
+    "Q_ideaal_max": 6.229,
+    "E_th_vraag": 12206.231,
+    "cycli_buffer": 0.0,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 0.0,
+    "dT_buf": 23.0,
+    "P_limiet": 3.22,
+    "koudste_week_start": 289,
+    "P_th_min": 8.143
+   }
+  },
+  {
+   "naam": "K1 kantoor 100kW, WP 100kW, geen buffer/batterij",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "kantoor",
+    "P_ontwerp": 100.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 21,
+    "T_set_gebruik": 21,
+    "T_set_nacht": 19,
+    "stookgrens": 12,
+    "tau_gebouw_h": 20,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 4,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": false,
+    "E_tap_dag": 0,
+    "V_boiler_l": 0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 100.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 0.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 55.42562584220407,
+    "aandeel_wp": 0.5
+   },
+   "kpi": {
+    "uren_overschrijding": 132,
+    "max_overschrijding": 1.091,
+    "kWh_overschrijding": 76.443,
+    "uren_comfort": 121,
+    "min_T_i": 14.79,
+    "kWh_tekort": 6922.97,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 28.804,
+    "P_net_max": 28.804,
+    "Q_wp_max": 87.68,
+    "E_el_wp": 56387.856,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 209061.407,
+    "E_th_tap": 0.0,
+    "E_th_buf_in": 0.0,
+    "E_th_buf_uit": 0.0,
+    "E_buf_verlies": 0.0,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 56387.856,
+    "SCOP": 3.708,
+    "Q_ideaal_max": 133.921,
+    "E_th_vraag": 210504.218,
+    "cycli_buffer": 0.0,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 0.0,
+    "dT_buf": 23.0,
+    "P_limiet": 27.713,
+    "koudste_week_start": 314,
+    "P_th_min": 172.399
+   }
+  },
+  {
+   "naam": "K2 kantoor 100kW, WP 100kW, buffer 10 m3",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "kantoor",
+    "P_ontwerp": 100.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 21,
+    "T_set_gebruik": 21,
+    "T_set_nacht": 19,
+    "stookgrens": 12,
+    "tau_gebouw_h": 20,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 4,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": false,
+    "E_tap_dag": 0,
+    "V_boiler_l": 0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 100.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 10.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 55.42562584220407,
+    "aandeel_wp": 0.5
+   },
+   "kpi": {
+    "uren_overschrijding": 2,
+    "max_overschrijding": 0.77,
+    "kWh_overschrijding": 1.275,
+    "uren_comfort": 8,
+    "min_T_i": 17.485,
+    "kWh_tekort": 295.034,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 28.483,
+    "P_net_max": 28.483,
+    "Q_wp_max": 102.0,
+    "E_el_wp": 57966.663,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 210419.07,
+    "E_th_tap": 0.0,
+    "E_th_buf_in": 7178.121,
+    "E_th_buf_uit": 5898.094,
+    "E_buf_verlies": 1280.027,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 57966.663,
+    "SCOP": 3.63,
+    "Q_ideaal_max": 133.921,
+    "E_th_vraag": 210504.218,
+    "cycli_buffer": 24.5,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 240.741,
+    "dT_buf": 23.0,
+    "P_limiet": 27.713,
+    "koudste_week_start": 314,
+    "P_th_min": 125.812
+   }
+  },
+  {
+   "naam": "K3 kantoor 100kW, WP 70kW, buffer 10 m3 + batterij 50 kWh",
+   "jaar": "T5",
+   "hard": false,
+   "gebouw": {
+    "functie": "kantoor",
+    "P_ontwerp": 100.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 21,
+    "T_set_gebruik": 21,
+    "T_set_nacht": 19,
+    "stookgrens": 12,
+    "tau_gebouw_h": 20,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 4,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": false,
+    "E_tap_dag": 0,
+    "V_boiler_l": 0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 70.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 10.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 50.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 55.42562584220407,
+    "aandeel_wp": 0.5
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 271,
+    "min_T_i": 10.304,
+    "kWh_tekort": 19761.55,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 25.644,
+    "P_net_max": 25.644,
+    "Q_wp_max": 74.725,
+    "E_el_wp": 55800.387,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 203561.387,
+    "E_th_tap": 0.0,
+    "E_th_buf_in": 12289.558,
+    "E_th_buf_uit": 10911.506,
+    "E_buf_verlies": 1378.051,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 55800.387,
+    "SCOP": 3.648,
+    "Q_ideaal_max": 133.921,
+    "E_th_vraag": 210504.218,
+    "cycli_buffer": 45.325,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 240.741,
+    "dT_buf": 23.0,
+    "P_limiet": 27.713,
+    "koudste_week_start": 314
+   }
+  },
+  {
+   "naam": "K4 kantoor 100kW, WP 70kW, buffer 10 m3 + batterij 50 kWh (hard)",
+   "jaar": "T5",
+   "hard": true,
+   "gebouw": {
+    "functie": "kantoor",
+    "P_ontwerp": 100.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 21,
+    "T_set_gebruik": 21,
+    "T_set_nacht": 19,
+    "stookgrens": 12,
+    "tau_gebouw_h": 20,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 4,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": false,
+    "E_tap_dag": 0,
+    "V_boiler_l": 0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 70.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 10.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 50.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 55.42562584220407,
+    "aandeel_wp": 0.5
+   },
+   "kpi": {
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "kWh_overschrijding": 0.0,
+    "uren_comfort": 271,
+    "min_T_i": 10.304,
+    "kWh_tekort": 19761.55,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 25.644,
+    "P_net_max": 25.644,
+    "Q_wp_max": 74.725,
+    "E_el_wp": 55800.387,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 203561.387,
+    "E_th_tap": 0.0,
+    "E_th_buf_in": 12289.558,
+    "E_th_buf_uit": 10911.506,
+    "E_buf_verlies": 1378.051,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 55800.387,
+    "SCOP": 3.648,
+    "Q_ideaal_max": 133.921,
+    "E_th_vraag": 210504.218,
+    "cycli_buffer": 45.325,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 240.741,
+    "dT_buf": 23.0,
+    "P_limiet": 27.713,
+    "koudste_week_start": 314
+   }
+  },
+  {
+   "naam": "K5 kantoor 100kW, WP 100kW, geen buffer (T1)",
+   "jaar": "T1",
+   "hard": false,
+   "gebouw": {
+    "functie": "kantoor",
+    "P_ontwerp": 100.0,
+    "T_e_ontwerp": -10.0,
+    "T_i_ontwerp": 21,
+    "T_set_gebruik": 21,
+    "T_set_nacht": 19,
+    "stookgrens": 12,
+    "tau_gebouw_h": 20,
+    "tau_gevel_h": 2.0,
+    "f_boost": 0.3,
+    "opstook_h": 4,
+    "gebruik_start": 7,
+    "gebruik_eind": 18,
+    "tapwater_aan": false,
+    "E_tap_dag": 0,
+    "V_boiler_l": 0,
+    "T_tap": 55.0
+   },
+   "wp": {
+    "P_th_nom": 100.0,
+    "eta_carnot": 0.45,
+    "stooklijn": "MT",
+    "T_wp_max": 60.0,
+    "P_bijstook": 0.0
+   },
+   "buffer": {
+    "V_m3": 0.0,
+    "f_strat": 0.9,
+    "k_verlies": 1.5,
+    "T_omgeving": 15.0,
+    "strategie": "voorspellend",
+    "horizon_h": 24
+   },
+   "batterij": {
+    "E_kWh": 0.0,
+    "P_kW": null,
+    "DoD": 0.9,
+    "eta_rt": 0.9
+   },
+   "elektra": {
+    "P_aansluiting": 55.42562584220407,
+    "aandeel_wp": 0.5
+   },
+   "kpi": {
+    "uren_overschrijding": 183,
+    "max_overschrijding": 1.091,
+    "kWh_overschrijding": 111.826,
+    "uren_comfort": 155,
+    "min_T_i": 12.281,
+    "kWh_tekort": 12107.222,
+    "uren_tap_tekort": 0,
+    "kWh_tap_tekort": 0.0,
+    "P_el_wp_max": 28.804,
+    "P_net_max": 28.804,
+    "Q_wp_max": 87.96,
+    "E_el_wp": 60137.363,
+    "E_el_bijstook": 0.0,
+    "E_th_cv": 216879.596,
+    "E_th_tap": 0.0,
+    "E_th_buf_in": 0.0,
+    "E_th_buf_uit": 0.0,
+    "E_buf_verlies": 0.0,
+    "E_bat_in": 0.0,
+    "E_bat_uit": 0.0,
+    "E_net": 60137.363,
+    "SCOP": 3.606,
+    "Q_ideaal_max": 144.743,
+    "E_th_vraag": 220082.322,
+    "cycli_buffer": 0.0,
+    "cycli_batterij": 0.0,
+    "E_buf_kWh": 0.0,
+    "dT_buf": 23.0,
+    "P_limiet": 27.713,
+    "koudste_week_start": 4,
+    "P_th_min": 205.746
+   }
+  }
+ ],
+ "sweep_woning_T5": [
+  {
+   "V_m3": 0,
+   "P_th_min": 10.562,
+   "bat0": {
+    "P_net_max": 3.483,
+    "uren_overschrijding": 101,
+    "kleinste_aansluiting": "1\u00d740 A"
+   },
+   "bat5": {
+    "P_net_max": 3.22,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat10": {
+    "P_net_max": 3.22,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   }
+  },
+  {
+   "V_m3": 0.25,
+   "P_th_min": 10.014,
+   "bat0": {
+    "P_net_max": 3.227,
+    "uren_overschrijding": 1,
+    "kleinste_aansluiting": "1\u00d740 A"
+   },
+   "bat5": {
+    "P_net_max": 3.22,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat10": {
+    "P_net_max": 3.22,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  },
+  {
+   "V_m3": 0.5,
+   "P_th_min": 9.418,
+   "bat0": {
+    "P_net_max": 3.179,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat5": {
+    "P_net_max": 3.179,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat10": {
+    "P_net_max": 3.179,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  },
+  {
+   "V_m3": 1.0,
+   "P_th_min": 8.717,
+   "bat0": {
+    "P_net_max": 2.952,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat5": {
+    "P_net_max": 2.952,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   },
+   "bat10": {
+    "P_net_max": 2.952,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  },
+  {
+   "V_m3": 1.5,
+   "P_th_min": 8.711,
+   "bat0": {
+    "P_net_max": 2.951,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat5": {
+    "P_net_max": 2.951,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   },
+   "bat10": {
+    "P_net_max": 2.951,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  },
+  {
+   "V_m3": 2.0,
+   "P_th_min": 8.742,
+   "bat0": {
+    "P_net_max": 2.96,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat5": {
+    "P_net_max": 2.96,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   },
+   "bat10": {
+    "P_net_max": 2.96,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  },
+  {
+   "V_m3": 3.0,
+   "P_th_min": 8.73,
+   "bat0": {
+    "P_net_max": 2.956,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d735 A"
+   },
+   "bat5": {
+    "P_net_max": 2.956,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   },
+   "bat10": {
+    "P_net_max": 2.956,
+    "uren_overschrijding": 0,
+    "kleinste_aansluiting": "1\u00d725 A"
+   }
+  }
+ ],
+ "sweep_kantoor_T5": [
+  {
+   "V_m3": 0,
+   "P_th_min": 172.4,
+   "bat0": {
+    "P_net_max": 46.36,
+    "uren_overschrijding": 327,
+    "max_overschrijding": 18.65,
+    "SCOP": 3.69
+   },
+   "bat50": {
+    "P_net_max": 46.36,
+    "uren_overschrijding": 38,
+    "max_overschrijding": 18.65,
+    "SCOP": 3.69
+   },
+   "bat100": {
+    "P_net_max": 46.36,
+    "uren_overschrijding": 7,
+    "max_overschrijding": 18.65,
+    "SCOP": 3.69
+   },
+   "bat200": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.69
+   }
+  },
+  {
+   "V_m3": 5,
+   "P_th_min": 142.33,
+   "bat0": {
+    "P_net_max": 38.82,
+    "uren_overschrijding": 46,
+    "max_overschrijding": 11.1,
+    "SCOP": 3.65
+   },
+   "bat50": {
+    "P_net_max": 38.27,
+    "uren_overschrijding": 8,
+    "max_overschrijding": 10.56,
+    "SCOP": 3.67
+   },
+   "bat100": {
+    "P_net_max": 38.27,
+    "uren_overschrijding": 4,
+    "max_overschrijding": 10.56,
+    "SCOP": 3.67
+   },
+   "bat200": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.67
+   }
+  },
+  {
+   "V_m3": 10,
+   "P_th_min": 125.81,
+   "bat0": {
+    "P_net_max": 33.85,
+    "uren_overschrijding": 9,
+    "max_overschrijding": 6.14,
+    "SCOP": 3.63
+   },
+   "bat50": {
+    "P_net_max": 33.85,
+    "uren_overschrijding": 5,
+    "max_overschrijding": 6.14,
+    "SCOP": 3.65
+   },
+   "bat100": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.65
+   },
+   "bat200": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.65
+   }
+  },
+  {
+   "V_m3": 20,
+   "P_th_min": 96.38,
+   "bat0": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.6
+   },
+   "bat50": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.6
+   },
+   "bat100": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.6
+   },
+   "bat200": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.6
+   }
+  },
+  {
+   "V_m3": 40,
+   "P_th_min": 82.89,
+   "bat0": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.55
+   },
+   "bat50": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.55
+   },
+   "bat100": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.55
+   },
+   "bat200": {
+    "P_net_max": 27.71,
+    "uren_overschrijding": 0,
+    "max_overschrijding": 0.0,
+    "SCOP": 3.55
+   }
+  }
+ ]
+}
