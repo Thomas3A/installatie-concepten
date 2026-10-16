@@ -200,7 +200,7 @@ export const BLOCK_TITLES = ['Gebouw', 'Aansluiting', 'Warmtepomp & afgifte', 'M
 export const HELP = {
   use: 'Woning: één woning met een eigen warmtepomp. Meerdere woningen: een woongebouw met één collectieve warmtepomp op een eigen aansluiting. Kantoor: kantoorschema met nachtverlaging en opstoken. Wisselen zet alle invoer op de standaardwaarden.',
   dwellings:
-    'Aantal woningen op dezelfde warmtepomp. Wijzigen schaalt piekvermogen, tapwaterbehoefte, boilervat, buffer en batterij mee, zodat de waarden per woning gelijk blijven; de aansluiting blijft.',
+    'Aantal woningen op dezelfde warmtepomp. Wijzigen schaalt piekvermogen, tapwaterbehoefte, boilervat, buffer, batterij en een handmatig WP-vermogen mee, zodat de waarden per woning gelijk blijven; de aansluiting blijft. Het piekvermogen stopt bij 2.000 kW: daarboven groeien alleen tapwaterbehoefte en boilervat nog mee, dus daalt het vermogen per woning.',
   designLoad:
     'Ontwerpwarmteverlies (transmissie + ventilatie) bij een buitentemperatuur van −10 °C en de ontwerpbinnentemperatuur, exclusief opwarmtoeslag (NEN-EN 12831). Dit is de eerste invoer; de bereiken van buffer, batterij en warmtepomp worden hiervan afgeleid.',
   designLoadMulti:
@@ -226,7 +226,8 @@ export const HELP = {
   tank: 'Inhoud van het boilervat; 85 % is benutbaar.',
   tankCollective: 'Inhoud van het collectieve boilervat voor alle woningen samen; 85 % is benutbaar.',
   tankTemp: 'Boilertemperatuur; begrensd op de maximale aanvoertemperatuur van de warmtepomp.',
-  connection: 'Aansluitwaarde van het gebouw: P = 0,230·I (1-fase) of 0,400·√3·I (3-fase), cos φ = 1.',
+  connection:
+    'Aansluitwaarde van het gebouw: P = 0,230·I (1-fase) of 0,400·√3·I (3-fase), cos φ = 1. Bij meerdere woningen: de eigen aansluiting van de collectieve installatie; de woningen hebben elk een eigen aansluiting die hier niet meetelt.',
   contracted: 'Gecontracteerd vermogen bij een grootverbruikaansluiting.',
   share:
     'Deel van de aansluiting voor warmtepomp + batterij. De rest is voor overig gebruik en wordt op het piekmoment volledig benut verondersteld. Bij meerdere woningen is dit de aansluiting van de collectieve installatie (de rest: pompen, ventilatie, algemene ruimten); de woningen hebben elk een eigen aansluiting.',

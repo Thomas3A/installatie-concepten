@@ -181,8 +181,9 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 
 ### Invoer en bediening (UI)
 
-- **Schuifbereik piekvermogen:** het getalveld accepteert 1–2000 kW; de schuif loopt voor een woning van 1 tot 30 kW en
-  voor een kantoor van 10 tot 500 kW, zodat de schuif bij gangbare waarden bruikbaar blijft.
+- **Schuifbereik piekvermogen:** het getalveld accepteert 1–2000 kW; de schuif loopt voor een woning van 1 tot 30 kW,
+  voor een kantoor van 10 tot 500 kW en bij meerdere woningen (n woningen, totaal) van 5 kW tot max(500, ⌈n/10⌉·100) kW
+  (ten hoogste 2000 kW), stap 1 kW, zodat de schuif bij gangbare waarden bruikbaar blijft.
 - **Gebouwfunctie wisselen** (woning, meerdere woningen of kantoor) laadt alle standaardwaarden van die keuze (spec §3;
   meerdere woningen: zie hieronder); alleen het klimaatjaar blijft.
 - **Tapwater aanzetten** zonder boiler (kantoor) vult een boiler van 500 l en 20 kWh/dag in (woning: 200 l en 10 kWh/dag),
@@ -194,8 +195,8 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 - **Rekenmotor:** een module-Web Worker (`model/worker.ts`) met verzoeken per id; zonder Worker (tests) draait dezelfde
   motor in de hoofdthread. Herberekenen gebeurt 250 ms na de laatste wijziging; het gevoeligheidsraster alleen als dat
   tabblad open is, met een cache op de invoer waarvan het raster afhangt (dus niet op buffer, batterij en WP-vermogen).
-- **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gekozen gebouwfunctie, plus
-  een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
+- **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gebouwfunctie (woning of
+  kantoor; bij meerdere woningen de woningstandaard, zie "Meerdere woningen"), plus een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
 - **Footer:** de klimaatzin van spec §0.1 staat alleen op de pagina's van dit concept (veld `disclaimer` in de registry).
 
 ### Grafieken
@@ -322,12 +323,15 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   schalen met nieuw/oud aantal, en via het piekvermogen (zie "Piekvermogen wijzigen") ook buffer, batterij (capaciteit en
   een handmatig vermogen) en een handmatig WP-vermogen; de waarden per woning blijven zo gelijk. De aansluiting blijft
   staan: die is een keuze van de gebruiker. Komt het piekvermogen boven 2000 kW, dan stopt het daar (en schalen buffer en
-  batterij met de begrensde factor), terwijl het tapwater wel doorschaalt.
+  batterij met de begrensde factor), terwijl het tapwater wel doorschaalt; de toelichting bij "Aantal woningen" noemt
+  deze grens.
 - **Piekvermogen wijzigen** bij meerdere woningen verandert het vermogen per woning; het aantal woningen blijft.
 - **Bereiken:** 1–500 woningen (geheel getal; een kantoor is altijd 1). Tapwaterbehoefte en boilervat zijn begrensd op
   het bereik per woning × het aantal (0–50 kWh/dag en 0–2000 l per woning). Het piekvermogen blijft 1–2000 kW in totaal;
   de bereiken van buffer, batterij en WP-vermogen volgen zoals altijd uit het totale piekvermogen. Een gebouw met 1 woning
-  is weer de keuze "woning". Tapwater aanzetten zonder boiler vult 200 l en 10 kWh/dag per woning in.
+  is weer de keuze "woning". In de invoer loopt het aantal woningen van 2 tot 500 (schuif 2–100; een lager getal wordt 2);
+  terug naar één woning gaat via de keuze "Woning". Tapwater aanzetten zonder boiler vult 200 l en 10 kWh/dag per woning
+  in.
 - **Hint bij één woning:** boven 20 kW piekvermogen toont de keuze "woning" de hint "Groot voor één woning" met de
   verwijzing naar meerdere woningen. Het is alleen een wegwijzer; de invoer wordt niet begrensd.
 - **Deelbare link:** het aantal woningen staat in de link als afwijking van de woningstandaard (één woning); het

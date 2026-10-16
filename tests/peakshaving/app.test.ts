@@ -122,14 +122,14 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
     expect(a.input.heatPump.emitterPreset).toBe('LT');
     expect(a.input.grid.connection).toBe('1x25');
   });
-  it('extra · 10 woningen op één warmtepomp zonder maatregelen: ≈ 89 kW, ruim 150 uur boven 3×40 A, kleinste 3×63 A', () => {
+  it('extra · 10 woningen op één warmtepomp zonder maatregelen: ≈ 89 kW, ruim 200 uur boven 3×40 A, kleinste 3×63 A', () => {
     const a = run('woningen-basis');
     expect(a.input.building.dwellings).toBe(10);
     expect(a.input.building.designLoadKw).toBe(50);
     expect(a.nominalKw).toBeCloseTo(89.1, 0);
     expect(a.pLimitKw).toBeCloseTo(22.2, 1);
     expect(a.main.kpis.pGridMaxKw).toBeCloseTo(29.7, 0);
-    expect(a.main.kpis.exceedanceHours).toBeGreaterThan(150);
+    expect(a.main.kpis.exceedanceHours).toBeGreaterThan(200);
     expect(a.smallest.label).toBe('3×63 A');
   });
   it('extra · 10 woningen met 2 m³ buffer: ≈ 64,6 kW, past zonder overschrijding binnen 3×40 A', () => {

@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultInput } from '../../src/concepts/peakshaving/data/defaults';
-import { rangesOf } from '../../src/concepts/peakshaving/model/input';
+import { LIMITS, rangesOf } from '../../src/concepts/peakshaving/model/input';
 import { buildingText, designLoadText } from '../../src/concepts/peakshaving/model/kpis';
 import { useStore } from '../../src/concepts/peakshaving/store';
 import { HELP } from '../../src/concepts/peakshaving/texts';
@@ -168,6 +168,28 @@ describe('store: meerdere woningen', () => {
     expect(st().input).toBe(same);
   });
 
+  it('setDwellings: een handmatig WP-vermogen schaalt mee; boven 2.000 kW stopt het piekvermogen', () => {
+    act(() => st().setKind('multi'));
+    act(() =>
+      st().update((i) => ({ ...i, heatPump: { ...i.heatPump, sizingMode: 'manual', nominalKw: 60 } })),
+    );
+    act(() => st().setDwellings(20));
+    expect(st().input.heatPump.nominalKw).toBeCloseTo(120, 9);
+    expect(HELP.dwellings).toContain('handmatig WP-vermogen');
+
+    // 500 × 5 kW = 2.500 kW: begrensd op 2.000 kW (4 kW per woning); tapwater en boilervat schalen wel door
+    act(() => st().setDwellings(500));
+    const b = st().input.building;
+    expect(b.designLoadKw).toBe(LIMITS.designLoadKw[1]);
+    expect(b.designLoadKw / b.dwellings).toBeCloseTo(4, 9);
+    expect(b.dhw.dailyKwh).toBeCloseTo(5000, 9);
+    expect(b.dhw.tankLitre).toBeCloseTo(100000, 9);
+    // terug naar 10 woningen houdt de lagere waarde per woning; de toelichting noemt de grens
+    act(() => st().setDwellings(10));
+    expect(st().input.building.designLoadKw).toBeCloseTo(40, 9);
+    expect(HELP.dwellings).toContain(`${nl(LIMITS.designLoadKw[1], 0)} kW`);
+  });
+
   it('setDwellings bij kantoor wijzigt niets', () => {
     act(() => st().setKind('office'));
     const office = st().input;
@@ -242,6 +264,33 @@ describe('invoerblok Gebouw: meerdere woningen', () => {
     typeAndBlur(field('Aantal woningen'), '1');
     expect(st().input.building.dwellings).toBe(2);
     expect(kindButton('Meerdere woningen').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('500 woningen: piekvermogen begrensd op 2.000 kW, schuif tot 2.000 kW; de toelichting noemt de grens', () => {
+    renderPage();
+    click(kindButton('Meerdere woningen'));
+    const tip = (label: string): string =>
+      screen.getByRole('button', { name: `Toelichting: ${label}` }).title;
+    const loadSlider = (): HTMLInputElement =>
+      screen.getByLabelText('Piekvermogen verwarming (totaal) (schuif)') as HTMLInputElement;
+    // schuif bij 10 woningen: 5…500 kW, stap 1
+    expect([loadSlider().min, loadSlider().max, loadSlider().step]).toEqual(['5', '500', '1']);
+
+    typeAndBlur(field('Aantal woningen'), '500');
+    expect(st().input.building.dwellings).toBe(500);
+    expect(field('Piekvermogen verwarming (totaal)').value).toBe(nl(2000, 1));
+    expect(screen.getByText(`≈ ${nl(4, 1)} kW per woning`)).toBeTruthy();
+    expect(loadSlider().max).toBe(String(LIMITS.designLoadKw[1]));
+    expect(tip('Aantal woningen')).toBe(HELP.dwellings);
+    expect(tip('Aantal woningen')).toContain(`stopt bij ${nl(LIMITS.designLoadKw[1], 0)} kW`);
+  });
+
+  it('toelichting aansluitwaarde: bij meerdere woningen de aansluiting van de collectieve installatie', () => {
+    renderPage();
+    click(kindButton('Meerdere woningen'));
+    const tip = screen.getByRole('button', { name: 'Toelichting: Aansluitwaarde' }).title;
+    expect(tip).toBe(HELP.connection);
+    expect(tip).toContain('Bij meerdere woningen: de eigen aansluiting van de collectieve installatie');
   });
 
   it('tapwater per woning invoeren schrijft het totaal; piekvermogen wijzigen verandert de waarde per woning', () => {
