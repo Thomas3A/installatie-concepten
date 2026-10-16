@@ -85,6 +85,8 @@ tests/                    Vitest (tests/peakshaving/ voor concept 2)
 
 **Route:** `#/peakshaving` · **Specificatie:** [`docs/SPEC-peakshaving.md`](docs/SPEC-peakshaving.md)
 
+![Peakshaving: woning met 1 m³ buffer en 5 kWh batterij, tabblad Gevoeligheid](docs/img/peakshaving.png)
+
 Hoe groot moet een lucht/water-warmtepomp zijn, en past die binnen de bestaande (of een kleinere) elektrische
 aansluiting als je een warmtebuffer en/of een batterij toevoegt? De tool simuleert een heel jaar per uur en maakt zichtbaar
 dat een buffervat de **thermische** piek van de warmtepomp afschaaft (kleinere machine), een batterij de **elektrische**
@@ -106,6 +108,6 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
 - **Rekenmodel:** de Python-referentie `tools/peakshaving_ref/peakshaving_ref.py` is normatief; de TypeScript-port in
   `src/concepts/peakshaving/model/` reproduceert de referentiewaarden (`tests/peakshaving/fixtures/referentiewaarden.json`)
   binnen de toleranties van spec §9. De simulaties draaien in een Web Worker; één jaarsimulatie duurt enkele milliseconden.
-- Acht scenario's, een deelbare link (`#/peakshaving?c=…`, met versienummer) en een printweergave (A4 liggend).
+- Acht scenario's, een deelbare link (`#/peakshaving?c=…`, met versienummer) en een printweergave (A4 staand, twee pagina's).
 
 Aannames: [`docs/AANNAMES.md`](docs/AANNAMES.md) (sectie "Concept 2: peakshaving").
