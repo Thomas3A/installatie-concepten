@@ -1,6 +1,6 @@
 // Pagina van concept 2: peakshaving van een lucht/water-warmtepomp met warmtebuffer en batterij.
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { fmt } from '../../../core/format';
 import u from '../../../ui/ui.module.css';
 import { connectionLabel, gridLimitKw } from '../model/grid';
@@ -64,23 +64,42 @@ export default function PeakshavingPage() {
   const input = useStore((st) => st.input);
   const busy = useStore((st) => st.busy);
   const error = useStore((st) => st.error);
+  const retry = useStore((st) => st.retry);
   const copied = useStore((st) => st.copied);
   const markCopied = useStore((st) => st.markCopied);
   const printing = useStore((st) => st.printing);
   const requestPrint = useStore((st) => st.requestPrint);
   const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [shareErr, setShareErr] = useState(false);
   const lastCode = useRef<string | null>(null);
+  const loadedFromLink = useRef(false);
 
-  // invoer uit de URL (#/peakshaving?c=...); ook als de link in dezelfde tab wordt vervangen
+  // invoer uit de URL (#/peakshaving?c=...); ook als de link in dezelfde tab wordt vervangen.
+  // Na het inlezen gaat ?c= uit de adresbalk: anders zet herladen (F5) de gedeelde invoer terug over de
+  // wijzigingen van de gebruiker heen, en deelt wie de adresbalk kopieert een verouderde toestand.
   useEffect(() => {
     const code = params.get('c');
-    if (code && code !== lastCode.current) {
-      lastCode.current = code;
-      if (fromShareHash(code)) return;
+    if (code) {
+      if (code !== lastCode.current) {
+        lastCode.current = code;
+        loadedFromLink.current = fromShareHash(code);
+      }
+      const rest = new URLSearchParams(params);
+      rest.delete('c');
+      const search = rest.toString();
+      navigate({ pathname, search: search ? `?${search}` : '' }, { replace: true });
+      return;
+    }
+    lastCode.current = null;
+    // de gedeelde invoer rekent al; niet nog een keer starten
+    if (loadedFromLink.current) {
+      loadedFromLink.current = false;
+      return;
     }
     startEngine();
-  }, [params, fromShareHash]);
+  }, [params, pathname, navigate, fromShareHash]);
 
   useEffect(() => {
     document.title = 'Peakshaving · Installatieconcepten';
@@ -126,7 +145,7 @@ export default function PeakshavingPage() {
   };
 
   return (
-    <div className={p.page}>
+    <main className={p.page}>
       <div className={`${u.topbar} noPrint`}>
         <div>
           <h1>{PAGE_TITLE}</h1>
@@ -168,23 +187,28 @@ export default function PeakshavingPage() {
         <ClimateNote />
       </div>
       {scenario && (
-        <aside className={`${u.card} ${u.scenario} noPrint`} aria-label="Scenario">
+        <section className={`${u.card} ${u.scenario} noPrint`} aria-label="Scenario">
           <strong>{scenario.title}</strong> — {scenario.description}
-        </aside>
+        </section>
       )}
       <PrintSummary />
 
       <div className={p.layout}>
-        <aside className={`${p.inputs} noPrint`} aria-label="Invoer">
+        <section className={`${p.inputs} noPrint`} aria-label="Invoer">
           <BuildingPanel />
           <GridPanel />
           <HeatPumpPanel />
           <MeasuresPanel />
-        </aside>
-        <main className={p.results} aria-label="Resultaat" aria-busy={busy}>
-          <div style={{ minHeight: 20, marginBottom: 4 }} className="noPrint">
+        </section>
+        <section className={p.results} aria-label="Resultaat" aria-busy={busy}>
+          <div className={`${p.statusRow} noPrint`}>
             {busy && <span className={p.busy}>Rekent…</span>}
             {error && <span className={u.pill + ' ' + u.pillErr}>Rekenfout: {error}</span>}
+            {error && !busy && (
+              <button type="button" className={`${u.btnLink} ${p.retry}`} onClick={retry}>
+                Opnieuw proberen
+              </button>
+            )}
           </div>
           <KpiCards />
           <AdviceBanner />
@@ -234,9 +258,9 @@ export default function PeakshavingPage() {
               {tab === 'uitleg' && <ExplainTab />}
             </div>
           </section>
-        </main>
+        </section>
       </div>
       <PrintView />
-    </div>
+    </main>
   );
 }

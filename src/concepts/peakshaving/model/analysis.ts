@@ -456,13 +456,17 @@ export function sensitivityGrid(
   return rows;
 }
 
-/** Sleutel van de invoer waarvan het gevoeligheidsraster afhangt (buffer, batterij en WP-vermogen niet). */
+/**
+ * Sleutel van de invoer waarvan het gevoeligheidsraster afhangt (buffer, batterij en WP-vermogen niet). Het raster
+ * rekent altijd in modus 'exceedance', dus de bedrijfsmodus telt niet mee; het gecontracteerd vermogen alleen bij
+ * grootverbruik (connectionPowerKw geeft voor een standaardaansluiting het vaste vermogen van die aansluiting).
+ */
 export function sensitivityKey(input: PeakshavingInput): string {
   const { building, grid, heatPump, buffer, climateYear } = input;
   return JSON.stringify({
     climateYear,
     building,
-    grid,
+    grid: { ...grid, mode: 'exceedance', contractedKw: connectionPowerKw(grid) },
     hp: { ...heatPump, nominalKw: 0, sizingMode: 'auto' },
     strategy: buffer.strategy,
   });

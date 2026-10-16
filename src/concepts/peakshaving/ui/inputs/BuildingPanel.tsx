@@ -1,4 +1,5 @@
 // Blok 1 — Gebouw (spec §3.1).
+import { fmt } from '../../../../core/format';
 import { CheckField, SegField } from '../../../../ui/fields';
 import { LIMITS } from '../../model/input';
 import type { Building } from '../../model/types';
@@ -194,7 +195,14 @@ export function BuildingPanel() {
         value={massPreset}
         options={[
           ...MASS_PRESETS.map((m) => ({ value: m.value, label: `${m.label} ${m.value} h` })),
-          ...(massPreset === 0 ? [{ value: 0, label: `Eigen ${b.timeConstantH} h` }] : []),
+          ...(massPreset === 0
+            ? [
+                {
+                  value: 0,
+                  label: `Eigen ${fmt(b.timeConstantH, Number.isInteger(b.timeConstantH) ? 0 : 1)} h`,
+                },
+              ]
+            : []),
         ]}
         onChange={(v) => v > 0 && patch({ timeConstantH: v })}
       />
@@ -219,7 +227,7 @@ export function BuildingPanel() {
             min={LIMITS.dhwDailyKwh[0]}
             max={LIMITS.dhwDailyKwh[1]}
             step={0.5}
-            unit="kWh/d"
+            unit="kWh/dag"
             noSlider
             onChange={(v) => patchDhw({ dailyKwh: v })}
           />

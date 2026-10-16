@@ -18,6 +18,11 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.viewButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .panels {
   display: grid;
   gap: 12px;

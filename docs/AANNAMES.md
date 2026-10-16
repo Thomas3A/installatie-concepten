@@ -210,7 +210,7 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   direct na slepen (inzoomen) kiest geen uur.
 - **Jaar:** de x-as van de duurkrommen is het rangnummer van het uur (1 = hoogste uur), standaard logaritmisch omdat de
   beslissende piekuren de eerste paar honderd zijn. Als referentie worden de direct kleinere en de direct grotere
-  standaardaansluiting getoond (zelfde aandeel); "uren erboven" telt uren met P > P_limiet + 1e-6 kW, net als de simulatie.
+  standaardaansluiting getoond (zelfde aandeel); "uur erboven" telt uren met P > P_limiet + 1e-6 kW, net als de simulatie.
   De lijnen in de thermische duurkromme zijn het WP-vermogen bij −10 °C (nominaal × capaciteitsfactor) met en zonder
   buffer. De maandbalans toont elektriciteit inclusief bijstook; maanden zonder elektriciteitsgebruik hebben geen SCOP.
 - **Gevoeligheid:** beide y-assen krijgen een eigen band van de grafiekhoogte (elektrisch onder, thermisch boven) zodat de
@@ -251,3 +251,40 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   printvenster. Printen met Ctrl+P geeft dezelfde eerste pagina, maar zonder de grafieken.
 - **Uitleg-tab:** de teksten staan in `texts.ts` (sectie per onderwerp van spec §11, één of meer formules per sectie,
   KaTeX); **vet** en _cursief_ worden in de gedeelde `MathText` alleen opgemaakt waar dat expliciet is aangezet.
+
+### Na de eindreview
+
+- **Werkelijke klimaatjaren** (1991–2025) worden in de browser met `fetch` als los JSON-bestand geladen in plaats van met
+  een dynamische `import()`: een mislukte `import()` onthoudt de browser tot de pagina herlaadt, een mislukte `fetch`
+  wordt bij het volgende verzoek opnieuw geprobeerd. Valt de Web Worker uit, dan rekent de pagina verder in de
+  hoofdthread en worden de openstaande berekeningen daar opnieuw gestart. Bij een rekenfout staat naast de melding een
+  knop "Opnieuw proberen"; de melding noemt voor welk jaar of welke invoer de getoonde resultaten nog gelden (de
+  resultaten worden niet gedimd, omdat het contrast dan onder AA zakt).
+- **Gevoeligheidsraster:** hangt niet af van de bedrijfsmodus (het rekent altijd in "overschrijding tonen") en bij een
+  standaardaansluiting niet van het gecontracteerd vermogen; die tellen niet mee in de cachesleutel. Tijdens een
+  herberekening blijft het vorige volledige raster gedimd staan tot de eerste nieuwe rij er is. De overgangen
+  ("aansluiting toereikend vanaf …") staan ook als tekst onder de grafiek, omdat labels bij de stippen op een smalle
+  grafiek kunnen wegvallen. Een budgetlijn hoger dan 2 × de hoogste kromme rekt de as niet op, maar staat als label met ↑
+  aan de bovenrand (Gevoeligheid en Jaar).
+- **Printen** wacht op het gevoeligheidsraster, maar niet eindeloos: eindigt het raster in een fout of komt er 20 s geen
+  voortgang, dan wordt zonder raster geprint met een korte notitie. In de printversie vervallen de uitleesregel en de lange
+  toelichting van de gevoeligheidsgrafiek; grafieken schalen mee naar de paginabreedte.
+- **Deelbare link:** een link waarvan de invoer precies gelijk is aan een scenario toont dat scenario. Na het openen haalt
+  de pagina `?c=` uit de adresbalk; herladen daarna geeft de standaardinvoer (de invoer wordt niet in de browser bewaard).
+- **Getallen:** negatieve getallen krijgen het echte minteken (U+2212) via `fmt()` (ook in concept 1); een waarde die op
+  nul afrondt, wordt zonder teken getoond. Invoervelden lezen komma of punt als decimaalteken, "1.234" (groepen van drie)
+  als duizendtal en −, – of - als minteken; lege of ongeldige tekst zet de vorige waarde terug.
+- **Koude week:** het venster is te verschuiven met "◀ 1 dag" / "1 dag ▶" en met Shift + scrollwiel, binnen het hele
+  jaar; een klik kiest een uur binnen de koude week ± 1 dag (het bereik van de scrubber). De tellingen in de legenda gelden
+  voor de koude week ± 1 dag.
+- **Smalle grafieken** (container < 560 px) krijgen smalle y-assen zonder gedraaide astitels; de astitels staan dan boven
+  de grafiek. De **PNG-export** bevat een titelregel (grafiek, klimaatjaar, bij de koude week de periode), de grafiek zoals
+  die in beeld is en de zichtbare legenda.
+- **Robuustheidstabel:** korte koppen "Overschrijding [uur/jaar]" (zonder begrenzer) en "Comfortverlies [uur/jaar]" (als
+  de aansluiting begrenst); de toelichting staat boven de tabel.
+- **Indeling:** tussen 640 en 1023 px staan de vier invoerblokken in twee kolommen boven het resultaat. Onder de kop staat
+  de statistiek van het gekozen klimaatjaar, omdat browsers de tooltips op opties van een keuzelijst niet tonen.
+- **Toegankelijkheid:** horizontaal scrollende gebieden (tabel, schema, formules) zijn benoemd en met het toetsenbord
+  bereikbaar zodra ze scrollen; legenda-knoppen zijn minstens 24 px hoog (WCAG 2.5.8); de pagina's van beide concepten
+  staan in één `main`-landmark.
+- **Uitleg:** sectie 1 telt de uren (h_overschr, h_comfort), sectie 9 toont de 1R1C-balans; elke sectie heeft een formule.

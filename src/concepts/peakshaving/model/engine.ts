@@ -25,7 +25,8 @@ export type EngineRequest =
 export type EngineResponse =
   | { type: 'analysis'; id: number; analysis: Analysis }
   | { type: 'sensitivity-row'; id: number; key: string; index: number; total: number; row: SensitivityRow }
-  | { type: 'sensitivity-done'; id: number; key: string }
+  /** `total` = aantal verstuurde rijen: de store markeert het raster alleen als klaar als ze er allemaal zijn */
+  | { type: 'sensitivity-done'; id: number; key: string; total: number }
   | { type: 'error'; id: number; message: string };
 
 export type Emit = (msg: EngineResponse, transfer?: Transferable[]) => void;
@@ -44,6 +45,20 @@ export function transferablesOf(a: Analysis): Transferable[] {
 
 const nextTick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
+/**
+ * Werkelijke jaren (1,1 MB) pas laden als ze nodig zijn. In de browser met fetch: een mislukte dynamische import()
+ * onthoudt de browser tot de pagina herlaadt, een mislukte fetch kan opnieuw. In de tests (Node) direct importeren.
+ */
+async function loadRealYearsDefault(): Promise<RealYearsJson> {
+  if (import.meta.env.MODE === 'test') {
+    const m = await import('../data/knmi-debilt-1991-2025.json');
+    return (m.default ?? m) as unknown as RealYearsJson;
+  }
+  const res = await fetch(new URL('../data/knmi-debilt-1991-2025.json', import.meta.url));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as RealYearsJson;
+}
+
 export interface Engine {
   handle: (req: EngineRequest, emit: Emit) => Promise<void>;
   climate: (id: ClimateYearId) => Promise<ClimateYear>;
@@ -56,12 +71,7 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
   let realJson: Promise<RealYearsJson> | null = null;
   let latestSensitivity = 0;
 
-  const loadReal =
-    loadRealYears ??
-    (async (): Promise<RealYearsJson> => {
-      const m = await import('../data/knmi-debilt-1991-2025.json');
-      return (m.default ?? m) as unknown as RealYearsJson;
-    });
+  const loadReal = loadRealYears ?? loadRealYearsDefault;
 
   function reference(name: ReferenceYearName): ClimateYear {
     let y = refYears.get(name);
@@ -78,7 +88,13 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
     if (year === null) return reference('T5');
     let y = realYears.get(year);
     if (!y) {
-      realJson ??= loadReal();
+      // een mislukte download niet onthouden: het volgende verzoek probeert opnieuw
+      realJson ??= loadReal().catch((e: unknown) => {
+        realJson = null;
+        throw new Error(
+          `werkelijke klimaatjaren niet geladen (${e instanceof Error ? e.message : String(e)})`,
+        );
+      });
       y = decodeRealYear(await realJson, year);
       realYears.set(year, y);
     }
@@ -86,6 +102,9 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
   }
 
   async function handle(req: EngineRequest, emit: Emit): Promise<void> {
+    // Een gevoeligheidsverzoek is direct het laatste, nog vóór het (mogelijk trage) laden van het klimaatjaar:
+    // anders zou een ouder verzoek voor een werkelijk jaar na het laden een nieuwer verzoek afbreken.
+    if (req.type === 'sensitivity') latestSensitivity = req.id;
     try {
       const input = normalizeInput(req.input);
       const year = await climate(input.climateYear);
@@ -97,7 +116,7 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
         return;
       }
       // gevoeligheidsraster: rij voor rij, met een pauze ertussen zodat een nieuwer verzoek dit kan afbreken
-      latestSensitivity = req.id;
+      if (latestSensitivity !== req.id) return;
       const { building: b, heatPump: hp, buffer, grid } = input;
       const prepared = prepareYear(b, hp, year);
       const { volumes, batteries } = sensitivityAxes(input);
@@ -122,8 +141,10 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
         );
         emit({ type: 'sensitivity-row', id: req.id, key: req.key, index: i, total: volumes.length, row });
       }
-      emit({ type: 'sensitivity-done', id: req.id, key: req.key });
+      emit({ type: 'sensitivity-done', id: req.id, key: req.key, total: volumes.length });
     } catch (e) {
+      // een afgebroken (verouderd) gevoeligheidsverzoek meldt ook geen fout meer
+      if (req.type === 'sensitivity' && latestSensitivity !== req.id) return;
       emit({ type: 'error', id: req.id, message: e instanceof Error ? e.message : String(e) });
     }
   }

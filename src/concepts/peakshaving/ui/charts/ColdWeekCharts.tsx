@@ -1,6 +1,7 @@
 // Tabblad Koude week (spec §7.1): drie gekoppelde panelen (warmte, elektrisch, toestand) over de koude week ± 24 uur,
 // met arcering van weekend en gebruikstijd, een markering van het gekozen uur en de scrubber eronder.
 // De grafieken krijgen de volledige jaarreeksen; het zichtbare venster wordt met setScale op de koude week gezet.
+// Inzoomen door te slepen; verschuiven (pannen) met de knoppen ◀ ▶ of Shift + scrollwiel, binnen het hele jaar.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type uPlot from 'uplot';
 import { fmt } from '../../../../core/format';
@@ -38,8 +39,12 @@ const HOURS_X = Float64Array.from({ length: N }, (_, i) => i);
 /** lege reeks (houdt de linker as van paneel 3 aan als er geen opslag is) */
 const NULLS: null[] = new Array<null>(N).fill(null);
 const PANEL_HEIGHT = 210;
-const PRINT_PANEL_HEIGHT = 170;
+const PRINT_PANEL_HEIGHT = 160;
 const SYNC_KEY = 'ps-koude-week';
+/** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
+const COMPACT_BELOW_PX = 560;
+/** stap van de knoppen ◀ ▶ [h] */
+const PAN_STEP_H = 24;
 /** breedte van een y-as met label in de wrapper (52 px as + 30 px label) */
 const AXIS_WITH_LABEL_PX = 82;
 // vaste middentonen, leesbaar op een lichte én een donkere achtergrond
@@ -184,6 +189,18 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     plots.current.forEach(applyWindow);
   }, [applyWindow]);
 
+  /** Venster `dh` uur verschuiven (alle panelen samen), binnen het jaar; de breedte van het venster blijft gelijk. */
+  const pan = useCallback((dh: number): void => {
+    const live = plots.current.filter((q): q is uPlot => !!q && q.root.isConnected);
+    const ref = live[0];
+    if (!ref || !Number.isFinite(dh) || dh === 0) return;
+    const min = ref.scales.x.min ?? 0;
+    const max = ref.scales.x.max ?? N - 1;
+    const span = Math.min(max - min, N - 1);
+    const from = Math.min(Math.max(min + dh, 0), N - 1 - span);
+    live.forEach((p) => p.setScale('x', { min: from, max: from + span }));
+  }, []);
+
   // nieuwe resultaten: setData zet de schalen terug op het hele jaar, dus het venster opnieuw toepassen
   useEffect(() => {
     resetView();
@@ -219,6 +236,23 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
       p.over.addEventListener('click', (e: MouseEvent) => {
         pointer.current.dragged = Math.abs(e.clientX - pointer.current.downX) > 3;
       });
+      // Shift + scrollwiel of horizontaal vegen (touchpad) verschuift het venster; gewoon scrollen blijft de pagina
+      p.over.addEventListener(
+        'wheel',
+        (e: WheelEvent) => {
+          const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+          if (!e.shiftKey && !horizontal) return;
+          e.preventDefault();
+          const widthPx = p.bbox.width / pixelRatio();
+          if (!(widthPx > 0)) return;
+          // regels of pagina's omrekenen naar pixels; daarna een even groot deel van het venster verschuiven
+          const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? widthPx : 1;
+          const delta = (horizontal ? e.deltaX : e.deltaY) * unit;
+          const span = (p.scales.x.max ?? 0) - (p.scales.x.min ?? 0);
+          pan((delta / widthPx) * span);
+        },
+        { passive: false },
+      );
       applyWindow(p);
     };
 
@@ -291,7 +325,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
           { label: 'Opstookuren', color: withAlpha(pal.warn, 0.35), kind: 'band' as const },
         ]
       : []),
-    { label: 'Gekozen uur (scrubber)', color: pal.accent, kind: 'line' },
+    { label: print ? 'Gekozen uur' : 'Gekozen uur (scrubber)', color: pal.accent, kind: 'line' },
   ];
 
   // ---- paneel 1: warmte
@@ -388,10 +422,11 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
       marker,
     ],
   };
+  // korte labels (ze moeten op een telefoon passen); de uitleg staat onder het paneel
   const elecLegend: LegendExtra[] = derived.limit
     ? [
         {
-          label: `Overschrijding boven het budget (vlak; streepje onderaan per uur: ${fmt(derived.exceedInWindow, 0)} uur in venster)`,
+          label: `Overschrijding (${fmt(derived.exceedInWindow, 0)} uur in koude week ± 1 dag)`,
           color: withAlpha(pal.err, 0.45),
           kind: 'band',
         },
@@ -430,7 +465,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
   };
   const stateLegend: LegendExtra[] = [
     {
-      label: `Comfortverlies: T binnen > 0,5 K onder setpoint in gebruik (${fmt(derived.comfortInWindow, 0)} uur in venster)`,
+      label: `Comfortverlies (${fmt(derived.comfortInWindow, 0)} uur in koude week ± 1 dag)`,
       color: pal.err,
       kind: 'band',
     },
@@ -447,7 +482,11 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     height: print ? PRINT_PANEL_HEIGHT : PANEL_HEIGHT,
     syncKey: print ? `${SYNC_KEY}-print` : SYNC_KEY,
     onClickX,
+    compactBelow: COMPACT_BELOW_PX,
   };
+  // titelregel van de PNG-export: paneel, klimaatjaar en de koude week
+  const period = `klimaatjaar ${analysis.climateShort}, ${formatHour(start, sw)} – ${formatHour(start + COLD_WEEK_HOURS - 1, sw)}`;
+  const exportTitle = (panel: string): string => `${panel} — ${period}`;
 
   return (
     <div ref={boxRef}>
@@ -460,19 +499,40 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
           , gemiddeld <strong>{`${fmt(meanOutdoorC, 1)}\u00a0°C`}</strong>; getoond met 24 uur ervoor en erna.
         </p>
         {!print && (
-          <button
-            type="button"
-            className={`${u.btn} ${u.btnSmall}`}
-            onClick={resetView}
-            title="Zoom terug naar de koude week met 24 uur ervoor en erna"
-          >
-            Terug naar koude week
-          </button>
+          <div className={c.viewButtons} role="group" aria-label="Venster van de grafieken">
+            <button
+              type="button"
+              className={`${u.btn} ${u.btnSmall}`}
+              onClick={() => pan(-PAN_STEP_H)}
+              aria-label="1 dag terug"
+              title="Venster een dag terugschuiven"
+            >
+              <span aria-hidden="true">◀</span> 1 dag
+            </button>
+            <button
+              type="button"
+              className={`${u.btn} ${u.btnSmall}`}
+              onClick={() => pan(PAN_STEP_H)}
+              aria-label="1 dag verder"
+              title="Venster een dag verderschuiven"
+            >
+              1 dag <span aria-hidden="true">▶</span>
+            </button>
+            <button
+              type="button"
+              className={`${u.btn} ${u.btnSmall}`}
+              onClick={resetView}
+              title="Zoom terug naar de koude week met 24 uur ervoor en erna"
+            >
+              Terug naar koude week
+            </button>
+          </div>
         )}
       </div>
       {!print && (
         <p className={c.hint}>
-          Sleep in een grafiek om in te zoomen; klik om een uur te kiezen. De panelen bewegen samen.
+          Sleep in een grafiek om in te zoomen, schuif met ◀ ▶ of Shift + scrollwiel door het jaar en klik
+          om een uur te kiezen. De panelen bewegen samen.
         </p>
       )}
       <div className={c.panels}>
@@ -489,6 +549,8 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
             ariaLabel="Warmte in de koude week: gevraagd vermogen, levering door warmtepomp, buffer, bijstook en boiler, met buitentemperatuur"
             onReady={onReady(0)}
             exportName="koude-week-warmte"
+            exportTitle={exportTitle('Koude week · Warmte')}
+            exportLabel="Warmte (koude week)"
           />
         </section>
         <section className={c.panel} aria-label="Elektrisch">
@@ -503,7 +565,14 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
             ariaLabel="Elektrisch vermogen in de koude week: warmtepomp, batterij, aan de meter en het WP-budget"
             onReady={onReady(1)}
             exportName="koude-week-elektrisch"
+            exportTitle={exportTitle('Koude week · Elektrisch (WP-groep)')}
+            exportLabel="Elektrisch (koude week)"
           />
+          {derived.limit && (
+            <p className={c.hint}>
+              Rood vlak: aan de meter boven het WP-budget; streepje onderaan: elk uur met overschrijding.
+            </p>
+          )}
         </section>
         {!print && (
           <section className={c.panel} aria-label="Toestand">
@@ -519,8 +588,14 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
               ariaLabel="Toestand in de koude week: laadtoestand van buffer en batterij, binnentemperatuur en setpoint"
               onReady={onReady(2)}
               exportName="koude-week-toestand"
+              exportTitle={exportTitle('Koude week · Toestand')}
+              exportLabel="Toestand (koude week)"
             />
-            {storageNote && <p className={c.hint}>{storageNote}</p>}
+            <p className={c.hint}>
+              Rode blokjes onderin: comfortverlies, T binnen meer dan 0,5 K onder het setpoint in
+              gebruikstijd.
+              {storageNote && ` ${storageNote}`}
+            </p>
           </section>
         )}
       </div>

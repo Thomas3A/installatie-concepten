@@ -1,16 +1,16 @@
 // Zustand-store voor het peakshaving-concept: invoer, afgeleide bereiken, resultaten uit de Worker en UI-toestand.
 import { create } from 'zustand';
 import { defaultInput } from './data/defaults';
-import { createEngineClient, type EngineClient } from './engineClient';
+import { createEngineClient, type EngineClient, type EngineClientOptions } from './engineClient';
 import { sensitivityKey, type Analysis } from './model/analysis';
-import { COLD_WEEK_HOURS } from './model/climate';
+import { climateInSentence, COLD_WEEK_HOURS } from './model/climate';
 import type { EngineResponse } from './model/engine';
 import { normalizeInput, rangesOf, switchUse, withDesignLoad } from './model/input';
 import type { Ranges } from './model/ranges';
 import type { SensitivityRow } from './model/sizing';
 import type { BuildingUse, ClimateYearId, PeakshavingInput } from './model/types';
 import { findScenario } from './scenarios';
-import { decodeInput, encodeInput } from './share';
+import { decodeInput, encodeInput, sameInput, scenarioIdOf } from './share';
 
 export type TabId = 'koude-week' | 'jaar' | 'gevoeligheid' | 'concept' | 'uitleg';
 
@@ -22,15 +22,18 @@ export interface SensitivityState {
   key: string;
   rows: (SensitivityRow | null)[];
   total: number;
+  /** klaar: alle rijen berekend, of afgebroken met een fout (dan staat `error` gevuld en is het raster onvolledig) */
   done: boolean;
+  /** foutmelding van de rekenmotor; zo'n raster komt niet in de cache en wordt bij een volgend verzoek opnieuw berekend */
+  error?: string;
 }
 
 interface State {
   input: PeakshavingInput;
   ranges: Ranges;
   scenarioId: string | null;
+  /** laatste geslaagde doorrekening; `analysis.input` is de invoer waarvoor die is berekend */
   analysis: Analysis | null;
-  /** invoer waarvoor `analysis` is berekend */
   busy: boolean;
   error: string | null;
   sensitivity: SensitivityState | null;
@@ -49,6 +52,8 @@ interface State {
   applyScenario: (id: string) => void;
   loadInput: (input: PeakshavingInput, scenarioId?: string | null) => void;
   fromShareHash: (code: string) => boolean;
+  /** na een rekenfout opnieuw proberen: doorrekening en (op het tabblad Gevoeligheid) het raster */
+  retry: () => void;
   toShareHash: () => string;
   setTab: (t: TabId) => void;
   setScrubHour: (h: number | null) => void;
@@ -64,11 +69,23 @@ let nextId = 1;
 let latestAnalyze = 0;
 let latestSensitivity = 0;
 let timer: ReturnType<typeof setTimeout> | null = null;
+let engineOptions: EngineClientOptions = {};
+/** volledig berekende rasters per invoer-sleutel */
 const sensitivityCache = new Map<string, SensitivityState>();
+/**
+ * Het lopende rasterverzoek (id `latestSensitivity`). Het rekent door als intussen een ander raster uit de cache wordt
+ * getoond, en komt na afloop in de cache; alleen als zijn sleutel wordt getoond, gaan de rijen ook naar de UI.
+ */
+let running: SensitivityState | null = null;
 
 function engine(): EngineClient {
-  client ??= createEngineClient(onResponse);
+  client ??= createEngineClient(onResponse, engineOptions);
   return client;
+}
+
+/** Toon `next` als het getoonde raster bij dezelfde invoer-sleutel hoort. */
+function showSensitivity(next: SensitivityState): void {
+  if (useStore.getState().sensitivity?.key === next.key) useStore.setState({ sensitivity: next });
 }
 
 function onResponse(msg: EngineResponse): void {
@@ -82,23 +99,44 @@ function onResponse(msg: EngineResponse): void {
       return;
     }
     case 'sensitivity-row': {
-      if (msg.id !== latestSensitivity) return;
-      const prev = st.sensitivity && st.sensitivity.key === msg.key ? st.sensitivity : null;
-      const rows = prev ? prev.rows.slice() : new Array<SensitivityRow | null>(msg.total).fill(null);
+      if (msg.id !== latestSensitivity || !running || running.key !== msg.key) return;
+      const prev = running.rows;
+      const rows = Array.from({ length: msg.total }, (_, i): SensitivityRow | null => prev[i] ?? null);
       rows[msg.index] = msg.row;
-      useStore.setState({ sensitivity: { key: msg.key, rows, total: msg.total, done: false } });
+      running = { key: msg.key, rows, total: msg.total, done: false };
+      showSensitivity(running);
       return;
     }
     case 'sensitivity-done': {
-      if (msg.id !== latestSensitivity || !st.sensitivity) return;
-      const done = { ...st.sensitivity, done: true };
-      sensitivityCache.set(msg.key, done);
-      useStore.setState({ sensitivity: done });
+      if (msg.id !== latestSensitivity || !running || running.key !== msg.key) return;
+      const complete = running.total === msg.total && running.rows.every((r) => r !== null);
+      const finished: SensitivityState = complete
+        ? { ...running, done: true }
+        : { ...running, done: true, error: 'gevoeligheidsraster onvolledig berekend' };
+      running = null;
+      if (complete) sensitivityCache.set(msg.key, finished);
+      showSensitivity(finished);
       return;
     }
-    case 'error':
-      if (msg.id === latestAnalyze) useStore.setState({ busy: false, error: msg.message });
+    case 'error': {
+      if (msg.id === latestAnalyze) {
+        // de getoonde resultaten horen nog bij de vorige invoer: dat in de melding zeggen
+        const shown = st.analysis;
+        let note = '';
+        if (shown && shown.climateId !== st.input.climateYear)
+          note = `; getoonde resultaten gelden nog voor ${climateInSentence(shown.climateId)}`;
+        else if (shown && !sameInput(shown.input, st.input))
+          note = '; getoonde resultaten gelden nog voor de vorige invoer';
+        useStore.setState({ busy: false, error: msg.message + note });
+      }
+      if (msg.id === latestSensitivity && running) {
+        // niet in de cache: een volgend verzoek voor deze invoer rekent opnieuw
+        const failed: SensitivityState = { ...running, done: true, error: msg.message };
+        running = null;
+        showSensitivity(failed);
+      }
       return;
+    }
   }
 }
 
@@ -121,18 +159,20 @@ function schedule(): void {
   timer = setTimeout(computeNow, DEBOUNCE_MS);
 }
 
-/** Gevoeligheidsraster alleen als het tabblad open is, met cache op de invoer-sleutel. */
+/** Gevoeligheidsraster alleen als het tabblad open is (of bij printen), met cache op de invoer-sleutel. */
 function requestSensitivity(): void {
   const { input, sensitivity } = useStore.getState();
   const key = sensitivityKey(input);
-  if (sensitivity && sensitivity.key === key) return;
-  const cached = sensitivityCache.get(key);
-  if (cached) {
-    useStore.setState({ sensitivity: cached });
+  // klaar (cache) of nog onderweg: alleen tonen
+  const known = sensitivityCache.get(key) ?? (running && running.key === key ? running : null);
+  if (known) {
+    if (sensitivity !== known) useStore.setState({ sensitivity: known });
     return;
   }
+  // nieuw verzoek, ook na een fout; de motor breekt een lopend raster voor een andere invoer dan af
   latestSensitivity = nextId++;
-  useStore.setState({ sensitivity: { key, rows: [], total: 0, done: false } });
+  running = { key, rows: [], total: 0, done: false };
+  useStore.setState({ sensitivity: running });
   engine().post({ type: 'sensitivity', id: latestSensitivity, key, input });
 }
 
@@ -183,9 +223,11 @@ export const useStore = create<State>((set, get) => ({
   fromShareHash: (code) => {
     const input = decodeInput(code);
     if (!input) return false;
-    get().loadInput(input, null);
+    // link van een ongewijzigd scenario: dat scenario (met titel) tonen
+    get().loadInput(input, scenarioIdOf(input));
     return true;
   },
+  retry: () => computeNow(),
   toShareHash: () => encodeInput(get().input),
   setTab: (tab) => {
     set({ tab });
@@ -196,7 +238,8 @@ export const useStore = create<State>((set, get) => ({
   markCopied: (copied) => set({ copied }),
   requestPrint: () => {
     set({ printing: true, playing: false });
-    if (timer) computeNow();
+    // wachtende invoer direct doorrekenen; na een rekenfout eerst opnieuw proberen (anders print de vorige uitkomst)
+    if (timer || get().error) computeNow();
     requestSensitivity();
   },
   endPrint: () => set({ printing: false }),
@@ -205,6 +248,24 @@ export const useStore = create<State>((set, get) => ({
 /** Eerste berekening starten (aangeroepen door de pagina bij het openen). */
 export function startEngine(): void {
   if (!useStore.getState().analysis) computeNow();
+}
+
+/**
+ * Rekenmotor (opnieuw) instellen, bijv. in tests de motor in de hoofdthread met een eigen loader. Lopende verzoeken
+ * worden genegeerd en de cache van het gevoeligheidsraster wordt geleegd; de volgende berekening start de nieuwe motor.
+ */
+export function configureEngine(options: EngineClientOptions = {}): void {
+  client?.dispose();
+  client = null;
+  engineOptions = options;
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  latestAnalyze = latestSensitivity = nextId++;
+  running = null;
+  sensitivityCache.clear();
+  useStore.setState({ sensitivity: null, busy: false, error: null });
 }
 
 /**

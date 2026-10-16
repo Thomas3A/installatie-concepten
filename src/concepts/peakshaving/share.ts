@@ -4,6 +4,7 @@ import { fromBase64Url, jsonDiff, jsonMerge, toBase64Url, type Json } from '../.
 import { defaultInput } from './data/defaults';
 import { normalizeInput } from './model/input';
 import type { BuildingUse, PeakshavingInput } from './model/types';
+import { SCENARIOS } from './scenarios';
 
 /** Versie van het linkformaat; verhoog bij een niet-compatibele wijziging van de invoer. */
 export const SHARE_VERSION = 1;
@@ -36,4 +37,16 @@ export function decodeInput(code: string): PeakshavingInput | null {
 export function shareUrl(input: PeakshavingInput, loc: Pick<Location, 'href'> = window.location): string {
   const base = loc.href.split('#')[0];
   return `${base}#${SHARE_ROUTE}?c=${encodeInput(input)}`;
+}
+
+/** Twee invoeren zijn na normalisatie gelijk (volgorde van de sleutels telt niet). */
+export function sameInput(a: PeakshavingInput, b: PeakshavingInput): boolean {
+  const x = normalizeInput(a) as unknown as Json;
+  const y = normalizeInput(b) as unknown as Json;
+  return jsonDiff(x, y) === undefined && jsonDiff(y, x) === undefined;
+}
+
+/** Id van het scenario met precies deze invoer (een ongewijzigd scenario uit een deelbare link), anders null. */
+export function scenarioIdOf(input: PeakshavingInput): string | null {
+  return SCENARIOS.find((sc) => sameInput(input, sc.build()))?.id ?? null;
 }

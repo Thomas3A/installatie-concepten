@@ -21,6 +21,14 @@ const EXCEED_EPS = 1e-6;
 const RANK = Float64Array.from({ length: HOURS_PER_YEAR }, (_, i) => i + 1);
 const MONTH_X = Array.from({ length: 12 }, (_, i) => i);
 
+/** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
+const COMPACT_BELOW_PX = 560;
+/**
+ * Een budgetlijn hoger dan deze factor × de hoogste kromme rekt de as niet op (bijv. grootverbruik): de krommen
+ * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
+ */
+const OFF_SCALE_FACTOR = 2;
+
 // vaste middentinten die in het lichte én donkere thema leesbaar zijn
 const BUFFER_COLOR = '#e8892b';
 const DHW_COLOR = '#8b5cf6';
@@ -147,8 +155,11 @@ function rankScale(mode: XMode): uPlot.Scale {
   };
 }
 
-/** Tick- en cursortekst van de rang-as; uPlot geeft `null` voor weggefilterde ticks op een log-as. */
-const formatRank = (v: number | null): string => (v === null || !Number.isFinite(v) ? '' : `${fmt(v, 0)} h`);
+/** Cursortekst van de rang-as: het aantal uren per jaar met minstens dit vermogen. */
+const formatRank = (v: number | null): string =>
+  v === null || !Number.isFinite(v) ? '' : `${fmt(v, 0)} uur/jaar`;
+/** Ticklabels van de rang-as (de eenheid staat in de astitel); uPlot geeft `null` voor weggefilterde ticks. */
+const rankTick = (v: number | null): string => (v === null || !Number.isFinite(v) ? '' : fmt(v, 0));
 
 interface HLine {
   value: number;
@@ -161,7 +172,10 @@ interface HLine {
   textColor?: string;
 }
 
-/** Horizontale referentielijnen met label rechts in het grafiekvlak (labels schuiven op als ze elkaar raken). */
+/**
+ * Horizontale referentielijnen met label rechts in het grafiekvlak (labels schuiven op als ze elkaar raken). Lijnen
+ * boven de as (bijv. een grootverbruikaansluiting ver boven de krommen) komen als label "↑ …" aan de bovenrand.
+ */
 function hLinesHook(lines: HLine[], background: string): uPlot.Hooks.Arrays {
   return {
     draw: [
@@ -169,6 +183,8 @@ function hLinesHook(lines: HLine[], background: string): uPlot.Hooks.Arrays {
         const { ctx } = u;
         const { left, top, width, height } = u.bbox; // canvaspixels
         const r = uPlot.pxRatio || 1;
+        const yMax = u.scales.y.max ?? Infinity;
+        const above = lines.filter((l) => Number.isFinite(l.value) && l.value > yMax + 1e-9);
         const pos = lines
           .filter((l) => Number.isFinite(l.value))
           .map((l) => ({ l, y: u.valToPos(l.value, 'y', true) }))
@@ -191,6 +207,18 @@ function hLinesHook(lines: HLine[], background: string): uPlot.Hooks.Arrays {
         const lineH = 14 * r;
         const x = left + width - 6 * r;
         let prev = -Infinity;
+        for (const l of above) {
+          const y = Math.max(top + 12 * r, prev + lineH);
+          prev = y;
+          const text = `↑ ${l.text}`;
+          const w = ctx.measureText(text).width;
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = background;
+          ctx.fillRect(x - w - 3 * r, y - 11 * r, w + 6 * r, 14 * r);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = l.textColor ?? l.color;
+          ctx.fillText(text, x, y);
+        }
         for (const p of pos) {
           const y = Math.max(p.y - 4 * r, top + 12 * r, prev + lineH);
           prev = y;
@@ -290,8 +318,8 @@ function electricChart(a: Analysis, pal: Palette) {
     const [net, noBat, bare] = curves.map((c) => hoursAbove(c, l.limitKw));
     const counts =
       net === noBat && noBat === bare
-        ? `${fmt(net, 0)} h erboven (alle drie de krommen)`
-        : `uren erboven: ${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
+        ? `${fmt(net, 0)} uur erboven (alle drie de krommen)`
+        : `uur erboven: ${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
     return {
       label: `${l.current ? 'Huidige aansluiting ' : ''}${l.name} — ${counts}`,
       color: l.color,
@@ -306,7 +334,9 @@ function electricChart(a: Analysis, pal: Palette) {
     width: l.current ? 2 : 1.5,
     text: `${l.current ? 'huidig: ' : ''}${l.name}`,
   }));
-  const yMax = niceCeil(Math.max(peak, ...limits.map((l) => l.limitKw)) * 1.06);
+  // budgetten ver boven de krommen rekken de as niet op (ze komen als label aan de bovenrand)
+  const onScale = limits.filter((l) => l.limitKw <= OFF_SCALE_FACTOR * peak).map((l) => l.limitKw);
+  const yMax = niceCeil(Math.max(peak, ...onScale) * 1.06);
   const data: uPlot.AlignedData = [RANK, d.pElectricWithoutBuffer, d.pGrid, d.pElectricNoBattery];
   return { data, series, extras, lines, yMax };
 }
@@ -340,7 +370,9 @@ function thermalChart(a: Analysis, pal: Palette) {
   const series: ChartSeries[] = [
     { label: 'Ideale warmtevraag (gesorteerd)', color: pal.warm, width: 2, digits: peak < 20 ? 2 : 1 },
   ];
-  const yMax = niceCeil(Math.max(peak, ...lines.map((l) => l.value)) * 1.06);
+  const yMax = niceCeil(
+    Math.max(peak, ...lines.map((l) => l.value).filter((v) => v <= OFF_SCALE_FACTOR * peak)) * 1.06,
+  );
   const data: uPlot.AlignedData = [RANK, q];
   return { data, series, extras, lines, yMax };
 }
@@ -428,7 +460,8 @@ function YearChartsView({ a }: { a: Analysis }) {
   const therm = useMemo(() => thermalChart(a, pal), [a, pal]);
   const month = useMemo(() => monthlyChart(a, pal), [a, pal]);
   const splits = useMemo(() => rankSplits(xMode), [xMode]);
-  const xLabel = 'Uren per jaar, gesorteerd van hoog naar laag [h]';
+  const xLabel = 'Aantal uren, gesorteerd van hoog naar laag [uur/jaar]';
+  const climate = `klimaatjaar ${a.climateShort}`;
 
   return (
     <div>
@@ -473,6 +506,7 @@ function YearChartsView({ a }: { a: Analysis }) {
             series={elec.series}
             xKind="custom"
             xFormat={formatRank}
+            xTickFormat={rankTick}
             xSplits={splits}
             xLabel={xLabel}
             axes={[{ scale: 'y', label: 'Vermogen [kW]' }]}
@@ -482,6 +516,9 @@ function YearChartsView({ a }: { a: Analysis }) {
             height={300}
             ariaLabel="Jaarbelastingduurkromme elektrisch: vermogen aan de meter per uur, aflopend gesorteerd, met en zonder maatregelen en de budgetten van drie aansluitingen"
             exportName="peakshaving-duurkromme-elektrisch"
+            exportTitle={`Jaarbelastingduurkromme elektrisch (warmtepompgroep) — ${climate}`}
+            exportLabel="Duurkromme elektrisch"
+            compactBelow={COMPACT_BELOW_PX}
           />
         </div>
 
@@ -497,6 +534,7 @@ function YearChartsView({ a }: { a: Analysis }) {
             series={therm.series}
             xKind="custom"
             xFormat={formatRank}
+            xTickFormat={rankTick}
             xSplits={splits}
             xLabel={xLabel}
             axes={[{ scale: 'y', label: 'Warmtevraag [kW]' }]}
@@ -506,6 +544,9 @@ function YearChartsView({ a }: { a: Analysis }) {
             height={260}
             ariaLabel="Jaarbelastingduurkromme thermisch: ideale warmtevraag per uur, aflopend gesorteerd, met het vermogen van de warmtepomp bij min tien graden met en zonder buffer"
             exportName="peakshaving-duurkromme-thermisch"
+            exportTitle={`Jaarbelastingduurkromme thermisch — ${climate}`}
+            exportLabel="Duurkromme thermisch"
+            compactBelow={COMPACT_BELOW_PX}
           />
         </div>
 
@@ -531,6 +572,9 @@ function YearChartsView({ a }: { a: Analysis }) {
             height={260}
             ariaLabel="Maandbalans: warmtelevering per maand door de warmtepomp direct, de buffer, bijstook en tapwater, de elektriciteit van de warmtepomp en de SCOP per maand"
             exportName="peakshaving-maandbalans"
+            exportTitle={`Maandbalans — ${climate}`}
+            exportLabel="Maandbalans"
+            compactBelow={COMPACT_BELOW_PX}
           />
         </div>
       </div>

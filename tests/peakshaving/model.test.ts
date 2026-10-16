@@ -46,12 +46,14 @@ import { expectCloseHours, expectClosePower, refYear } from './helpers';
 // Hulpfuncties
 // ---------------------------------------------------------------------------------------------------------------
 
-/** nl-NL-notatie met vaste decimalen, onafhankelijk van src/core/format.ts. */
+/** nl-NL-notatie met vaste decimalen en een echt minteken (U+2212), onafhankelijk van src/core/format.ts. */
 function nl(x: number, digits: number): string {
   return new Intl.NumberFormat('nl-NL', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  }).format(x);
+  })
+    .format(x)
+    .replace(/^-/, '−');
 }
 
 /** Vervang elk getal in een (geneste) structuur. */

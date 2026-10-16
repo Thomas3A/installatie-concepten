@@ -18,13 +18,24 @@
   color: var(--text-2);
 }
 .headField select {
-  max-width: 340px;
+  /* breed genoeg voor het volledige label van klimaatjaar en scenario (ook bij 1440 px) */
+  max-width: min(560px, calc(100vw - 2 * var(--gutter)));
 }
 .climateNote {
   flex-basis: 100%;
   font-size: 0.78rem;
   color: var(--text-2);
   margin: -4px 0 8px;
+}
+.climateNote p {
+  margin: 0 0 2px;
+}
+.climateStats {
+  font-variant-numeric: tabular-nums;
+}
+.climateStats strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .layout {
@@ -59,6 +70,19 @@
     position: static;
     max-height: none;
     overflow: visible;
+  }
+}
+/* tablet (640–1023 px): de vier invoerblokken in twee kolommen, zodat het resultaat eerder in beeld komt */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+    padding-right: 0;
+  }
+  .inputs .block {
+    margin-bottom: 0;
   }
 }
 
@@ -118,8 +142,17 @@
 .sliderWrap {
   position: relative;
 }
+/* schuif met een raakvlak van 24 px hoog (WCAG 2.5.8); het spoor blijft in het midden */
+.slider {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--accent);
+}
 .markers {
   position: relative;
+  margin-top: -5px;
   height: 14px;
   font-size: 0.68rem;
   color: var(--text-2);
@@ -227,6 +260,20 @@
 .advice p {
   margin: 0;
 }
+/* statusregel boven de KPI-kaarten: vaste hoogte, zodat "Rekent…" de kaarten niet laat verspringen */
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 22px;
+  margin-bottom: 4px;
+}
+/* "Opnieuw proberen" naast een rekenfout (doel minstens 24 px hoog) */
+.retry {
+  min-height: 24px;
+  font-size: 0.8rem;
+}
 .busy {
   display: inline-flex;
   align-items: center;
@@ -262,6 +309,66 @@
   padding: 24px 4px;
 }
 
+/* ---- robuustheidstabel: koppen mogen afbreken, zodat alle zeven kolommen passen */
+.robustTable th {
+  white-space: normal;
+  hyphens: manual;
+  vertical-align: bottom;
+  min-width: 4.5em;
+}
+.robustTable th:first-child {
+  min-width: 0;
+}
+.robustTable tbody th {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ---- uitleg */
+.toc {
+  margin-bottom: 12px;
+}
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.toc li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toc li:not(:last-child)::after {
+  content: '·';
+}
+/* raakvlak van minstens 24 px hoog (WCAG 2.5.8) */
+.toc button {
+  min-height: 24px;
+  font-size: inherit;
+}
+.explainHead {
+  scroll-margin-top: 8px;
+}
+.explainHead:focus-visible {
+  outline-offset: 4px;
+}
+/* formules scrollen in hun eigen omhulling (die dan focusbaar is), niet in de KaTeX-blokken zelf */
+.formula {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.formula :global(.katex-display) {
+  overflow: visible;
+}
+@media (max-width: 520px) {
+  .formula :global(.katex-display) {
+    font-size: 0.85em;
+  }
+}
+
 /* ---- print */
 @media print {
   .layout {
@@ -281,6 +388,21 @@
   .advice {
     box-shadow: none;
     break-inside: avoid;
+  }
+  /* papier scrollt niet: de robuustheidstabel moet in zijn geheel op de A4-breedte passen */
+  .robustWrap {
+    overflow: visible;
+  }
+  .robustTable {
+    font-size: 0.8rem;
+  }
+  .robustTable th,
+  .robustTable td {
+    padding: 3px 5px;
+  }
+  .robustTable th:first-child,
+  .robustTable td:first-child {
+    position: static;
   }
 }
 

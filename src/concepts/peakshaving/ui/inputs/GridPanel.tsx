@@ -28,7 +28,7 @@ export function GridPanel() {
           min={LIMITS.allowedHours[0]}
           max={LIMITS.allowedHours[1]}
           step={1}
-          unit="h/jaar"
+          unit="uur/jaar"
           noSlider
           onChange={(v) => patch({ allowedComfortLossH: v })}
         />
@@ -80,7 +80,7 @@ export function GridPanel() {
         min={LIMITS.allowedHours[0]}
         max={LIMITS.allowedHours[1]}
         step={1}
-        unit="h/jaar"
+        unit="uur/jaar"
         noSlider
         onChange={(v) => patch({ allowedExceedanceH: v })}
       />

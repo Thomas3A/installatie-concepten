@@ -1,6 +1,7 @@
 // Tabblad Gevoeligheid (spec §7.3) — de kerngrafiek: piek aan de meter per batterijgrootte en het benodigde
 // WP-vermogen als functie van het buffervolume, met de budgetten van de standaardaansluitingen als referentielijnen.
-// Het raster komt rij voor rij uit de Web Worker; de grafiek tekent wat er al is.
+// Het raster komt rij voor rij uit de Web Worker; de grafiek tekent wat er al is. Tijdens een herberekening blijft het
+// vorige volledige raster (gedimd) staan tot de eerste nieuwe rij er is, zodat de pagina niet verspringt.
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type uPlot from 'uplot';
 import { fmt } from '../../../../core/format';
@@ -24,6 +25,15 @@ import css from './SensitivityChart.module.css';
 const HEAT_PUMP_COLOR = '#e8892b';
 const CURRENT_DASH = [7, 4];
 const OTHER_DASH = [3, 3];
+const CHART_HEIGHT = 360;
+const PRINT_CHART_HEIGHT = 300;
+/** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
+const COMPACT_BELOW_PX = 560;
+/**
+ * Een budgetlijn hoger dan deze factor × de hoogste meterpiek rekt de as niet op (bijv. grootverbruik): de krommen
+ * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
+ */
+const OFF_SCALE_FACTOR = 2;
 
 // ---------------------------------------------------------------- thema
 
@@ -248,7 +258,11 @@ function transitionsOf(m: GridModel, share: number): Transition[] {
 interface RefLine {
   limitKw: number;
   text: string;
+  /** kort label als het lange niet past ("huidig: 3×80 A") */
+  short: string;
   current: boolean;
+  /** ver boven de krommen: niet op de as, alleen als label aan de bovenrand */
+  offScale: boolean;
 }
 
 interface ChartData {
@@ -281,14 +295,19 @@ function chartData(
     if (Number.isFinite(r.nominalKw)) ths.push(r.nominalKw);
     for (const c of r.cells) if (Number.isFinite(c.pGridMaxKw)) nets.push(c.pGridMaxKw);
   }
-  const transitions = transitionsOf(m, share);
+  const transitions = transitionsOf(m, share).sort(
+    (a, b) => a.volumeM3 - b.volumeM3 || a.limitKw - b.limitKw,
+  );
+  const maxNet = nets.length > 0 ? Math.max(...nets) : NaN;
+  // een budget ver boven de krommen (bijv. grootverbruik) rekt de as niet op
+  const onScale = (kw: number): boolean => !(nets.length > 0) || kw <= OFF_SCALE_FACTOR * maxNet;
 
-  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens het huidige budget en de
-  // budgetten met een overgang
+  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens het huidige budget (als dat
+  // op de as past) en de budgetten met een overgang
   const relevantTop = niceCeil(
     Math.max(
-      nets.length > 0 ? 1.15 * Math.max(...nets) : 0,
-      Number.isFinite(curLimit) ? 1.1 * curLimit : 0,
+      nets.length > 0 ? 1.15 * maxNet : 0,
+      Number.isFinite(curLimit) && onScale(curLimit) ? 1.1 * curLimit : 0,
       ...transitions.map((t) => 1.08 * t.limitKw),
     ),
   );
@@ -304,10 +323,13 @@ function chartData(
     const current = c.id === grid.connection;
     const inRange = limitKw >= minNet - 1e-6 && limitKw <= relevantTop;
     if (!(inRange || c === below || current || transitions.some((t) => t.conn.id === c.id))) continue;
+    const prefix = current ? 'huidig: ' : '';
     lines.push({
       limitKw,
       current,
-      text: `${current ? 'huidig: ' : ''}${c.label} · ${pct} = ${fmt(limitKw, 1)} kW`,
+      text: `${prefix}${c.label} · ${pct} = ${fmt(limitKw, 1)} kW`,
+      short: `${prefix}${c.label}`,
+      offScale: !onScale(limitKw),
     });
   }
   if (grid.connection === LARGE_CONNECTION_ID && Number.isFinite(curLimit)) {
@@ -320,12 +342,14 @@ function chartData(
       limitKw: curLimit,
       current: true,
       text: `huidig: ${name} · ${pct} = ${fmt(curLimit, 1)} kW`,
+      short: `huidig: ${fmt(curLimit, 0)} kW`,
+      offScale: !onScale(curLimit),
     });
   }
 
   // Twee assen in één vlak: de elektrische lijnen (meterpiek en budgetten) in de onderste helft, het thermische
   // vermogen (WP en gebouw) in de bovenste strook, zodat de lijnen van beide assen elkaar niet bedekken.
-  const elec = [...nets, ...lines.map((l) => l.limitKw)];
+  const elec = [...nets, ...lines.filter((l) => !l.offScale).map((l) => l.limitKw)];
   const yRange = bandRange(Math.min(...elec), Math.max(...elec), 0.06, 0.58);
   const therm = [designLoadKw, ...ths];
   const thRange = bandRange(Math.min(...therm), Math.max(...therm), 0.66, 0.94);
@@ -347,7 +371,7 @@ function chartData(
       };
     }),
     {
-      label: 'Benodigd WP-vermogen (P_th,min)',
+      label: 'Benodigd WP-vermogen (P th,min)',
       color: HEAT_PUMP_COLOR,
       width: 3.5,
       scale: 'th',
@@ -381,7 +405,13 @@ function chartData(
   const extras: LegendExtra[] = [];
   const cur = lines.find((l) => l.current);
   if (cur)
-    extras.push({ label: 'Budget huidige aansluiting (P_limiet)', color: pal.err, dash: CURRENT_DASH });
+    extras.push({
+      label: cur.offScale
+        ? 'Budget huidige aansluiting (P limiet), boven de as (↑)'
+        : 'Budget huidige aansluiting (P limiet)',
+      color: pal.err,
+      dash: CURRENT_DASH,
+    });
   if (lines.some((l) => !l.current)) {
     extras.push({
       label: `Budget andere standaardaansluitingen (${pct})`,
@@ -389,7 +419,8 @@ function chartData(
       dash: OTHER_DASH,
     });
   }
-  if (transitions.length > 0) {
+  // ook zolang het raster nog niet compleet is: de legenda verspringt dan niet als de eerste stip verschijnt
+  if (transitions.length > 0 || m.computed < m.n) {
     extras.push({
       label: 'Stip: aansluiting toereikend vanaf dit buffervolume',
       color: pal.text,
@@ -440,6 +471,7 @@ function boxedText(
 function refPositions(u: uPlot, o: Overlay): { l: RefLine; y: number }[] {
   const { top, height } = u.bbox;
   return o.lines
+    .filter((l) => !l.offScale)
     .map((l) => ({ l, y: u.valToPos(l.limitKw, 'y', true) }))
     .filter((p) => Number.isFinite(p.y) && p.y >= top - 0.5 && p.y <= top + height + 0.5)
     .sort((a, b) => a.y - b.y);
@@ -519,17 +551,55 @@ function drawOver(u: uPlot, o: Overlay): void {
     y1: d.y + rad + 2 * r,
   }));
 
-  // labels van de referentielijnen: rechts boven de lijn, schuiven omlaag als ze elkaar raken
   const lineH = 14 * r;
-  const xr = right - 6 * r;
-  let prev = -Infinity;
+  const free = (rect: Rect, avoidDots: boolean): boolean =>
+    rect.x0 >= left &&
+    rect.x1 <= right &&
+    rect.y0 >= top &&
+    rect.y1 <= bottom &&
+    !placed.some((q) => overlaps(q, rect)) &&
+    (!avoidDots || !dotRects.some((q) => overlaps(q, rect)));
+  const labelRect = (tx: number, ty: number, w: number): Rect => ({
+    x0: tx - 3 * r,
+    y0: ty - 11 * r,
+    x1: tx + w + 3 * r,
+    y1: ty + 3 * r,
+  });
+
+  // budgetten ver boven de krommen (niet op de as): als label met pijl aan de bovenrand, rechts
+  let offY = top + 12 * r;
+  for (const l of o.lines.filter((q) => q.offScale)) {
+    ctx.font = font(l.current ? 650 : 400);
+    const color = l.current ? o.pal.err : o.pal.text2;
+    const full = `↑ ${l.text}`;
+    const text = ctx.measureText(full).width + 12 * r <= width ? full : `↑ ${l.short}`;
+    const w = ctx.measureText(text).width;
+    const tx = Math.max(left + 6 * r, right - 6 * r - w);
+    const rect = labelRect(tx, offY, w);
+    boxedText(ctx, text, tx, offY, rect, color, o.pal.surface);
+    placed.push(rect);
+    offY += lineH;
+  }
+
+  // labels van de referentielijnen: rechts boven de lijn; anders eronder, dan het korte label, dan links. Ze
+  // ontwijken elkaar en de stippen van de overgangen; past niets, dan het korte label over een stip heen.
   for (const p of refs) {
     ctx.font = font(p.l.current ? 650 : 400);
-    const w = ctx.measureText(p.l.text).width;
-    const y = Math.max(p.y - 4 * r, top + 12 * r, prev + lineH);
-    prev = y;
-    const rect = { x0: xr - w - 3 * r, y0: y - 11 * r, x1: xr + 3 * r, y1: y + 3 * r };
-    boxedText(ctx, p.l.text, xr - w, y, rect, p.l.current ? o.pal.err : o.pal.text2, o.pal.surface);
+    const color = p.l.current ? o.pal.err : o.pal.text2;
+    const candidates: { text: string; tx: number; ty: number; w: number }[] = [];
+    for (const side of ['right', 'left'] as const) {
+      for (const text of [p.l.text, p.l.short]) {
+        const w = ctx.measureText(text).width;
+        const tx = side === 'right' ? right - 6 * r - w : left + 6 * r;
+        for (const ty of [p.y - 4 * r, p.y + 13 * r]) candidates.push({ text, tx, ty, w });
+      }
+    }
+    const pick =
+      candidates.find((k) => free(labelRect(k.tx, k.ty, k.w), true)) ??
+      candidates.find((k) => k.text === p.l.short && free(labelRect(k.tx, k.ty, k.w), false));
+    if (!pick) continue;
+    const rect = labelRect(pick.tx, pick.ty, pick.w);
+    boxedText(ctx, pick.text, pick.tx, pick.ty, rect, color, o.pal.surface);
     placed.push(rect);
   }
 
@@ -628,8 +698,9 @@ function Readout({
       {row.cells.map((c, j) => (
         <span key={j}>
           {' · '}
-          {batteryName(c.capacityKwh)}: piek {fmt(c.pGridMaxKw, netDigits)} kW, {fmt(c.exceedanceHours, 0)} h
-          overschrijding, kleinste aansluiting <strong>{connectionText(c.smallest)}</strong>
+          {batteryName(c.capacityKwh)}: piek {fmt(c.pGridMaxKw, netDigits)} kW, overschrijding{' '}
+          {fmt(c.exceedanceHours, 0)} uur/jaar, kleinste aansluiting{' '}
+          <strong>{connectionText(c.smallest)}</strong>
         </span>
       ))}
     </div>
@@ -668,7 +739,7 @@ function PointsTable({
             P<sub>th,min</sub> = benodigd WP-vermogen (A7/W35) bij dat buffervolume; P<sub>net,max</sub> =
             piek aan de meter bij de huidige aansluiting. Kleinste aansluiting: groen = past binnen de huidige
             aansluiting ({currentText}), oranje = er is een grotere aansluiting nodig. Toereikend = hoogstens{' '}
-            {fmt(input.grid.allowedExceedanceH, 0)} h overschrijding per jaar.
+            {fmt(input.grid.allowedExceedanceH, 0)} uur/jaar overschrijding.
           </caption>
           <thead>
             <tr>
@@ -693,7 +764,7 @@ function PointsTable({
                   <th scope="col">
                     P<sub>net,max</sub> [kW]
                   </th>
-                  <th scope="col">Overschr. [h]</th>
+                  <th scope="col">Overschr. [uur/jaar]</th>
                   <th scope="col">Kleinste aansluiting</th>
                 </Fragment>
               ))}
@@ -758,10 +829,27 @@ function PointsTable({
   );
 }
 
-function SensitivityView({ sens, print }: { sens: SensitivityState; print: boolean }) {
-  const ranges = useStore((st) => st.ranges);
+/** Instellingen waarvoor een raster is berekend (voor het tonen van een vorig raster tijdens een herberekening). */
+interface GridContext {
+  grid: GridSettings;
+  designLoadKw: number;
+  ranges: Ranges;
+}
+
+function SensitivityView({
+  sens,
+  print,
+  frozen,
+}: {
+  sens: SensitivityState;
+  print: boolean;
+  /** vorig raster met de instellingen van toen: gedimd, zonder bediening */
+  frozen?: GridContext;
+}) {
+  const liveRanges = useStore((st) => st.ranges);
   const input = useStore((st) => st.input);
   const update = useStore((st) => st.update);
+  const ranges = frozen?.ranges ?? liveRanges;
   const dark = useDarkScheme();
   // `dark` als afhankelijkheid: bij een ander kleurschema de themakleuren opnieuw lezen
   const pal = useMemo(palette, [dark]);
@@ -769,8 +857,8 @@ function SensitivityView({ sens, print }: { sens: SensitivityState; print: boole
   const plotRef = useRef<uPlot | null>(null);
 
   const m = useMemo(() => gridModel(sens, ranges), [sens, ranges]);
-  const { connection, contractedKw, heatPumpShare } = input.grid;
-  const designLoadKw = input.building.designLoadKw;
+  const { connection, contractedKw, heatPumpShare } = frozen?.grid ?? input.grid;
+  const designLoadKw = frozen?.designLoadKw ?? input.building.designLoadKw;
   // het buffervolume telt hier niet mee: alleen de verticale markering hangt ervan af
   const chart = useMemo(
     () => chartData(m, { connection, contractedKw, heatPumpShare }, designLoadKw, ranges, pal),
@@ -831,6 +919,7 @@ function SensitivityView({ sens, print }: { sens: SensitivityState; print: boole
     [chart.extras, volume, pal.accent],
   );
   const xFormat = useCallback((v: number) => compact(v, 3), []);
+  const climate = useStore((st) => st.analysis?.climateShort);
 
   return (
     <>
@@ -848,20 +937,35 @@ function SensitivityView({ sens, print }: { sens: SensitivityState; print: boole
         scales={chart.scales}
         hooks={hooks}
         legendExtras={extras}
-        height={360}
+        height={print ? PRINT_CHART_HEIGHT : CHART_HEIGHT}
         onCursor={setHover}
         onClickX={pick}
         onReady={onReady}
         ariaLabel="Gevoeligheid: piek aan de meter per batterijgrootte (linker as) en benodigd warmtepompvermogen (rechter as) als functie van het buffervolume, met de budgetten van de standaardaansluitingen als horizontale lijnen"
         exportName="gevoeligheid"
+        exportTitle={`Gevoeligheid: piek aan de meter en benodigd WP-vermogen per buffervolume${climate ? ` — klimaatjaar ${climate}` : ''}`}
+        exportLabel="Gevoeligheid"
+        compactBelow={COMPACT_BELOW_PX}
       />
-      <Readout
-        m={m}
-        idx={hover}
-        kwhPerM3={kwhPerM3}
-        designLoadKw={designLoadKw}
-        netDigits={chart.netDigits}
-      />
+      {(chart.transitions.length > 0 || !print) && (
+        // de overgangen ook als tekst (op een smalle grafiek vallen labels bij de stippen weg); altijd één regel,
+        // zodat de hoogte niet verspringt als er een overgang bij komt of afvalt
+        <p className={css.transitions}>
+          <span className={css.transitionsHead}>Toereikend vanaf (stippen):</span>{' '}
+          {chart.transitions.length > 0
+            ? chart.transitions.map((t) => t.text).join(' · ')
+            : 'geen overgang van een standaardaansluiting binnen dit bereik.'}
+        </p>
+      )}
+      {!print && (
+        <Readout
+          m={m}
+          idx={hover}
+          kwhPerM3={kwhPerM3}
+          designLoadKw={designLoadKw}
+          netDigits={chart.netDigits}
+        />
+      )}
       {!print && (
         <PointsTable
           m={m}
@@ -876,42 +980,88 @@ function SensitivityView({ sens, print }: { sens: SensitivityState; print: boole
   );
 }
 
-/** `print`: printversie zonder klikhint, voortgang en tabel. */
+/** `print`: printversie zonder klikhint, voortgang, uitleesregel en tabel, en met een kortere toelichting. */
 export function SensitivityChart({ print = false }: { print?: boolean }) {
   const sens = useStore((st) => st.sensitivity);
   const ranges = useStore((st) => st.ranges);
+  const grid = useStore((st) => st.input.grid);
+  const designLoadKw = useStore((st) => st.input.building.designLoadKw);
+  const retry = useStore((st) => st.retry);
   const n = sens && sens.total > 0 ? sens.total : SENSITIVITY_VOLUME_FRACTIONS.length;
   const computed = sens ? sens.rows.filter((r) => r !== null && r !== undefined).length : 0;
+  const error = sens?.error ?? null;
   const done = !!sens && sens.done;
+  const busy = !!sens && !done;
+
+  // laatste volledige raster met de instellingen van toen: blijft (gedimd) staan tot de eerste nieuwe rij er is
+  const last = useRef<{ sens: SensitivityState; ctx: GridContext } | null>(null);
+  if (sens && done && !error && computed > 0 && computed === n && last.current?.sens !== sens) {
+    last.current = { sens, ctx: { grid: { ...grid }, designLoadKw, ranges } };
+  }
+  const stale = busy && computed === 0 && error === null && last.current !== null ? last.current : null;
+  const view: { sens: SensitivityState; frozen?: GridContext } | null =
+    sens && computed > 0 ? { sens } : stale ? { sens: stale.sens, frozen: stale.ctx } : null;
+  const height = print ? PRINT_CHART_HEIGHT : CHART_HEIGHT;
 
   return (
     <div className={`${css.box} ${css.chart}`}>
       <h3>Piek aan de meter en benodigd WP-vermogen per buffervolume</h3>
-      <p className={`${ui.hint} ${css.lead}`}>
-        Van links naar rechts neemt het buffervolume toe (tot {compact(ranges.bufferMaxM3)} m³): waar de
-        lijnen vlak worden (plateau) helpt meer buffer niet meer, en ligt een lijn onder een gestippelde lijn,
-        dan is die aansluiting toereikend — de stip markeert vanaf welk buffervolume. Met batterij ligt de
-        piek vaak precies op het budget van de huidige aansluiting, omdat de batterij de ruimte tot dat budget
-        gebruikt om bij te laden.
-      </p>
-      {!print && <p className={css.clickHint}>Klik in de grafiek om het buffervolume te kiezen.</p>}
-      {!done && !print && (
-        <div className={css.progress}>
-          <progress max={n} value={computed} aria-label="Voortgang gevoeligheidsberekening" />
-          <span>
-            {fmt(computed, 0)} van {fmt(n, 0)} buffervolumes berekend…
-          </span>
+      {print ? (
+        <p className={`${ui.hint} ${css.lead}`}>
+          Ligt een lijn onder een gestippelde lijn, dan is die aansluiting toereikend; de stip markeert vanaf
+          welk buffervolume (tot {compact(ranges.bufferMaxM3)} m³).
+        </p>
+      ) : (
+        <p className={`${ui.hint} ${css.lead}`}>
+          Van links naar rechts neemt het buffervolume toe (tot {compact(ranges.bufferMaxM3)} m³): waar de
+          lijnen vlak worden (plateau) helpt meer buffer niet meer, en ligt een lijn onder een gestippelde
+          lijn, dan is die aansluiting toereikend — de stip markeert vanaf welk buffervolume. Met batterij
+          ligt de piek vaak precies op het budget van de huidige aansluiting, omdat de batterij de ruimte tot
+          dat budget gebruikt om bij te laden.
+        </p>
+      )}
+      {!print && (
+        // vaste hoogte: de voortgang en de klikhint staan op dezelfde plek, dus niets verspringt
+        <div className={css.statusRow}>
+          <p className={`${css.clickHint} ${busy ? css.off : ''}`}>
+            Klik in de grafiek om het buffervolume te kiezen.
+          </p>
+          <div className={`${css.progress} ${busy ? '' : css.off}`}>
+            <progress max={n} value={computed} aria-label="Voortgang gevoeligheidsberekening" />
+            <span>
+              {stale ? 'Herberekenen: ' : ''}
+              {fmt(computed, 0)} van {fmt(n, 0)} buffervolumes berekend…
+            </span>
+          </div>
         </div>
       )}
-      {sens && computed > 0 ? (
-        <SensitivityView sens={sens} print={print} />
-      ) : (
-        <p className={css.placeholder}>
+      {error !== null && (
+        <p className={css.error} role="status">
+          {computed > 0
+            ? `De gevoeligheid is niet volledig berekend: ${error}. De grafiek toont de ${fmt(computed, 0)} van ${fmt(n, 0)} buffervolumes die wel klaar zijn.`
+            : `De gevoeligheid kon niet worden berekend: ${error}.`}
+          {!print && (
+            <>
+              {' '}
+              <button type="button" className={ui.btnLink} onClick={retry}>
+                Opnieuw proberen
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      {view ? (
+        // zelfde plek in de boom voor het vorige en het nieuwe raster: geen nieuwe grafiek, dus geen verspringen
+        <div className={view.frozen ? css.stale : undefined} aria-busy={view.frozen ? true : undefined}>
+          <SensitivityView sens={view.sens} print={print} frozen={view.frozen} />
+        </div>
+      ) : error === null ? (
+        <p className={css.placeholder} style={{ minHeight: height + 120 }}>
           De gevoeligheid wordt berekend: per buffervolume eerst het benodigde WP-vermogen, daarna per
           batterijgrootte de piek aan de meter en de kleinste passende aansluiting. De grafiek verschijnt
           zodra het eerste punt klaar is.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // Invoerelementen van het peakshaving-concept: getal + schuif met eigen schuifbereik en markeringen.
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { fmt } from '../../../../core/format';
+import { fmt, parseNum } from '../../../../core/format';
 import { Field } from '../../../../ui/fields';
 import u from '../../../../ui/ui.module.css';
 import p from '../peakshaving.module.css';
@@ -55,14 +55,15 @@ export function RangeField({
   const [draft, setDraft] = useState<string | null>(null);
   useEffect(() => setDraft(null), [value]);
   const clampV = (v: number): number => Math.min(Math.max(v, min), max);
+  // "1.234" (duizendtal), "1.5" (decimale punt) en "−5" (minteken zoals fmt() het toont) worden geaccepteerd;
+  // lege of ongeldige tekst zet de huidige waarde terug in plaats van 0 (en dus het minimum) te kiezen
   const commit = (txt: string): void => {
-    const v = Number(txt.replace(/\./g, '').replace(',', '.'));
-    const raw = Number(txt.replace(',', '.'));
+    const val = parseNum(txt);
     setDraft(null);
-    // "1.234" (duizendtal) en "1.5" (decimale punt) allebei accepteren
-    const val = Number.isFinite(raw) && !/^\d{1,3}(\.\d{3})+$/.test(txt.trim()) ? raw : v;
-    if (Number.isFinite(val)) onChange(clampV(val));
+    if (val !== null) onChange(clampV(val));
   };
+  const unitId = `${id}-unit`;
+  const valueText = unit ? `${fmt(value, dig)} ${unit}` : fmt(value, dig);
   const span = sliderMax - sliderMin;
   return (
     <Field label={label} info={info} htmlFor={id}>
@@ -74,6 +75,7 @@ export function RangeField({
           inputMode="decimal"
           disabled={disabled}
           value={draft ?? fmt(value, dig)}
+          aria-describedby={unit ? unitId : undefined}
           onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => draft !== null && commit(e.target.value)}
@@ -86,7 +88,11 @@ export function RangeField({
             }
           }}
         />
-        {unit && <span className={u.unit}>{unit}</span>}
+        {unit && (
+          <span className={u.unit} id={unitId}>
+            {unit}
+          </span>
+        )}
       </div>
       {!noSlider && (
         <div className={p.sliderWrap}>
@@ -98,8 +104,9 @@ export function RangeField({
             value={Math.min(Math.max(value, sliderMin), sliderMax)}
             disabled={disabled}
             aria-label={`${label} (schuif)`}
+            aria-valuetext={valueText}
             onChange={(e) => onChange(clampV(Number(e.target.value)))}
-            style={{ width: '100%', accentColor: 'var(--accent)', margin: 0 }}
+            className={p.slider}
           />
           {markers && markers.length > 0 && span > 0 && (
             <div className={p.markers} aria-hidden="true">

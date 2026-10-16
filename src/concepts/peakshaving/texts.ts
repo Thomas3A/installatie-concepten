@@ -169,7 +169,7 @@ export const COUNTERPART_PREFIX = {
   limited: 'Als de aansluiting begrenst',
 } as const;
 
-export const UNIT_HOURS_PER_YEAR = 'uren/jaar';
+export const UNIT_HOURS_PER_YEAR = 'uur/jaar';
 
 // ---------------------------------------------------------------------------------------------------------------
 // UI-teksten
@@ -200,7 +200,7 @@ export const BLOCK_TITLES = ['Gebouw', 'Aansluiting', 'Warmtepomp & afgifte', 'M
 export const HELP = {
   use: 'Schakelt de gebruiksschema’s en de standaardwaarden van alle invoer.',
   designLoad:
-    'Ontwerpwarmteverlies (transmissie + ventilatie) bij T_e = −10 °C en de ontwerpbinnentemperatuur, exclusief opwarmtoeslag (NEN-EN 12831). Dit is de eerste invoer; de bereiken van buffer, batterij en warmtepomp worden hiervan afgeleid.',
+    'Ontwerpwarmteverlies (transmissie + ventilatie) bij een buitentemperatuur van −10 °C en de ontwerpbinnentemperatuur, exclusief opwarmtoeslag (NEN-EN 12831). Dit is de eerste invoer; de bereiken van buffer, batterij en warmtepomp worden hiervan afgeleid.',
   designOutdoor: 'Ontwerpbuitentemperatuur volgens NEN-EN 12831 voor De Bilt.',
   designIndoor: 'Binnentemperatuur die hoort bij het ingevoerde piekvermogen.',
   setpointUse: 'Setpoint tijdens gebruik. Een woning is altijd "in gebruik".',
@@ -230,7 +230,8 @@ export const HELP = {
     'Stooklijn: LT 35/28 °C (vloerverwarming, klimaatplafond), MT 45/35 °C (LT-radiatoren), HT 55/45 °C (bestaande radiatoren); aanvoer/retour bij ontwerpcondities.',
   maxSupply:
     'Maximale aanvoertemperatuur van de warmtepomp; de buffer wordt geladen tot deze temperatuur − 2 K.',
-  carnot: 'Carnot-rendement: COP = η·T_aanvoer/(T_aanvoer − T_e)·f_ontdooi.',
+  carnot:
+    'Carnot-rendement η: COP = η · T aanvoer / (T aanvoer − T buiten) × ontdooifactor, met temperaturen in kelvin.',
   backup: 'Elektrisch bijstookelement met COP 1. Standaard uit.',
   sizing:
     'Automatisch: het kleinste vermogen (A7/W35) waarbij zonder elektrische begrenzing het comfort en het tapwater gehaald worden, in het gekozen klimaatjaar. Handmatig: zelf kiezen.',
@@ -264,7 +265,8 @@ export const EXPLAIN: ExplainSection[] = [
     title: '1. Wat de tool berekent',
     body: [
       'De tool simuleert uur voor uur een heel jaar (8760 uur, na een inregelweek): de warmtevraag van het gebouw, wat de lucht/water-warmtepomp daarvan direct kan leveren, wat het buffervat aanvult of opslaat, het tapwater in de boiler en wat de batterij aan de meterkant afschaaft.',
-      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven het WP-budget $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt.',
+      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven het WP-budget $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt. De tool telt dus de uren',
+      '$$\\begin{aligned} h_{overschr} &= \\#\\{\\, t : P_{net} > P_{limiet} \\,\\} \\\\ h_{comfort} &= \\#\\{\\, t \\in \\text{gebruik} : T_i < T_{set} - 0{,}5\\,\\mathrm{K} \\,\\} \\end{aligned}$$',
       'De modus *overschrijding tonen* laat de warmtepomp altijd leveren en telt de uren boven het budget; de modus *aansluiting begrenst* houdt het budget hard aan, zodat tekorten als comfortverlies zichtbaar worden. De KPI-kaarten tonen altijd beide gezichtspunten.',
     ],
   },
@@ -301,7 +303,7 @@ export const EXPLAIN: ExplainSection[] = [
     title: '5. Batterij',
     body: [
       'Van de bruto capaciteit is 90 % bruikbaar; het rendement is 90 % heen en terug ($\\sqrt{0{,}9} \\approx 0{,}949$ per richting). Het vermogen is standaard 0,5 C (een batterij van 10 kWh levert 5 kW).',
-      '$$P_{net} = P_{el} - P_{bat}, \\qquad P_{bat} = \\min(P_{el} - P_{limiet},\\ P_{bat,max},\\ SoC \\cdot \\eta)$$',
+      '$$\\begin{aligned} P_{net} &= P_{el} - P_{bat} \\\\ P_{bat} &= \\min(P_{el} - P_{limiet},\\ P_{bat,max},\\ SoC \\cdot \\eta) \\end{aligned}$$',
       'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de budgetlijn bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
     ],
   },
@@ -320,8 +322,8 @@ export const EXPLAIN: ExplainSection[] = [
     title: '7. Dimensioneren',
     body: [
       'Het benodigde WP-vermogen is het kleinste vermogen (A7/W35) waarbij, zonder elektrische begrenzing en zonder batterij, het comfort in het gekozen klimaatjaar gehaald wordt en er geen tapwatertekort is. Dat wordt gevonden met bisectie tussen 0,1 en 3 × het piekvermogen (14 stappen).',
-      '$$P_{th,min}(V) = \\min \\{ P : \\text{uren comfortverlies}(P, V) \\le \\text{toegestaan} \\}$$',
-      'De kleinste passende aansluiting is de eerste standaardaansluiting (zelfde aandeel) waarbij de uren overschrijding niet boven het toegestane aantal komen. De benodigde batterij is de kleinste capaciteit (0,5 C) die de overschrijding bij de huidige aansluiting op 0 uur brengt.',
+      '$$P_{th,min}(V) = \\min \\{ P : h_{comfort}(P, V) \\le h_{toegestaan} \\}$$',
+      'Hierin is $h_{comfort}$ het aantal uren comfortverlies (sectie 1) en $h_{toegestaan}$ het toegestane aantal (Aansluiting → Expert). De kleinste passende aansluiting is de eerste standaardaansluiting (zelfde aandeel) waarbij de uren overschrijding niet boven het toegestane aantal komen. De benodigde batterij is de kleinste capaciteit (0,5 C) die de overschrijding bij de huidige aansluiting op 0 uur brengt.',
       'De **gevoeligheidsgrafiek** zet beide samen uit tegen het buffervolume: de oranje lijn (benodigd WP-vermogen) daalt eerst snel en vlakt dan af; de lijnen per batterijgrootte tonen de piek aan de meter. Duikt een lijn onder de referentielijn van een aansluiting, dan is die aansluiting vanaf dat buffervolume toereikend.',
     ],
   },
@@ -339,7 +341,9 @@ export const EXPLAIN: ExplainSection[] = [
     id: 'beperkingen',
     title: '9. Beperkingen',
     body: [
-      'Het gebouw is één knoop zonder zonnewinsten (conservatief); het opwarmen gebeurt met een vaste opstooktijd. De warmtepompcapaciteit hangt alleen af van de buitentemperatuur; COP via Carnot met een vast rendement; geen cycling of minimale modulatie.',
+      'Het gebouw is één thermische knoop: één warmtebalans voor de hele binnentemperatuur, zonder onderscheid tussen ruimtes en zonder zonnewinsten (conservatief).',
+      '$$C\\,\\frac{dT_i}{dt} = Q_{geleverd} + G - UA\\,(T_i - T_{e,f})$$',
+      'Het opwarmen gebeurt met een vaste opstooktijd. De warmtepompcapaciteit hangt alleen af van de buitentemperatuur; COP via Carnot met een vast rendement; geen cycling of minimale modulatie.',
       'De buffer is een ideale opslag met vaste nuttige ΔT; de batterij is alleen voor de WP-groep, zonder degradatie of tariefsturing. Tapwater volgt een vast dagprofiel. Aansluitingen rekenen met cos φ = 1 en een volledig benut overig gebruik. De voorspellende laadregel kent het weer van de komende 24 uur.',
       'De uitkomsten zijn indicatief voor conceptkeuze. Productselectie gebeurt altijd met fabrikantdata (capaciteitstabellen, geluid, hydrauliek).',
     ],

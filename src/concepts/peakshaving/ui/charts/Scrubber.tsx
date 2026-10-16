@@ -94,8 +94,8 @@ export function Scrubber() {
           type="button"
           className={`${u.btn} ${u.btnSmall} ${s.playBtn}`}
           onClick={togglePlay}
-          aria-pressed={playing}
-          aria-label={playing ? 'Pauze' : 'Speel af'}
+          // de naam (zichtbare tekst) wisselt tussen "Speel af" en "Pauze"; daarom geen aria-pressed erbij,
+          // anders klinkt de toestand dubbel ("Pauze, ingedrukt")
           title={playing ? 'Afspelen pauzeren' : 'Speel de koude week af, één uur per 0,15 s'}
         >
           <span className={s.icon} aria-hidden="true">

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { fmt } from '../core/format';
+import { fmt, parseNum } from '../core/format';
 import s from './ui.module.css';
 
 export function InfoIcon({ text, label }: { text: string; label: string }) {
@@ -76,10 +76,11 @@ export function NumField({
   const dig = digits ?? (step < 1 ? (step < 0.1 ? 2 : 1) : 0);
   const [draft, setDraft] = useState<string | null>(null);
   useEffect(() => setDraft(null), [value]);
+  // lege of ongeldige tekst: terug naar de huidige waarde (niet stilzwijgend 0 of het minimum)
   const commit = (txt: string): void => {
-    const v = Number(txt.replace(',', '.'));
+    const v = parseNum(txt);
     setDraft(null);
-    if (Number.isFinite(v)) onChange(Math.min(Math.max(v, min), max));
+    if (v !== null) onChange(Math.min(Math.max(v, min), max));
   };
   return (
     <Field label={label} info={info} htmlFor={id}>
@@ -92,6 +93,7 @@ export function NumField({
           disabled={disabled}
           value={draft ?? fmt(value, dig)}
           aria-label={label}
+          aria-describedby={unit ? `${id}-unit` : undefined}
           onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => draft !== null && commit(e.target.value)}
@@ -104,7 +106,11 @@ export function NumField({
             }
           }}
         />
-        {unit && <span className={s.unit}>{unit}</span>}
+        {unit && (
+          <span className={s.unit} id={`${id}-unit`}>
+            {unit}
+          </span>
+        )}
       </div>
       <input
         type="range"
@@ -114,6 +120,7 @@ export function NumField({
         value={value}
         disabled={disabled}
         aria-label={`${label} (schuif)`}
+        aria-valuetext={unit ? `${fmt(value, dig)} ${unit}` : fmt(value, dig)}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{ width: '100%', accentColor: 'var(--accent)' }}
       />
@@ -138,10 +145,11 @@ export function NumInput({
   const dig = digits ?? (step < 1 ? (step < 0.1 ? 2 : 1) : 0);
   const [draft, setDraft] = useState<string | null>(null);
   useEffect(() => setDraft(null), [value]);
+  // lege of ongeldige tekst: terug naar de huidige waarde (niet stilzwijgend 0 of het minimum)
   const commit = (txt: string): void => {
-    const v = Number(txt.replace(',', '.'));
+    const v = parseNum(txt);
     setDraft(null);
-    if (Number.isFinite(v)) onChange(Math.min(Math.max(v, min), max));
+    if (v !== null) onChange(Math.min(Math.max(v, min), max));
   };
   return (
     <Field label={label} info={info} htmlFor={id}>
@@ -153,12 +161,17 @@ export function NumInput({
           inputMode="decimal"
           disabled={disabled}
           value={draft ?? fmt(value, dig)}
+          aria-describedby={unit ? `${id}-unit` : undefined}
           onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => draft !== null && commit(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && commit((e.target as HTMLInputElement).value)}
         />
-        {unit && <span className={s.unit}>{unit}</span>}
+        {unit && (
+          <span className={s.unit} id={`${id}-unit`}>
+            {unit}
+          </span>
+        )}
       </div>
     </Field>
   );

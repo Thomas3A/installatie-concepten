@@ -3,6 +3,7 @@ import { fmt } from '../../../../core/format';
 import { climateShortName } from '../../model/climate';
 import { useStore } from '../../store';
 import { MODE_LABELS } from '../../texts';
+import { ScrollRegion } from '../../../../ui/ScrollRegion';
 import u from '../../../../ui/ui.module.css';
 import p from '../peakshaving.module.css';
 
@@ -16,20 +17,22 @@ export function RobustnessTable({ open = false }: { open?: boolean }) {
       <div className={u.accBody}>
         <p className={u.hint} style={{ margin: 0 }}>
           WP-vermogen vast op {fmt(analysis.nominalKw, 1)} kW (A7/W35). Piek aan de meter, SCOP en
-          elektriciteit in de gekozen modus ({MODE_LABELS[analysis.main.mode]}); uren overschrijding zonder
-          begrenzer en uren comfortverlies als de aansluiting begrenst.
+          elektriciteit in de gekozen modus ({MODE_LABELS[analysis.main.mode]}). <em>Overschrijding</em>: uren
+          boven het WP-budget zonder begrenzer. <em>Comfortverlies</em>: uren meer dan 0,5 K onder het
+          setpoint als de aansluiting begrenst.
         </p>
-        <div className={u.tableWrap}>
-          <table className={u.table}>
+        <ScrollRegion className={`${u.tableWrap} ${p.robustWrap}`} label="Robuustheid per klimaatjaar">
+          {/* koppen met zachte afbreekstreepjes (\u00ad): ze breken af in plaats van de tabel te verbreden */}
+          <table className={`${u.table} ${p.robustTable}`}>
             <thead>
               <tr>
                 <th scope="col">Klimaatjaar</th>
-                <th scope="col">Piek warmtevraag [kW]</th>
+                <th scope="col">Piek warmte{'\u00ad'}vraag [kW]</th>
                 <th scope="col">Piek aan de meter [kW]</th>
-                <th scope="col">Uren overschrijding (zonder begrenzer)</th>
-                <th scope="col">Uren comfortverlies (bij begrenzen)</th>
+                <th scope="col">Over{'\u00ad'}schrijding [uur/jaar]</th>
+                <th scope="col">Comfort{'\u00ad'}verlies [uur/jaar]</th>
                 <th scope="col">SCOP</th>
-                <th scope="col">Elektriciteit [kWh/jaar]</th>
+                <th scope="col">Elektri{'\u00ad'}citeit [kWh/jaar]</th>
               </tr>
             </thead>
             <tbody>
@@ -49,7 +52,7 @@ export function RobustnessTable({ open = false }: { open?: boolean }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </div>
     </details>
   );

@@ -9,8 +9,20 @@
 .lead {
   margin: 0 0 4px;
 }
-.clickHint {
+/* klikhint en voortgang op dezelfde plek (gestapeld); de hoogte is die van de hoogste, dus vast */
+.statusRow {
+  display: grid;
   margin: 0 0 6px;
+}
+.statusRow > * {
+  grid-area: 1 / 1;
+  align-self: center;
+}
+.off {
+  visibility: hidden;
+}
+.clickHint {
+  margin: 0;
   font-size: 0.78rem;
   color: var(--text-2);
 }
@@ -19,7 +31,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 0.8rem;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
@@ -30,8 +42,36 @@
   accent-color: var(--accent);
 }
 .placeholder {
+  box-sizing: border-box;
+  margin: 0;
   color: var(--text-2);
   padding: 24px 4px;
+}
+/* vorig raster tijdens een herberekening: gedimd en niet klikbaar */
+.stale {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.error {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--err);
+  background: var(--surface-2);
+  font-size: 0.82rem;
+  color: var(--text);
+}
+/* overgangen (stippen) als tekst onder de grafiek */
+.transitions {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.transitionsHead {
+  color: var(--text);
+  font-weight: 600;
 }
 /* klikken in de grafiek kiest het buffervolume */
 .chart :global(.u-over) {

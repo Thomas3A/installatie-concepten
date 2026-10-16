@@ -1,8 +1,9 @@
 // Tabblad Concept (spec §8): schematische, live weergave van het concept in het uur dat met de scrubber is gekozen
 // (standaard het uur met de hoogste piek aan de meter in de koude week). Net, meterkast, batterij, buitenunit,
 // boiler, buffervat en gebouw met bewegende deeltjes op leidingen en kabels; de scrubber staat eronder.
-import { useEffect, useId, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { fmt } from '../../../../core/format';
+import { scrollRegionProps, useOverflowX } from '../../../../ui/ScrollRegion';
 import type { Analysis } from '../../model/analysis';
 import { formatHour } from '../../model/climate';
 import { useSelectedHour, useStore } from '../../store';
@@ -111,6 +112,9 @@ function summaryText(a: Analysis, h: HourState): string {
 function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const ids = useMemo(() => ({ buffer: `cg${uid}-buffer`, boiler: `cg${uid}-boiler` }), [uid]);
+  // smaller dan de minimale breedte van het schema scrolt de figuur: dan focusbaar en benoemd (toetsenbord)
+  const [figEl, setFigEl] = useState<HTMLElement | null>(null);
+  const figScrolls = useOverflowX(figEl);
 
   // alles wat alleen van de analyse afhangt: posities, paden, schaal, referenties en de vaste tekening
   const fixed = useMemo(() => {
@@ -210,7 +214,11 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
   const label = summaryLabel(analysis, h);
 
   return (
-    <figure className={c.figure}>
+    <figure
+      ref={setFigEl}
+      className={c.figure}
+      {...scrollRegionProps(figScrolls, 'Conceptschema (horizontaal scrollbaar)')}
+    >
       <svg
         className={c.svg}
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}

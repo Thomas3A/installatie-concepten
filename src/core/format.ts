@@ -11,10 +11,34 @@ function nf(digits: number): Intl.NumberFormat {
   return f;
 }
 
-/** Formatteer een getal met vaste decimalen; niet-eindige waarden worden "–". */
+/** Het typografische minteken (U+2212), zoals in de vaste teksten ("bij −10 °C"). */
+export const MINUS = '−';
+
+/**
+ * Formatteer een getal met vaste decimalen; niet-eindige waarden worden "–".
+ * Negatieve getallen krijgen een echt minteken (−) in plaats van het koppelteken; een waarde die op nul
+ * afrondt ("-0,0") verliest haar teken.
+ */
 export function fmt(x: number | null | undefined, digits = 1): string {
   if (x === null || x === undefined || !Number.isFinite(x)) return '–';
-  return nf(digits).format(x);
+  const s = nf(digits).format(x);
+  if (s.charAt(0) !== '-') return s;
+  return /^-[0.,]+$/.test(s) ? s.slice(1) : MINUS + s.slice(1);
+}
+
+/**
+ * Lees een getal zoals de gebruiker het typt of zoals fmt() het toont. Komma of punt als decimaalteken,
+ * punt als duizendtalscheiding ("1.234" en "1.234,5"), − (U+2212), – of - als minteken.
+ * Lege of ongeldige tekst geeft null (dan blijft de oude waarde staan).
+ */
+export function parseNum(txt: string): number | null {
+  let t = txt.replace(/\s/g, '').replace(/[−–]/g, '-');
+  if (t === '') return null;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^[-+]?[1-9]\d{0,2}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(t)) return null;
+  const v = Number(t);
+  return Number.isFinite(v) ? v : null;
 }
 
 export const m3sToLh = (q: number): number => q * 3.6e6;

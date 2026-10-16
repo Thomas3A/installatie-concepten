@@ -169,6 +169,9 @@
   color: var(--text-2);
   font-size: 0.85rem;
   min-width: 2.2em;
+  /* de eenheid krimpt niet: het invoerveld ernaast geeft ruimte */
+  flex: none;
+  white-space: nowrap;
 }
 .infoBtn {
   appearance: none;
@@ -184,6 +187,15 @@
   cursor: pointer;
   font-style: italic;
   font-family: Georgia, serif;
+  position: relative;
+  flex: none;
+}
+/* onzichtbaar raakvlak van 24 × 24 px rond het rondje van 16 px (WCAG 2.5.8) */
+.infoBtn::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
 }
 .infoText {
   font-size: 0.82rem;
@@ -212,6 +224,16 @@
 .seg button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-contrast);
+}
+/* focusring binnen de knop: de groep knipt met overflow: hidden alles wat erbuiten valt af */
+.seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+  position: relative;
+  z-index: 1;
+}
+.seg button[aria-pressed='true']:focus-visible {
+  outline-color: var(--accent-contrast);
 }
 .check {
   display: flex;
