@@ -13,6 +13,8 @@ import { createEngine, type EngineResponse } from '../../src/concepts/peakshavin
 import { normalizeInput } from '../../src/concepts/peakshaving/model/input';
 import { SCENARIOS } from '../../src/concepts/peakshaving/scenarios';
 import { decodeInput, encodeInput, shareUrl } from '../../src/concepts/peakshaving/share';
+import { defaultScrubHour } from '../../src/concepts/peakshaving/store';
+import { COLD_WEEK_HOURS } from '../../src/concepts/peakshaving/model/climate';
 import { REAL_JSON, REF_JSON, realYear, refYear } from './helpers';
 
 describe('registry', () => {
@@ -172,4 +174,23 @@ describe('rekenmotor (Web Worker-protocol)', () => {
     expect(rows.filter((id) => id === 2)).toHaveLength(13);
     expect(rows.filter((id) => id === 1).length).toBeLessThan(13);
   }, 60000);
+});
+
+describe('standaarduur van scrubber en conceptschema (spec §8)', () => {
+  it('ligt in de koude week zelf en is het uur van max P_net (bij gelijkstand de hoogste P_el)', () => {
+    for (const id of ['woning-basis', 'kantoor-buffer-batterij']) {
+      const input = SCENARIOS.find((s) => s.id === id)!.build();
+      const a = analyze(input, refYear('T5'), { robustnessYears: [refYear('T5')] });
+      const h = defaultScrubHour(a);
+      const { start } = a.coldWeek;
+      expect(h).toBeGreaterThanOrEqual(start);
+      expect(h).toBeLessThan(start + COLD_WEEK_HOURS);
+      const g = a.main.series.pGrid;
+      for (let t = start; t < start + COLD_WEEK_HOURS; t++) {
+        expect(g[t]).toBeLessThanOrEqual(g[h] + 1e-9);
+        if (Math.abs(g[t] - g[h]) <= 1e-9)
+          expect(a.main.series.pElectric[t]).toBeLessThanOrEqual(a.main.series.pElectric[h]);
+      }
+    }
+  });
 });

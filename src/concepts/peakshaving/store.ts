@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { defaultInput } from './data/defaults';
 import { createEngineClient, type EngineClient } from './engineClient';
 import { sensitivityKey, type Analysis } from './model/analysis';
+import { COLD_WEEK_HOURS } from './model/climate';
 import type { EngineResponse } from './model/engine';
 import { normalizeInput, rangesOf, switchUse, withDesignLoad } from './model/input';
 import type { Ranges } from './model/ranges';
@@ -194,11 +195,22 @@ export function startEngine(): void {
   if (!useStore.getState().analysis) computeNow();
 }
 
-/** Standaarduur van de scrubber: het uur van max P_net in de koude week. */
+/**
+ * Standaarduur van de scrubber en het conceptschema: het uur van max P_net in de koude week zelf (168 uur, spec §8);
+ * bij gelijke P_net (bijv. een batterij die op het budget afschaaft) het uur met de hoogste P_el.
+ */
 export function defaultScrubHour(a: Analysis): number {
-  const s = a.main.series.pGrid;
-  let best = a.coldWeek.from;
-  for (let t = a.coldWeek.from; t < a.coldWeek.to; t++) if (s[t] > s[best]) best = t;
+  const { pGrid, pElectric } = a.main.series;
+  const from = a.coldWeek.start;
+  const to = Math.min(from + COLD_WEEK_HOURS, pGrid.length);
+  let best = from;
+  for (let t = from; t < to; t++) {
+    if (
+      pGrid[t] > pGrid[best] + 1e-9 ||
+      (Math.abs(pGrid[t] - pGrid[best]) <= 1e-9 && pElectric[t] > pElectric[best])
+    )
+      best = t;
+  }
   return best;
 }
 

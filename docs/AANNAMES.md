@@ -123,7 +123,7 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 8. **Klimaat:** reconstructie van de NEN 5060:2018-referentiejaren uit KNMI De Bilt-uurdata (maandkeuze op basis van de
    gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); het jaar begint op maandag; tijd in MET zonder
    zomertijd; schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering. Herkomst: `docs/klimaat/README.md`.
-9. **Perfecte voorspelling** bij de laadstrategie *voorspellend* (de simulatie kent het weer van de komende 24 uur).
+9. **Perfecte voorspelling** bij de laadstrategie _voorspellend_ (de simulatie kent het weer van de komende 24 uur).
 10. Rekenresultaten zijn **indicatief** voor conceptkeuze; productselectie altijd met fabrikantdata (capaciteitstabellen,
     geluid, hydrauliek).
 
@@ -220,3 +220,24 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   overschrijdingsuren) niet groter is; de stip staat op het eerste buffervolume V > 0 vanaf waar dat zo blijft, alleen voor
   aansluitingen die bij V = 0 nog niet toereikend waren. Klikken zet het buffervolume (afgerond op de schuifstap); in de
   tabel is per punt een knop "kies" als toetsenbordalternatief.
+
+### Conceptschema (tab Concept)
+
+- **Gekozen uur:** standaard het uur met de hoogste P_net in de koude week zelf (168 uur); bij gelijke P_net (een
+  batterij die precies op het budget afschaaft) het uur met de hoogste P_el. Scrubber en schema gebruiken hetzelfde uur.
+- **Meterkastbalk** is gestapeld: links het overige gebruik (grijs, (1 − aandeel)·P_aansluiting), daarna de WP-groep, zodat
+  het WP-budget precies op het einde van de aansluiting eindigt. Een overschrijding (rood, P_net − P_limiet) steekt buiten
+  de balk uit. Bij ontladen loopt blauw tot P_net en een smaller groen deel van P_net tot P_el; bij laden loopt blauw tot
+  P_el en oranje van P_el tot P_net. Is het overige gebruik groter dan 2 × het bereik van de WP-groep in het venster, dan
+  wordt het ingekort (25 % van de balk, met breukteken); de WP-groep blijft lineair.
+- **Buffervat en boiler** worden gelaagd getekend: warm water bovenin tot de laadtoestand, met een korte spronglaag,
+  daaronder water op retourtemperatuur.
+- **Kleur van de buitenunit:** interpolatie tussen koud en warm op de aanvoertemperatuur van de stooklijn (25–55 °C);
+  stilstaande compressor = neutraal grijs. Boiler- en bufferladen staan als extra regel met hun laadtemperatuur.
+- **COP in het schema:** Q_wp / P_el,WP als de compressor draait (ook bij boiler- en bufferbedrijf); anders "COP –".
+- **Waterzijdig schema:** boiler en buffervat parallel tussen aanvoer- en retourverzamelleiding (buitenunit → boiler →
+  buffer → gebouw); het bijstookelement in de aanvoer in het gebouw, alleen getekend als het is ingesteld.
+- **Stromen:** de deeltjessnelheid is evenredig met het thermische (leidingen) of elektrische (kabels) vermogen,
+  genormaliseerd op het grootste vermogen in het venster; onder 0,005 kW staat een stroom stil. De ventilator draait in
+  vijf snelheden naar Q_wp. Bij bewegingsarme weergave en bij afdrukken beweegt niets en tonen pijltjes de richting.
+- Onder ongeveer 620 px breedte scrolt het schema binnen zijn kader; de pagina zelf scrolt niet horizontaal.

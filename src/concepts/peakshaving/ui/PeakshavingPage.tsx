@@ -21,6 +21,7 @@ import { RobustnessTable } from './results/RobustnessTable';
 import { ColdWeekCharts } from './charts/ColdWeekCharts';
 import { SensitivityChart } from './charts/SensitivityChart';
 import { YearCharts } from './charts/YearCharts';
+import { ConceptDiagram } from './concept/ConceptDiagram';
 import p from './peakshaving.module.css';
 
 const TABS = Object.keys(TAB_LABELS) as TabId[];
@@ -193,9 +194,8 @@ export default function PeakshavingPage() {
               {tab === 'koude-week' && <ColdWeekCharts />}
               {tab === 'jaar' && <YearCharts />}
               {tab === 'gevoeligheid' && <SensitivityChart />}
-              {(tab === 'concept' || tab === 'uitleg') && (
-                <p className={p.placeholder}>Dit tabblad volgt in een volgende fase.</p>
-              )}
+              {tab === 'concept' && <ConceptDiagram />}
+              {tab === 'uitleg' && <p className={p.placeholder}>Dit tabblad volgt in de volgende fase.</p>}
             </div>
           </section>
         </main>
