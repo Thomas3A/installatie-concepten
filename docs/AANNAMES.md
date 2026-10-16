@@ -95,3 +95,86 @@ niet als vervanging van de productberekening van de fabrikant.
   (stap 0,05 K, lineair geïnterpoleerd) gehaald; de afwijking t.o.v. de formules is < 1e-6 relatief.
 - Het ontwerpdebiet wordt met een regula falsi (Illinois-variant) in log-ruimte bepaald in plaats van 60 bisectiestappen; de wortel is
   dezelfde, de rekentijd ~10× korter.
+
+---
+
+# Concept 2: peakshaving
+
+Het rekenmodel staat in `docs/SPEC-peakshaving.md` §5; de Python-referentie `tools/peakshaving_ref/peakshaving_ref.py` is
+normatief. De TypeScript-port reproduceert de referentiewaarden binnen de toleranties van spec §9 (in de praktijk
+vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op 3 decimalen).
+
+## Aannames uit de specificatie (§12)
+
+1. **Gebouw** als één thermische knoop (1R1C) met tijdconstante τ; gevelmassa benaderd met een eerste-orde filter op de
+   buitentemperatuur (standaard 2 h). Geen aparte zones, geen zonnewinsten (conservatief), interne winsten constant via de
+   stookgrens.
+2. **Opwarmen** begrensd op opwarmfactor × piekvermogen (orde van de opwarmtoeslag van NEN-EN 12831); geen
+   optimum-start-regeling, maar een vaste opstooktijd.
+3. **Warmtepompcapaciteit** alleen afhankelijk van de buitentemperatuur (niet van de aanvoertemperatuur); COP via Carnot
+   met vast rendement en ontdooifactor; geen cycling, geen minimale modulatie, geen deellastbonus.
+4. **Buffer** als ideale energieopslag met vaste nuttige ΔT (laadtemperatuur − ontwerpretour) en stratificatiefactor 0,9;
+   stilstandsverlies met UA ∝ V^(2/3); ontladen hydraulisch onbegrensd.
+5. **Batterij** exclusief voor de WP-groep; gretig laden onder de budgetlijn; geen degradatie, geen stilstandsverlies, geen
+   tariefsturing.
+6. **Tapwater** via een boiler met hysterese 50 %/100 %, boiler op 55 °C, 85 % nuttig; vast dagprofiel; geen
+   legionellaprogramma.
+7. **Aansluitingen** met cos φ = 1; overig gebruik op het piekmoment volledig benut; geen gelijktijdigheidsfactor.
+8. **Klimaat:** reconstructie van de NEN 5060:2018-referentiejaren uit KNMI De Bilt-uurdata (maandkeuze op basis van de
+   gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); het jaar begint op maandag; tijd in MET zonder
+   zomertijd; schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering. Herkomst: `docs/klimaat/README.md`.
+9. **Perfecte voorspelling** bij de laadstrategie *voorspellend* (de simulatie kent het weer van de komende 24 uur).
+10. Rekenresultaten zijn **indicatief** voor conceptkeuze; productselectie altijd met fabrikantdata (capaciteitstabellen,
+    geluid, hydrauliek).
+
+## Aanvullende aannames en interpretaties (niet in de specificatie)
+
+### Rekenmodel en invoer
+
+- **Eenheden:** dit concept rekent intern in kW, kWh, °C/K en uren (spec §0.1), anders dan het klimaatplafond (SI).
+- **Invoer begrenzen:** ongeldige waarden worden begrensd, niet geweigerd. Aanvullend: het verlaagde setpoint en de
+  stookgrens liggen nooit boven het gebruikssetpoint (anders negatieve interne winsten of "opstoken" naar een lager
+  setpoint); gebruikstijden en opstooktijd zijn hele uren, met minimaal één gebruiksuur; de boilertemperatuur is begrensd
+  op de maximale WP-aanvoer; een handmatig batterijvermogen is begrensd op 0,2–2 C en vervalt (terug naar 0,5 C) als de
+  capaciteit 0 is.
+- **Piekvermogen wijzigen** (spec §3.5): buffer, batterij én een handmatig WP-vermogen schalen proportioneel mee met het
+  (eerst begrensde) nieuwe piekvermogen; daarna worden ze begrensd op de nieuwe bereiken.
+- **Vroegtijdig stoppen in bisecties:** bij het dimensioneren, de kleinste aansluiting en de benodigde batterij stopt een
+  simulatie zodra de teller (comfortverlies, tapwatertekort, overschrijding) boven de drempel komt. De uitkomst van de toets
+  "teller ≤ drempel" is daardoor identiek aan een volledige simulatie, maar de rekentijd is veel korter.
+- **Grootverbruik als advies:** past geen standaardaansluiting, dan is het advies grootverbruik met
+  ceil(P_net,max / aandeel / 5)·5 kW, met P_net,max uit de simulatie bij de grootste standaardaansluiting (3×80 A, zelfde
+  aandeel). Dat is een veilige bovengrens; het advies kan één stap van 5 kW boven het strikt benodigde vermogen liggen.
+- **Benodigde batterij voor 0 uur:** is er zonder batterij al geen overschrijding, dan is het advies 0 kWh (geen bisectie).
+  Zonder eindig budget wordt geen batterijadvies berekend. De bisectie gebruikt altijd 0,5 C.
+- **"Zonder maatregelen"** (KPI-kaarten en advies): buffer 0, batterij 0 en een warmtepomp gedimensioneerd zonder buffer
+  (P_th,min(0)), ook als de gebruiker het WP-vermogen handmatig kiest; in de modus "overschrijding tonen".
+- **Niet te dimensioneren:** volstaat 3 × het piekvermogen niet, dan rekent de tool bij automatische dimensionering verder
+  met 3 × het piekvermogen en toont de rode melding. Let op: bij een kleine woning met tapwater kan dat al optreden
+  (tijdens het boilerladen heeft tapwater voorrang), net als bij een opwarmfactor 0 met nachtverlaging.
+- **Tegenhanger in de andere modus** (spec §5.8): de kaarten "Piek aan de meter", "Uren overschrijding" en "Comfort bij
+  begrenzen" tonen de gekozen modus én, als secundaire regel, de waarde in de andere modus. "Comfort bij begrenzen" komt
+  per definitie uit de modus "aansluiting begrenst". In die modus noemt het advies het comfortverlies in plaats van de
+  uren overschrijding (die zijn dan per definitie 0).
+- **Batterijverlies:** Σ P_bat,in − Σ P_bat,out, gecorrigeerd voor het verschil in lading tussen begin en eind van het jaar
+  (de batterij begint vol); zo is het verlies nooit negatief.
+- **Robuustheidstabel:** per klimaatjaar twee simulaties met het WP-vermogen vast op de huidige waarde: de uren
+  overschrijding komen uit de modus "overschrijding tonen", de uren comfortverlies uit "aansluiting begrenst"; piek aan de
+  meter, SCOP en elektriciteit uit de gekozen modus. Is een werkelijk jaar gekozen, dan komt dat als vierde rij erbij.
+
+### Meldingen (spec §6.4)
+
+- **Buffer helpt niet verder:** een verdubbeling van het buffervolume levert minder dan 2 % kleiner WP-vermogen op én
+  minder dan een kwart van de winst van het eerste volume (dat sluit kleine buffers uit, waar het effect nog lineair is);
+  of de buffer is minstens half V_max en geeft minder dan 2 % winst ten opzichte van geen buffer.
+- **De koudste periode** in de uitleg is de langste reeks aaneengesloten dagen met een daggemiddelde onder 0 °C die de
+  koude week raakt; is die korter dan 2 dagen, dan de koude week zelf (7 dagen).
+- **Koudegolf bepaalt de maat:** bij 99 % van P_th,min valt minstens de helft van de uren met comfortverlies of
+  tapwatertekort in de koude week (168 uur, zonder de marge van de grafieken).
+- **Batterij raakt leeg / batterijvermogen begrenst:** beoordeeld in de modus "overschrijding tonen" (in "aansluiting
+  begrenst" ligt P_net per definitie onder het budget), alleen met een batterij; "leeg" = lading < 0,001 Wh.
+- **Tapwater veroorzaakt de piek / bijstook bepaalt de aansluiting:** het uur van de hoogste P_el respectievelijk P_net in
+  de modus "overschrijding tonen", omdat in "aansluiting begrenst" veel uren precies op het budget liggen.
+- **Comfortverlies bij begrenzen:** rood als het aantal uren meer dan 24 boven het toegestane aantal ligt, anders oranje.
+- **Kleine ΔT buffer** wordt ook getoond zonder buffer (het is een ontwerpadvies over de afgiftetemperatuur).
+- **Opstookpiek kantoor** alleen bij een opwarmfactor > 0.

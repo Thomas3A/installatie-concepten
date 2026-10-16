@@ -2,3 +2,9 @@ dist
 node_modules
 package-lock.json
 docs/SPEC.md
+docs/SPEC-peakshaving.md
+docs/klimaat
+tools
+scripts
+src/concepts/peakshaving/data/*.json
+tests/peakshaving/fixtures
