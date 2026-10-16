@@ -4,7 +4,7 @@ import { PICVS, picvSpec, picvsForDn, type Dn } from '../data/valves';
 import { DIST_PIPES } from '../data/pipes';
 import { FIELD_INFO } from '../texts';
 import { useStore } from '../store';
-import { CheckField, NumField, NumInput, SegField, SelectField } from './fields';
+import { CheckField, NumField, NumInput, SegField, SelectField } from '../../../ui/fields';
 import { StrandEditor } from './StrandEditor';
 import s from './ui.module.css';
 

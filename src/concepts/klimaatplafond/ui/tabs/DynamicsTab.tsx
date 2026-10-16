@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { fmtClock } from '../../../../core/format';
 import { live, useStore } from '../../store';
 import type { LogEntry } from '../../model/simulation';
-import { UPlotChart, type ChartSeries } from '../charts/UPlotChart';
+import { UPlotChart, type ChartSeries } from '../../../../ui/charts/UPlotChart';
 import s from '../ui.module.css';
 
 const ZONE_COLORS = ['#0f766e', '#7c3aed', '#b45309'];

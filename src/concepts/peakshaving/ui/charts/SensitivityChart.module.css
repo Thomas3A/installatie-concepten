@@ -1,0 +1,155 @@
+/* Tabblad Gevoeligheid: kerngrafiek met voortgang, uitleesregel en inklapbare tabel. */
+.box {
+  min-width: 0;
+}
+.box h3 {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+}
+.lead {
+  margin: 0 0 4px;
+}
+/* klikhint en voortgang op dezelfde plek (gestapeld); de hoogte is die van de hoogste, dus vast */
+.statusRow {
+  display: grid;
+  margin: 0 0 6px;
+}
+.statusRow > * {
+  grid-area: 1 / 1;
+  align-self: center;
+}
+.off {
+  visibility: hidden;
+}
+.clickHint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.progress progress {
+  width: min(260px, 100%);
+  height: 10px;
+  accent-color: var(--accent);
+}
+.placeholder {
+  box-sizing: border-box;
+  margin: 0;
+  color: var(--text-2);
+  padding: 24px 4px;
+}
+/* vorig raster tijdens een herberekening: gedimd en niet klikbaar */
+.stale {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.error {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--err);
+  background: var(--surface-2);
+  font-size: 0.82rem;
+  color: var(--text);
+}
+/* overgangen (stippen) als tekst onder de grafiek */
+.transitions {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.transitionsHead {
+  color: var(--text);
+  font-weight: 600;
+}
+/* klikken in de grafiek kiest het buffervolume */
+.chart :global(.u-over) {
+  cursor: pointer;
+}
+/* lange legenda-items mogen afbreken op smalle schermen */
+.chart [role='group'] > span {
+  white-space: normal;
+}
+/* uitleesregel onder de grafiek: vaste minimale hoogte, dus geen verspringen bij hoveren */
+.readout {
+  min-height: 4.4em;
+  margin: 6px 0 4px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.readout strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.tableAcc {
+  margin-top: 6px;
+}
+.tableAcc > summary {
+  font-size: 0.9rem;
+}
+.caption {
+  caption-side: bottom;
+  text-align: left;
+  padding-top: 6px;
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.table th {
+  vertical-align: bottom;
+}
+.table .subHead th:first-child {
+  /* de eerste kolom is al vastgezet door de kopcel met rowspan in de eerste rij */
+  position: static;
+  text-align: right;
+  background: var(--surface-2);
+}
+.groupHead {
+  text-align: center !important;
+}
+.currentRow td {
+  font-weight: 650;
+}
+.currentRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.volCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pick {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.pick:hover {
+  background: var(--surface-2);
+}
+.pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.pending {
+  color: var(--text-2);
+}

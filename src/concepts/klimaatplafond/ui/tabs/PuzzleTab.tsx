@@ -7,7 +7,7 @@ import { MODES, type Candidate, type Design, type ValveDesign } from '../../mode
 import { strandDp, strandThermal } from '../../model/strand';
 import { solveZoneCoupled } from '../../model/zoneHydraulics';
 import { useStore } from '../../store';
-import { UPlotChart } from '../charts/UPlotChart';
+import { UPlotChart } from '../../../../ui/charts/UPlotChart';
 import s from '../ui.module.css';
 
 const MODE_LABEL: Record<Mode, string> = { koelen: 'Koelen', verwarmen: 'Verwarmen' };

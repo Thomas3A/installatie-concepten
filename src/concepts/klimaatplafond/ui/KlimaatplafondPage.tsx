@@ -27,7 +27,7 @@ function ScenarioCard() {
   const sc = SCENARIOS.find((x) => x.id === id);
   if (!sc) return null;
   return (
-    <aside className={`${s.card} ${s.scenario} noPrint`} aria-label="Scenario">
+    <section className={`${s.card} ${s.scenario} noPrint`} aria-label="Scenario">
       <h2 style={{ marginBottom: 6 }}>{sc.name}</h2>
       <dl>
         <div>
@@ -39,7 +39,7 @@ function ScenarioCard() {
           <dd>{sc.probeer}</dd>
         </div>
       </dl>
-    </aside>
+    </section>
   );
 }
 
@@ -129,7 +129,7 @@ export default function KlimaatplafondPage() {
   };
 
   return (
-    <div className={s.page}>
+    <main className={s.page}>
       <div className={`${s.topbar} noPrint`}>
         <div>
           <h1>Klimaatplafond met 6-weg-klep</h1>
@@ -228,6 +228,6 @@ export default function KlimaatplafondPage() {
         </section>
       </div>
       <PrintMatrix />
-    </div>
+    </main>
   );
 }

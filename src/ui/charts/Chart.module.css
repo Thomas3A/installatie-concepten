@@ -1,0 +1,134 @@
+/* Eigen legenda onder de grafiek: vaste breedtes, dus geen verspringen bij hoveren. */
+.wrap {
+  min-width: 0;
+}
+/* plaats voor de grafiek vasthouden tot uPlot er is (geen verspringen bij het opbouwen) */
+.host {
+  min-height: var(--chart-h, 0);
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.legendX {
+  display: inline-block;
+  min-width: 9.5ch;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 3px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+/* een lang reekslabel breekt af in plaats van de legenda breder te maken dan de grafiek */
+.item {
+  max-width: 100%;
+}
+.item .label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.item:hover {
+  background: var(--surface-2);
+}
+.item[aria-pressed='false'] {
+  color: var(--text-2);
+}
+.item[aria-pressed='false'] .label {
+  text-decoration: line-through;
+}
+.swatch {
+  flex: none;
+  display: block;
+}
+.val {
+  display: inline-block;
+  width: 7.5ch;
+  text-align: left;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  white-space: nowrap;
+}
+/* extra legenda-items (arcering, referentielijnen) mogen afbreken: nooit breder dan de grafiek */
+.extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 3px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-2);
+  white-space: normal;
+}
+.extra > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.legendXWide {
+  display: inline-block;
+  min-width: 15ch;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.export {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-2);
+}
+/* smalle weergave: titels van de y-assen als regel boven de grafiek */
+.axisCaption {
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+/* legenda-knoppen minstens 24 px hoog (WCAG 2.5.8), op elk scherm; op papier blijft de legenda compact */
+@media screen {
+  .item {
+    min-height: 24px;
+  }
+}
+/* papier: de grafiek schaalt mee naar de paginabreedte (een op het scherm bredere grafiek wordt anders afgesneden) */
+@media print {
+  .host {
+    min-height: 0;
+  }
+  .host :global(.uplot) {
+    width: auto !important;
+  }
+  .host :global(.u-wrap) {
+    width: 100% !important;
+    height: auto !important;
+  }
+  .host :global(.u-wrap canvas) {
+    width: 100% !important;
+    height: auto !important;
+  }
+  .host :global(.u-over),
+  .host :global(.u-under),
+  .host :global(.u-cursor-pt),
+  .host :global(.u-select) {
+    display: none !important;
+  }
+}

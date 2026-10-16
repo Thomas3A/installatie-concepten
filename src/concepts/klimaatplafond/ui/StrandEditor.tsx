@@ -1,7 +1,7 @@
 import { LIMITS } from '../data/limits';
 import { useStore } from '../store';
 import type { ManualStrand } from '../model/config';
-import { NumInput } from './fields';
+import { NumInput } from '../../../ui/fields';
 import s from './ui.module.css';
 
 /** Handmatige strengen: toevoegen, verwijderen, panelen ±, extra aansluitlengte en volgorde. */

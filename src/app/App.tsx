@@ -1,11 +1,23 @@
 import { Suspense } from 'react';
-import { HashRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CONCEPTS } from '../concepts';
 import Home from './Home';
 import s from './app.module.css';
 
 export const DISCLAIMER =
   'Indicatief rekenmodel voor uitleg en conceptkeuze. Geen vervanging van de productberekening van de fabrikant.';
+
+/** Footer met de algemene disclaimer, aangevuld met de zin van het actieve concept. */
+function Footer() {
+  const { pathname } = useLocation();
+  const concept = CONCEPTS.find((c) => pathname === c.route || pathname.startsWith(`${c.route}/`));
+  return (
+    <footer className={s.footer}>
+      {DISCLAIMER}
+      {concept?.disclaimer ? ` ${concept.disclaimer}` : ''}
+    </footer>
+  );
+}
 
 export default function App() {
   return (
@@ -29,7 +41,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </div>
-        <footer className={s.footer}>{DISCLAIMER}</footer>
+        <Footer />
       </div>
     </HashRouter>
   );

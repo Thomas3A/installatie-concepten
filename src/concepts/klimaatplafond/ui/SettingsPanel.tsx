@@ -4,7 +4,7 @@ import { PANEL_SIZES, PITCHES } from '../data/ceiling';
 import { defaultAdvanced, type KlimaatplafondConfig } from '../model/config';
 import { FIELD_INFO } from '../texts';
 import { useStore } from '../store';
-import { Accordion, CheckField, NumField, NumInput, SegField, SelectField } from './fields';
+import { Accordion, CheckField, NumField, NumInput, SegField, SelectField } from '../../../ui/fields';
 import { ADV_GROUPS, setPath, getPath } from './advancedFields';
 import { ValveCard } from './ValveCard';
 import s from './ui.module.css';
