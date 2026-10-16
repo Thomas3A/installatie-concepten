@@ -183,7 +183,8 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 
 - **Schuifbereik piekvermogen:** het getalveld accepteert 1–2000 kW; de schuif loopt voor een woning van 1 tot 30 kW en
   voor een kantoor van 10 tot 500 kW, zodat de schuif bij gangbare waarden bruikbaar blijft.
-- **Gebouwfunctie wisselen** laadt alle standaardwaarden van die functie (spec §3); alleen het klimaatjaar blijft.
+- **Gebouwfunctie wisselen** (woning, meerdere woningen of kantoor) laadt alle standaardwaarden van die keuze (spec §3;
+  meerdere woningen: zie hieronder); alleen het klimaatjaar blijft.
 - **Tapwater aanzetten** zonder boiler (kantoor) vult een boiler van 500 l en 20 kWh/dag in (woning: 200 l en 10 kWh/dag),
   omdat tapwater zonder boiler elk uur een tekort geeft en de warmtepomp dan niet te dimensioneren is.
 - **Batterijvermogen** wordt in het expertdeel als C-waarde (0,2–2 C) ingesteld en als kW opgeslagen; bij een andere
@@ -288,3 +289,49 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   bereikbaar zodra ze scrollen; legenda-knoppen zijn minstens 24 px hoog (WCAG 2.5.8); de pagina's van beide concepten
   staan in één `main`-landmark.
 - **Uitleg:** sectie 1 telt de uren (h_overschr, h_comfort), sectie 9 toont de 1R1C-balans; elke sectie heeft een formule.
+
+### Meerdere woningen (buiten de spec)
+
+De spec kent één woning of een kantoor. Daarnaast is er de keuze **meerdere woningen op één warmtepomp**: een
+woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief boilervat en eventueel buffer en batterij.
+
+- **Rekenen met totalen:** het rekenmodel (de port van de Python-referentie) is niet gewijzigd. Het rekent met de totalen
+  van het gebouw: piekvermogen, tapwaterbehoefte per dag en boilervat gelden voor alle woningen samen. Het aantal woningen
+  (`building.dwellings`) dient alleen voor de invoer en de weergave; een waarde per woning is het totaal gedeeld door het
+  aantal. Een gebouw van n woningen rekent dus precies als één gebouw met dezelfde totalen (gecontroleerd door een test).
+  Alle woningen volgen samen één thermische knoop met dezelfde setpoints, tijdconstante en stookgrens.
+- **Geen gelijktijdigheidsfactor op de verwarming:** het piekvermogen is de som van de ontwerpverliezen. Bij −10 °C hebben
+  alle woningen tegelijk hun ontwerpverlies, dus het totaal wordt niet verlaagd. Ook de opwarmfactor geldt voor het
+  totaal.
+- **Tapwater:** het aantal woningen × de behoefte per woning, met hetzelfde gemiddelde uurprofiel (spec §5.7) en één
+  collectief boilervat (85 % benutbaar, dezelfde hysterese en boilertemperatuur). Er is geen extra spreiding door
+  gelijktijdigheid (de dagbehoefte per woning wordt bij veel woningen niet verlaagd); dat is voor de pieken aan de veilige
+  kant. Circulatieverlies van een collectief tapwatersysteem zit er niet in; wie dat wil meenemen, verhoogt de
+  tapwaterbehoefte per woning.
+- **Standaardwaarden:** 10 woningen × 5 kW (appartement na isolatie), per woning 10 kWh/dag tapwater en 200 l boilervat
+  (gelijk aan de woningstandaard), samen dus 50 kW, 100 kWh/dag en 2000 l. De collectieve installatie heeft een eigen
+  aansluiting van 3×40 A, waarvan 80 % voor warmtepomp + batterij; de rest is voor pompen, ventilatie en algemene
+  ruimten. De woningen hebben elk een eigen aansluiting die hier niet meetelt. Alle overige waarden zijn die van de
+  woning (spec §3), klimaatjaar T5.
+- **Waarom 3×40 A en 80 %:** zo laat het standaardgeval, net als bij de ene woning, de rol van buffer en batterij zien
+  (T5): zonder maatregelen wordt de warmtepomp 89,1 kW, is de piek aan de meter 29,7 kW tegen een budget van 22,2 kW,
+  zijn er 215 uur overschrijding en is 3×63 A de kleinste passende aansluiting. Met 1 m³ buffer blijven er 47 uur over
+  (kleinste 3×50 A); met 2 m³ buffer wordt de warmtepomp 64,6 kW en past het gebouw met 0 uur binnen 3×40 A; met 2 m³
+  buffer en 20 kWh batterij kan het naar 3×35 A.
+- **Aantal woningen wijzigen:** het gebouw groeit met dezelfde woningen mee. Piekvermogen, tapwaterbehoefte en boilervat
+  schalen met nieuw/oud aantal, en via het piekvermogen (zie "Piekvermogen wijzigen") ook buffer, batterij (capaciteit en
+  een handmatig vermogen) en een handmatig WP-vermogen; de waarden per woning blijven zo gelijk. De aansluiting blijft
+  staan: die is een keuze van de gebruiker. Komt het piekvermogen boven 2000 kW, dan stopt het daar (en schalen buffer en
+  batterij met de begrensde factor), terwijl het tapwater wel doorschaalt.
+- **Piekvermogen wijzigen** bij meerdere woningen verandert het vermogen per woning; het aantal woningen blijft.
+- **Bereiken:** 1–500 woningen (geheel getal; een kantoor is altijd 1). Tapwaterbehoefte en boilervat zijn begrensd op
+  het bereik per woning × het aantal (0–50 kWh/dag en 0–2000 l per woning). Het piekvermogen blijft 1–2000 kW in totaal;
+  de bereiken van buffer, batterij en WP-vermogen volgen zoals altijd uit het totale piekvermogen. Een gebouw met 1 woning
+  is weer de keuze "woning". Tapwater aanzetten zonder boiler vult 200 l en 10 kWh/dag per woning in.
+- **Hint bij één woning:** boven 20 kW piekvermogen toont de keuze "woning" de hint "Groot voor één woning" met de
+  verwijzing naar meerdere woningen. Het is alleen een wegwijzer; de invoer wordt niet begrensd.
+- **Deelbare link:** het aantal woningen staat in de link als afwijking van de woningstandaard (één woning); het
+  versienummer blijft 1. Een oudere link zonder aantal woningen opent als één woning.
+- **Scenario's:** naast de acht van spec §10 zijn er twee met meerdere woningen: "10 woningen op één warmtepomp — 50 kW,
+  3×40 A, zonder maatregelen" en "… met 2 m³ buffer". Ze staan in de lijst direct na de vier woningscenario's (nummers 5
+  en 6; de kantoorscenario's worden 7–10).

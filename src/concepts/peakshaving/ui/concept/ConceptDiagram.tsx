@@ -6,6 +6,7 @@ import { fmt } from '../../../../core/format';
 import { scrollRegionProps, useOverflowX } from '../../../../ui/ScrollRegion';
 import type { Analysis } from '../../model/analysis';
 import { formatHour } from '../../model/climate';
+import { buildingKind } from '../../model/input';
 import { useSelectedHour, useStore } from '../../store';
 import { Scrubber } from '../charts/Scrubber';
 import {
@@ -26,6 +27,7 @@ import {
   type HourState,
 } from './conceptGeometry';
 import {
+  ApartmentShape,
   BatteryBlock,
   Boiler,
   BufferVessel,
@@ -90,8 +92,13 @@ function summaryText(a: Analysis, h: HourState): string {
           : 'in rust';
     parts.push(`Batterij ${pct(h.batteryFrac)} vol, ${state}.`);
   } else parts.push('Geen batterij.');
+  // meerdere woningen: het model rekent met de totalen, per woning = totaal / aantal
+  const n = a.input.building.dwellings;
+  const multi = buildingKind(a.input.building) === 'multi';
+  const who = multi ? `Woongebouw met ${fmt(n, 0)} woningen op één warmtepomp` : 'Gebouw';
+  const perDwelling = multi ? ` (${kw(h.qRequested / n)} kW per woning)` : '';
   parts.push(
-    `Gebouw: binnen ${fmt(h.indoorC, 1)} °C bij setpoint ${fmt(h.setpointC, 1)} °C, gevraagd ${kw(h.qRequested)} kW, interne winsten ${kw(h.gainsKw)} kW${
+    `${who}: binnen ${fmt(h.indoorC, 1)} °C bij setpoint ${fmt(h.setpointC, 1)} °C, gevraagd ${kw(h.qRequested)} kW${perDwelling}, interne winsten ${kw(h.gainsKw)} kW${
       h.qBackup > FLOW_EPS_KW ? `, bijstook ${kw(h.qBackup)} kW` : ''
     }${h.comfortLoss ? ', comfortverlies' : ''}.`,
   );
@@ -133,16 +140,16 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
       METER.barX0,
       METER.barX1,
     );
-    const office = input.building.use === 'office';
+    const kind = buildingKind(input.building);
     const chevrons = paths.map((p) => ({ ...pointAlong(p.pts, 0.5), kind: p.kind }));
     const backdrop = (
       <g>
         <NetSymbol />
         <MeterStatic a={analysis} scale={scale} />
-        {office ? <OfficeShape /> : <HouseShape />}
-        {/* maaiveld onder het gebouw */}
+        {kind === 'office' ? <OfficeShape /> : kind === 'multi' ? <ApartmentShape /> : <HouseShape />}
+        {/* maaiveld onder het gebouw (de woning heeft een dakoverstek) */}
         <line
-          x1={(office ? BUILDING.x : BUILDING.roof[0].x) - 14}
+          x1={(kind === 'single' ? BUILDING.roof[0].x : BUILDING.x) - 14}
           y1={BUILDING.ground}
           x2={VIEW_W}
           y2={BUILDING.ground}
@@ -153,7 +160,7 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
         {layout.hasBattery && <circle cx={JUNCTION.x} cy={JUNCTION.y} r={3.6} className={c.junction} />}
       </g>
     );
-    return { layout, paths, refs, scale, office, chevrons, backdrop };
+    return { layout, paths, refs, scale, kind, chevrons, backdrop };
   }, [analysis]);
 
   const h = useMemo(() => hourState(analysis, hour), [analysis, hour]);
@@ -209,7 +216,7 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
     };
   }, [nPaths, kinds]);
 
-  const { layout, paths, chevrons, scale, office } = fixed;
+  const { layout, paths, chevrons, scale, kind } = fixed;
   const input = analysis.input;
   const label = summaryLabel(analysis, h);
 
@@ -266,8 +273,10 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
         <BufferVessel h={h} layout={layout} volumeM3={input.buffer.volumeM3} gradId={ids.buffer} />
         <Radiator />
         {input.heatPump.backupHeaterKw > 0 && <Heater on={h.qBackup > FLOW_EPS_KW} />}
-        {h.comfortLoss && <path d={office ? officeOutline() : houseOutline()} className={c.alertOutline} />}
-        <BuildingInfo h={h} office={office} />
+        {h.comfortLoss && (
+          <path d={kind === 'single' ? houseOutline() : officeOutline()} className={c.alertOutline} />
+        )}
+        <BuildingInfo h={h} kind={kind} dwellings={input.building.dwellings} />
       </svg>
       <p className="sr-only">{summaryText(analysis, h)}</p>
     </figure>

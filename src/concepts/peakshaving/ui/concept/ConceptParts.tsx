@@ -3,7 +3,10 @@
 import type { ReactNode } from 'react';
 import { fmt } from '../../../../core/format';
 import type { Analysis } from '../../model/analysis';
+import type { BuildingKind } from '../../model/types';
 import {
+  apartmentFacade,
+  APARTMENT_PLINTH_Y,
   approxTextWidth,
   BATTERY,
   BOILER_W,
@@ -26,6 +29,7 @@ import {
   type FlowPath,
   type HourState,
   type MeterScale,
+  type Rect,
 } from './conceptGeometry';
 import c from './Concept.module.css';
 
@@ -122,7 +126,7 @@ export function HouseShape() {
   const b = BUILDING;
   const [l, top, r] = b.roof;
   return (
-    <g>
+    <g data-testid="concept-house">
       <rect x={b.x} y={b.houseTop} width={b.w} height={b.ground - b.houseTop} className={c.outline} />
       <polygon points={`${l.x},${l.y} ${top.x},${top.y} ${r.x},${r.y}`} className={c.outlineSoft} />
       <rect x={b.x + 88} y={492} width={44} height={32} className={c.outlineSoft} />
@@ -136,6 +140,63 @@ export function houseOutline(): string {
   const b = BUILDING;
   const [l, top, r] = b.roof;
   return `M${b.x} ${b.ground} V${l.y} H${l.x} L${top.x} ${top.y} L${r.x} ${r.y} H${b.x + b.w} V${b.ground} Z`;
+}
+
+/** Raam met kozijnkruis (woning en woongebouw). */
+function HomeWindow({ r }: { r: Rect }) {
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+  return (
+    <g>
+      <rect x={r.x} y={r.y} width={r.w} height={r.h} className={c.outlineSoft} />
+      <path className={c.faint} d={`M${cx} ${r.y} V${r.y + r.h} M${r.x} ${cy} H${r.x + r.w}`} />
+    </g>
+  );
+}
+
+/** Woongebouw (portiekflat): plat dak met dakrand, woonlagen met balkons, trappenhuis en een plint met de entree. */
+export function ApartmentShape() {
+  const b = BUILDING;
+  const f = apartmentFacade();
+  const plinthY = APARTMENT_PLINTH_Y;
+  const { entrance: e, canopy: cp } = f;
+  return (
+    <g data-testid="concept-apartment">
+      <rect x={b.x} y={b.officeTop} width={b.w} height={b.ground - b.officeTop} className={c.outline} />
+      {/* dakrand zonder overstek (het kantoor heeft een kroonlijst) */}
+      <rect x={b.x - 3} y={b.officeTop - 5} width={b.w + 6} height={5} className={c.outlineSoft} />
+      {/* plint */}
+      <rect x={b.x} y={plinthY} width={b.w} height={b.ground - plinthY} className={c.plinth} />
+      {f.windows.map((r, i) => (
+        <HomeWindow key={`w${i}`} r={r} />
+      ))}
+      {f.doors.map((r, i) => (
+        <rect key={`d${i}`} x={r.x} y={r.y} width={r.w} height={r.h} className={c.outlineSoft} />
+      ))}
+      {f.balconies.map((r, i) => (
+        <g key={`b${i}`}>
+          <rect x={r.x} y={r.y} width={r.w} height={r.h} className={c.balcony} />
+          <path
+            className={c.faint}
+            d={[1, 2, 3, 4, 5].map((j) => `M${r.x + (j * r.w) / 6} ${r.y + 3} V${r.y + r.h}`).join(' ')}
+          />
+        </g>
+      ))}
+      {f.slabs.map((r, i) => (
+        <rect key={`s${i}`} x={r.x} y={r.y} width={r.w} height={r.h} className={c.solid2} />
+      ))}
+      {f.stairs.map((r, i) => (
+        <HomeWindow key={`t${i}`} r={r} />
+      ))}
+      {f.plinthWindows.map((r, i) => (
+        <HomeWindow key={`p${i}`} r={r} />
+      ))}
+      {/* entree met luifel */}
+      <rect x={cp.x} y={cp.y} width={cp.w} height={cp.h} className={c.solid2} />
+      <rect x={e.x} y={e.y} width={e.w} height={e.h} className={c.outlineSoft} />
+      <rect x={e.x + 6} y={e.y + 6} width={e.w - 12} height={e.h - 16} className={c.faint} />
+    </g>
+  );
 }
 
 export function OfficeShape() {
@@ -166,7 +227,7 @@ export function OfficeShape() {
     }
   }
   return (
-    <g>
+    <g data-testid="concept-office">
       <rect x={b.x} y={b.officeTop} width={b.w} height={b.ground - b.officeTop} className={c.outline} />
       <rect x={b.x - 6} y={b.officeTop - 7} width={b.w + 12} height={8} className={c.outlineSoft} />
       {els}
@@ -693,10 +754,34 @@ export function Boiler({
   );
 }
 
-export function BuildingInfo({ h, office }: { h: HourState; office: boolean }) {
+/** Titel van de infokaart: kantoor, één woning of het aantal woningen op de warmtepomp. */
+export function buildingTitle(kind: BuildingKind, dwellings: number): string {
+  if (kind === 'office') return 'Kantoor';
+  return kind === 'multi' ? `${fmt(dwellings, 0)} woningen` : 'Woning';
+}
+
+export function BuildingInfo({
+  h,
+  kind,
+  dwellings,
+}: {
+  h: HourState;
+  kind: BuildingKind;
+  /** aantal woningen op de warmtepomp (alleen bij meerdere woningen getoond) */
+  dwellings: number;
+}) {
   const { x, y, w, h: ch } = BUILDING.card;
   const tx = x + 14;
-  const status = !office ? '' : h.inUse ? 'in gebruik' : h.preheat ? 'opstoken' : 'buiten gebruik';
+  const status =
+    kind === 'office'
+      ? h.inUse
+        ? 'in gebruik'
+        : h.preheat
+          ? 'opstoken'
+          : 'buiten gebruik'
+      : kind === 'multi'
+        ? 'op één warmtepomp'
+        : '';
   const heaterOn = h.qBackup > FLOW_EPS_KW;
   return (
     <g>
@@ -709,7 +794,7 @@ export function BuildingInfo({ h, office }: { h: HourState; office: boolean }) {
         className={`${c.card} ${h.comfortLoss ? c.cardAlert : ''}`}
       />
       <text x={tx} y={y + 26} className={c.title}>
-        {office ? 'Kantoor' : 'Woning'}
+        {buildingTitle(kind, dwellings)}
       </text>
       {status && (
         <text x={tx} y={y + 46} className={c.t2}>
@@ -757,6 +842,7 @@ export function Heater({ on }: { on: boolean }) {
   );
 }
 
+/** Omtrek van het kantoor; het woongebouw heeft dezelfde omtrek. */
 export function officeOutline(): string {
   const b = BUILDING;
   return `M${b.x} ${b.ground} V${b.officeTop} H${b.x + b.w} V${b.ground} Z`;

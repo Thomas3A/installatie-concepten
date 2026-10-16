@@ -102,6 +102,102 @@ export const BUILDING = {
   card: { x: 690, y: 254, w: 184, h: 214 },
 } as const;
 
+/**
+ * Woongebouw (meerdere woningen op één warmtepomp): dezelfde omtrek als het kantoor (BUILDING.officeTop tot het
+ * maaiveld), maar als portiekflat: lagere woonlagen met per laag twee woningen (raam, balkondeur en balkon) aan
+ * weerszijden van het trappenhuis, op een hogere plint met de entree onder het trappenhuis. De gevel staat
+ * rechts van de afgifte, in de breedte van de infokaart.
+ */
+export const APARTMENT = {
+  /** hoogte van een woonlaag */
+  floorH: 50,
+  /** woonlagen boven de plint */
+  floors: 6,
+  /** linkerkant van de woning links en rechts van het trappenhuis, en de breedte van een woning */
+  bayX: [692, 802] as const,
+  bayW: 80,
+  /** raam van het trappenhuis */
+  stairX: 779,
+  stairW: 16,
+} as const;
+
+/** Bovenkant van de plint (onder de woonlagen). */
+export const APARTMENT_PLINTH_Y = BUILDING.officeTop + APARTMENT.floors * APARTMENT.floorH;
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Gevel van het woongebouw: alleen de delen die naast de infokaart zichtbaar zijn. */
+export interface ApartmentFacade {
+  /** woonlagen (0 = bovenste) die boven de infokaart vallen */
+  floors: number[];
+  windows: Rect[];
+  doors: Rect[];
+  /** balkonhekken voor de balkondeuren */
+  balconies: Rect[];
+  /** balkonplaten onder de hekken */
+  slabs: Rect[];
+  /** ramen van het trappenhuis */
+  stairs: Rect[];
+  /** ramen in de plint */
+  plinthWindows: Rect[];
+  entrance: Rect;
+  canopy: Rect;
+}
+
+/** Rechthoeken overlappen (met marge). */
+export function rectsOverlap(a: Rect, b: Rect, margin = 0): boolean {
+  return (
+    a.x < b.x + b.w + margin &&
+    a.x + a.w > b.x - margin &&
+    a.y < b.y + b.h + margin &&
+    a.y + a.h > b.y - margin
+  );
+}
+
+/** Gevelindeling van het woongebouw; woonlagen die (deels) achter de infokaart vallen, worden weggelaten. */
+export function apartmentFacade(): ApartmentFacade {
+  const ap = APARTMENT;
+  const card: Rect = BUILDING.card;
+  const [left, right] = ap.bayX;
+  const entranceX = ap.stairX + ap.stairW / 2 - 15;
+  const out: ApartmentFacade = {
+    floors: [],
+    windows: [],
+    doors: [],
+    balconies: [],
+    slabs: [],
+    stairs: [],
+    plinthWindows: [
+      { x: left + 16, y: 500, w: 44, h: 26 },
+      { x: right + 20, y: 500, w: 44, h: 26 },
+    ],
+    entrance: { x: entranceX, y: 500, w: 30, h: BUILDING.ground - 500 },
+    canopy: { x: entranceX - 10, y: 492, w: 50, h: 5 },
+  };
+  for (let k = 0; k < ap.floors; k++) {
+    const y0 = BUILDING.officeTop + k * ap.floorH;
+    // hele woonlaag samen: woningen, balkons en trappenhuis
+    const band: Rect = { x: left, y: y0 + 5, w: right + ap.bayW - left, h: 44 };
+    if (rectsOverlap(band, card, 4)) continue;
+    out.floors.push(k);
+    // gespiegeld: de balkons aan de buitenkant, de ramen naast het trappenhuis
+    out.balconies.push(
+      { x: left + 2, y: y0 + 31, w: 32, h: 15 },
+      { x: right + 46, y: y0 + 31, w: 32, h: 15 },
+    );
+    out.slabs.push({ x: left, y: y0 + 46, w: 36, h: 3 }, { x: right + 44, y: y0 + 46, w: 36, h: 3 });
+    out.doors.push({ x: left + 10, y: y0 + 7, w: 16, h: 39 }, { x: right + 54, y: y0 + 7, w: 16, h: 39 });
+    out.windows.push({ x: left + 44, y: y0 + 9, w: 30, h: 22 }, { x: right + 6, y: y0 + 9, w: 30, h: 22 });
+    out.stairs.push({ x: ap.stairX, y: y0 + 5, w: ap.stairW, h: 38 });
+  }
+  return out;
+}
+
 /** Legenda van de leidingen linksonder. */
 export const PIPE_LEGEND = { x: 16, y0: 480, lineH: 22 } as const;
 

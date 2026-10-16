@@ -1,5 +1,6 @@
-// Acht scenario's (spec §10). Basis is steeds de standaardinvoer van de gebouwfunctie, plus de genoemde wijzigingen.
-import { defaultInput } from './data/defaults';
+// Scenario's: de acht van spec §10 plus twee met meerdere woningen op één warmtepomp (buiten de spec, zie
+// docs/AANNAMES.md). Basis is steeds de standaardinvoer van de gekozen gebouwfunctie, plus de genoemde wijzigingen.
+import { defaultInput, multiDwellingInput } from './data/defaults';
 import { normalizeInput } from './model/input';
 import type { PeakshavingInput } from './model/types';
 
@@ -14,6 +15,15 @@ export interface Scenario {
 function residential(patch: (i: PeakshavingInput) => void): () => PeakshavingInput {
   return () => {
     const i = defaultInput('residential');
+    patch(i);
+    return normalizeInput(i);
+  };
+}
+
+/** Meerdere woningen op één warmtepomp: standaard 10 woningen van 5 kW op een eigen aansluiting van 3×40 A. */
+function multiDwelling(patch: (i: PeakshavingInput) => void): () => PeakshavingInput {
+  return () => {
+    const i = multiDwellingInput();
     patch(i);
     return normalizeInput(i);
   };
@@ -62,6 +72,22 @@ export const SCENARIOS: Scenario[] = [
       i.heatPump.emitterPreset = 'LT';
       i.grid.connection = '1x25';
       i.building.dhw.dailyKwh = 12;
+    }),
+  },
+  {
+    id: 'woningen-basis',
+    title: '10 woningen op één warmtepomp — 50 kW, 3×40 A, zonder maatregelen',
+    description:
+      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt bijna 90 kW en zit ruim 200 uur per jaar boven het budget van 22 kW; pas 3×63 A past.',
+    build: multiDwelling(() => undefined),
+  },
+  {
+    id: 'woningen-buffer',
+    title: '… met 2 m³ buffer',
+    description:
+      'Twee kuub buffer vangt de pieken op: de warmtepomp zakt naar zo’n 65 kW en past zonder overschrijding binnen 3×40 A.',
+    build: multiDwelling((i) => {
+      i.buffer.volumeM3 = 2;
     }),
   },
   {

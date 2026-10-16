@@ -72,8 +72,20 @@ describe('deelbare link', () => {
 });
 
 describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
-  it('acht scenario’s met titel en toelichting, allemaal geldige invoer', () => {
-    expect(SCENARIOS).toHaveLength(8);
+  it('tien scenario’s (acht uit de spec, twee met meerdere woningen) met titel en toelichting, geldige invoer', () => {
+    expect(SCENARIOS).toHaveLength(10);
+    expect(SCENARIOS.map((s) => s.id)).toEqual([
+      'woning-basis',
+      'woning-buffer',
+      'woning-buffer-batterij',
+      'nieuwbouw',
+      'woningen-basis',
+      'woningen-buffer',
+      'kantoor-basis',
+      'kantoor-buffer',
+      'kantoor-buffer-batterij',
+      'kantoor-t1',
+    ]);
     for (const s of SCENARIOS) {
       expect(s.title.length).toBeGreaterThan(10);
       expect(s.description.length).toBeGreaterThan(10);
@@ -109,6 +121,24 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
     expect(Number.isFinite(a.sizing.withBuffer)).toBe(true);
     expect(a.input.heatPump.emitterPreset).toBe('LT');
     expect(a.input.grid.connection).toBe('1x25');
+  });
+  it('extra · 10 woningen op één warmtepomp zonder maatregelen: ≈ 89 kW, ruim 150 uur boven 3×40 A, kleinste 3×63 A', () => {
+    const a = run('woningen-basis');
+    expect(a.input.building.dwellings).toBe(10);
+    expect(a.input.building.designLoadKw).toBe(50);
+    expect(a.nominalKw).toBeCloseTo(89.1, 0);
+    expect(a.pLimitKw).toBeCloseTo(22.2, 1);
+    expect(a.main.kpis.pGridMaxKw).toBeCloseTo(29.7, 0);
+    expect(a.main.kpis.exceedanceHours).toBeGreaterThan(150);
+    expect(a.smallest.label).toBe('3×63 A');
+  });
+  it('extra · 10 woningen met 2 m³ buffer: ≈ 64,6 kW, past zonder overschrijding binnen 3×40 A', () => {
+    const a = run('woningen-buffer');
+    expect(a.nominalKw).toBeCloseTo(64.6, 0);
+    expect(a.main.kpis.exceedanceHours).toBe(0);
+    expect(a.smallest.label).toBe('3×40 A');
+    // zonder maatregelen hetzelfde als het vorige scenario
+    expect(a.withoutMeasures.smallest.label).toBe('3×63 A');
   });
   it('5 · kantoor zonder maatregelen: ≈ 172 kW en ruim 300 uur boven 3×80 A', () => {
     const a = run('kantoor-basis');

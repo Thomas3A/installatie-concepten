@@ -1,18 +1,41 @@
-// Blok 1 — Gebouw (spec §3.1).
+// Blok 1 — Gebouw (spec §3.1). Bij meerdere woningen op één warmtepomp zijn piekvermogen, tapwaterbehoefte en
+// boilervat totalen van het gebouw; de UI toont daarnaast de waarde per woning (tapwater wordt per woning ingevoerd).
 import { fmt } from '../../../../core/format';
 import { CheckField, SegField } from '../../../../ui/fields';
-import { LIMITS } from '../../model/input';
-import type { Building } from '../../model/types';
+import { buildingKind, LIMITS } from '../../model/input';
+import type { Building, BuildingKind } from '../../model/types';
 import { useStore } from '../../store';
 import { BLOCK_TITLES, HELP, MASS_PRESETS } from '../../texts';
 import { Block, RangeField } from './controls';
+import p from '../peakshaving.module.css';
+
+const KIND_OPTIONS: { value: BuildingKind; label: string }[] = [
+  { value: 'single', label: 'Woning' },
+  { value: 'multi', label: 'Meerdere woningen' },
+  { value: 'office', label: 'Kantoor' },
+];
+
+/** Eén woning: boven dit piekvermogen [kW] de hint "Groot voor één woning" tonen. */
+const SINGLE_LARGE_KW = 20;
+/** Meerdere woningen: schuifbereik aantal woningen (het getalveld gaat tot LIMITS.dwellings). */
+const DWELLINGS_SLIDER: readonly [number, number] = [2, 100];
+
+/** Schuifbereik piekvermogen bij meerdere woningen: tot 500 kW, bij veel woningen tot ca. 10 kW per woning. */
+function multiLoadSliderMax(dwellings: number): number {
+  return Math.min(LIMITS.designLoadKw[1], Math.max(500, Math.ceil(dwellings / 10) * 100));
+}
 
 export function BuildingPanel() {
   const b = useStore((st) => st.input.building);
   const update = useStore((st) => st.update);
-  const setUse = useStore((st) => st.setUse);
+  const setKind = useStore((st) => st.setKind);
+  const setDwellings = useStore((st) => st.setDwellings);
   const setDesignLoad = useStore((st) => st.setDesignLoad);
-  const office = b.use === 'office';
+  const kind = buildingKind(b);
+  const office = kind === 'office';
+  const multi = kind === 'multi';
+  // aantal woningen; 1 bij één woning en kantoor (tapwaterwaarden zijn dan gewoon de totalen)
+  const n = multi ? b.dwellings : 1;
   const patch = (x: Partial<Building>): void => update((i) => ({ ...i, building: { ...i.building, ...x } }));
   const patchDhw = (x: Partial<Building['dhw']>): void =>
     update((i) => ({ ...i, building: { ...i.building, dhw: { ...i.building.dhw, ...x } } }));
@@ -166,29 +189,60 @@ export function BuildingPanel() {
         </>
       }
     >
-      <SegField
-        label="Gebouwfunctie"
-        info={HELP.use}
-        value={b.use}
-        options={[
-          { value: 'residential', label: 'Woning' },
-          { value: 'office', label: 'Kantoor' },
-        ]}
-        onChange={setUse}
-      />
-      <RangeField
-        label="Piekvermogen verwarming"
-        info={HELP.designLoad}
-        value={b.designLoadKw}
-        min={LIMITS.designLoadKw[0]}
-        max={LIMITS.designLoadKw[1]}
-        sliderMin={office ? 10 : 1}
-        sliderMax={office ? 500 : 30}
-        step={office ? 5 : 0.5}
-        digits={1}
-        unit="kW"
-        onChange={setDesignLoad}
-      />
+      <div className={p.kindSeg}>
+        <SegField
+          label="Gebouwfunctie"
+          info={HELP.use}
+          value={kind}
+          options={KIND_OPTIONS}
+          onChange={setKind}
+        />
+      </div>
+      {multi && (
+        <RangeField
+          label="Aantal woningen"
+          info={HELP.dwellings}
+          value={b.dwellings}
+          min={2}
+          max={LIMITS.dwellings[1]}
+          sliderMin={DWELLINGS_SLIDER[0]}
+          sliderMax={DWELLINGS_SLIDER[1]}
+          step={1}
+          digits={0}
+          onChange={setDwellings}
+        />
+      )}
+      {multi ? (
+        <RangeField
+          label="Piekvermogen verwarming (totaal)"
+          info={HELP.designLoadMulti}
+          value={b.designLoadKw}
+          min={LIMITS.designLoadKw[0]}
+          max={LIMITS.designLoadKw[1]}
+          sliderMin={5}
+          sliderMax={multiLoadSliderMax(b.dwellings)}
+          step={1}
+          digits={1}
+          unit="kW"
+          hint={<>≈ {fmt(b.designLoadKw / n, 1)} kW per woning</>}
+          onChange={setDesignLoad}
+        />
+      ) : (
+        <RangeField
+          label="Piekvermogen verwarming"
+          info={HELP.designLoad}
+          value={b.designLoadKw}
+          min={LIMITS.designLoadKw[0]}
+          max={LIMITS.designLoadKw[1]}
+          sliderMin={office ? 10 : 1}
+          sliderMax={office ? 500 : 30}
+          step={office ? 5 : 0.5}
+          digits={1}
+          unit="kW"
+          hint={!office && b.designLoadKw > SINGLE_LARGE_KW ? HELP.singleDwellingLarge : undefined}
+          onChange={setDesignLoad}
+        />
+      )}
       <SegField
         label="Gebouwmassa"
         info={HELP.mass}
@@ -212,34 +266,41 @@ export function BuildingPanel() {
         checked={b.dhw.enabled}
         onChange={(enabled) =>
           patchDhw(
+            // standaard per woning (bij meerdere woningen × het aantal)
             enabled && b.dhw.tankLitre === 0
-              ? { enabled, tankLitre: office ? 500 : 200, dailyKwh: b.dhw.dailyKwh || (office ? 20 : 10) }
+              ? {
+                  enabled,
+                  tankLitre: office ? 500 : 200 * n,
+                  dailyKwh: b.dhw.dailyKwh || (office ? 20 : 10 * n),
+                }
               : { enabled },
           )
         }
       />
       {b.dhw.enabled && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        // meerdere woningen: onder elkaar (de labels zijn langer); tapwater per woning, het model krijgt het totaal
+        <div className={multi ? p.stack : p.pair}>
           <RangeField
-            label="Tapwaterbehoefte"
-            info={HELP.dhwDaily}
-            value={b.dhw.dailyKwh}
+            label={multi ? 'Tapwaterbehoefte per woning' : 'Tapwaterbehoefte'}
+            info={multi ? HELP.dhwDailyPerDwelling : HELP.dhwDaily}
+            value={b.dhw.dailyKwh / n}
             min={LIMITS.dhwDailyKwh[0]}
             max={LIMITS.dhwDailyKwh[1]}
             step={0.5}
             unit="kWh/dag"
             noSlider
-            onChange={(v) => patchDhw({ dailyKwh: v })}
+            onChange={(v) => patchDhw({ dailyKwh: v * n })}
           />
           <RangeField
-            label="Boilervat"
-            info={HELP.tank}
+            label={multi ? 'Boilervat (collectief)' : 'Boilervat'}
+            info={multi ? HELP.tankCollective : HELP.tank}
             value={b.dhw.tankLitre}
             min={LIMITS.tankLitre[0]}
-            max={LIMITS.tankLitre[1]}
-            step={10}
+            max={LIMITS.tankLitre[1] * n}
+            step={multi ? 50 : 10}
             unit="l"
             noSlider
+            hint={multi ? <>≈ {fmt(b.dhw.tankLitre / n, 0)} l per woning</> : undefined}
             onChange={(v) => patchDhw({ tankLitre: v })}
           />
         </div>

@@ -4,7 +4,7 @@ import { fmt } from '../../../core/format';
 import { COUNTERPART_PREFIX, KPI_TITLES, UNIT_HOURS_PER_YEAR } from '../texts';
 import type { Analysis } from './analysis';
 import { capacityFactor } from './heatPump';
-import type { SimulationKpis } from './types';
+import type { Building, SimulationKpis } from './types';
 
 export type KpiStatus = 'ok' | 'warn' | 'err' | 'neutral';
 
@@ -59,6 +59,20 @@ export function connectionText(c: { id: string; label: string; powerKw: number }
   return c.label;
 }
 
+/** Gebouw in een paar woorden: "Woning", "10 woningen" of "Kantoor". */
+export function buildingText(b: Pick<Building, 'use' | 'dwellings'>): string {
+  if (b.use === 'office') return 'Kantoor';
+  return b.dwellings > 1 ? `${fmt(b.dwellings, 0)} woningen` : 'Woning';
+}
+
+/** Ontwerpverlies met, bij meerdere woningen, kort het verlies per woning: "50,0 kW (5,0 kW/woning)". */
+export function designLoadText(b: Pick<Building, 'use' | 'dwellings' | 'designLoadKw'>): string {
+  const total = kw(b.designLoadKw);
+  return b.use !== 'office' && b.dwellings > 1
+    ? `${total} (${fmt(b.designLoadKw / b.dwellings, 1)} kW/woning)`
+    : total;
+}
+
 /** Huidige aansluiting als tekst, bij grootverbruik met het gecontracteerde vermogen. */
 export function currentConnectionText(a: Analysis): string {
   return a.input.grid.connection === 'grootverbruik'
@@ -109,7 +123,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
       unit: 'kW',
       status: 'neutral',
       lines: [
-        { text: `Ontwerpverlies ${kw(a.input.building.designLoadKw)}` },
+        { text: `Ontwerpverlies ${designLoadText(a.input.building)}` },
         { text: `Jaarwarmtevraag ${fmt((k.eSpaceDemandKwh + k.eDhwDemandKwh) / 1000, 1)} MWh` },
       ],
     },

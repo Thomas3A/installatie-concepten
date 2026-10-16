@@ -92,10 +92,14 @@ aansluiting als je een warmtebuffer en/of een batterij toevoegt? De tool simulee
 dat een buffervat de **thermische** piek van de warmtepomp afschaaft (kleinere machine), een batterij de **elektrische**
 piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen koudegolf van dagen.
 
-- **Invoer in vier stappen:** gebouw (woning of kantoor, piekvermogen, gebouwmassa, tapwater), aansluiting
-  (standaardwaarde of grootverbruik, aandeel voor de WP), warmtepomp en afgifte (stooklijn LT/MT/HT, maximale aanvoer,
-  automatisch gedimensioneerd of handmatig, bijstook) en maatregelen (buffervolume, laadstrategie, batterij, bedrijfsmodus).
+- **Invoer in vier stappen:** gebouw (piekvermogen, gebouwmassa, tapwater), aansluiting (standaardwaarde of
+  grootverbruik, aandeel voor de WP), warmtepomp en afgifte (stooklijn LT/MT/HT, maximale aanvoer, automatisch
+  gedimensioneerd of handmatig, bijstook) en maatregelen (buffervolume, laadstrategie, batterij, bedrijfsmodus).
   De bereiken van buffer en batterij volgen uit het piekvermogen.
+- **Drie gebouwkeuzes:** _één woning_, _meerdere woningen op één warmtepomp_ (een woongebouw met een collectieve
+  warmtepomp en boilervat op een eigen aansluiting; standaard 10 woningen × 5 kW op 3×40 A) en _kantoor_. Bij meerdere
+  woningen kies je het aantal woningen; piekvermogen, tapwater, buffer en batterij schalen mee en de tool toont de waarden
+  per woning. Het rekenmodel rekent met de totalen van het gebouw (zie [`docs/AANNAMES.md`](docs/AANNAMES.md)).
 - **Resultaat:** acht KPI-kaarten (piek warmtevraag, benodigd WP-vermogen, piek aan de meter, uren overschrijding,
   kleinste passende aansluiting, comfort bij begrenzen, buffer, energie), een gegenereerd advies, een robuustheidstabel
   (energiejaar, T5, T1) en meldingen met "Waarom?".
@@ -108,6 +112,7 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
 - **Rekenmodel:** de Python-referentie `tools/peakshaving_ref/peakshaving_ref.py` is normatief; de TypeScript-port in
   `src/concepts/peakshaving/model/` reproduceert de referentiewaarden (`tests/peakshaving/fixtures/referentiewaarden.json`)
   binnen de toleranties van spec §9. De simulaties draaien in een Web Worker; één jaarsimulatie duurt enkele milliseconden.
-- Acht scenario's, een deelbare link (`#/peakshaving?c=…`, met versienummer) en een printweergave (A4 staand, twee pagina's).
+- Tien scenario's (de acht van de specificatie plus twee met meerdere woningen), een deelbare link
+  (`#/peakshaving?c=…`, met versienummer) en een printweergave (A4 staand, twee pagina's).
 
 Aannames: [`docs/AANNAMES.md`](docs/AANNAMES.md) (sectie "Concept 2: peakshaving").

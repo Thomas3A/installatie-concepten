@@ -25,7 +25,7 @@ interface RangeFieldProps {
   digits?: number;
   disabled?: boolean;
   markers?: Marker[];
-  /** regel onder het veld (live afgeleide waarden) */
+  /** regel onder het veld (live afgeleide waarden of een korte opmerking); beschrijft het getalveld voor schermlezers */
   hint?: ReactNode;
   /** geen schuif tonen */
   noSlider?: boolean;
@@ -63,6 +63,9 @@ export function RangeField({
     if (val !== null) onChange(clampV(val));
   };
   const unitId = `${id}-unit`;
+  const hintId = `${id}-hint`;
+  // eenheid en regel onder het veld beschrijven het getalveld (eerst de eenheid)
+  const describedBy = [unit ? unitId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined;
   const valueText = unit ? `${fmt(value, dig)} ${unit}` : fmt(value, dig);
   const span = sliderMax - sliderMin;
   return (
@@ -75,7 +78,7 @@ export function RangeField({
           inputMode="decimal"
           disabled={disabled}
           value={draft ?? fmt(value, dig)}
-          aria-describedby={unit ? unitId : undefined}
+          aria-describedby={describedBy}
           onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={(e) => draft !== null && commit(e.target.value)}
@@ -126,7 +129,11 @@ export function RangeField({
           )}
         </div>
       )}
-      {hint && <div className={p.live}>{hint}</div>}
+      {hint && (
+        <div className={p.live} id={hintId}>
+          {hint}
+        </div>
+      )}
     </Field>
   );
 }
