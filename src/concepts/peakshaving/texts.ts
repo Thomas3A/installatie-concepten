@@ -198,9 +198,14 @@ export const BLOCK_TITLES = ['Gebouw', 'Aansluiting', 'Warmtepomp & afgifte', 'M
 
 /** Toelichting per invoer (spec §3, kolom "Toelichting"). */
 export const HELP = {
-  use: 'Schakelt de gebruiksschema’s en de standaardwaarden van alle invoer.',
+  use: 'Woning: één woning met een eigen warmtepomp. Meerdere woningen: een woongebouw met één collectieve warmtepomp op een eigen aansluiting. Kantoor: kantoorschema met nachtverlaging en opstoken. Wisselen zet alle invoer op de standaardwaarden.',
+  dwellings:
+    'Aantal woningen op dezelfde warmtepomp. Wijzigen schaalt piekvermogen, tapwaterbehoefte, boilervat, buffer en batterij mee, zodat de waarden per woning gelijk blijven; de aansluiting blijft.',
   designLoad:
     'Ontwerpwarmteverlies (transmissie + ventilatie) bij een buitentemperatuur van −10 °C en de ontwerpbinnentemperatuur, exclusief opwarmtoeslag (NEN-EN 12831). Dit is de eerste invoer; de bereiken van buffer, batterij en warmtepomp worden hiervan afgeleid.',
+  designLoadMulti:
+    'Ontwerpwarmteverlies van alle woningen samen (NEN-EN 12831, exclusief opwarmtoeslag). Bij −10 °C hebben alle woningen tegelijk hun ontwerpverlies, dus geen gelijktijdigheidsfactor. Wijzigen verandert het piekvermogen per woning; het aantal woningen blijft.',
+  singleDwellingLarge: 'Groot voor één woning. Gaat het om een woongebouw, kies dan "Meerdere woningen".',
   designOutdoor: 'Ontwerpbuitentemperatuur volgens NEN-EN 12831 voor De Bilt.',
   designIndoor: 'Binnentemperatuur die hoort bij het ingevoerde piekvermogen.',
   setpointUse: 'Setpoint tijdens gebruik. Een woning is altijd "in gebruik".',
@@ -216,12 +221,15 @@ export const HELP = {
   preheat: 'Uren vóór gebruiksaanvang waarin naar het gebruikssetpoint wordt gestookt.',
   dhw: 'Warm tapwater via een boilervat dat de warmtepomp met voorrang laadt.',
   dhwDaily: 'Nuttige tapwaterbehoefte per dag, bij 10 °C koud water.',
+  dhwDailyPerDwelling:
+    'Nuttige tapwaterbehoefte per woning per dag, bij 10 °C koud water. Het gebouw rekent met het aantal woningen × deze waarde en hetzelfde gemiddelde uurprofiel.',
   tank: 'Inhoud van het boilervat; 85 % is benutbaar.',
+  tankCollective: 'Inhoud van het collectieve boilervat voor alle woningen samen; 85 % is benutbaar.',
   tankTemp: 'Boilertemperatuur; begrensd op de maximale aanvoertemperatuur van de warmtepomp.',
   connection: 'Aansluitwaarde van het gebouw: P = 0,230·I (1-fase) of 0,400·√3·I (3-fase), cos φ = 1.',
   contracted: 'Gecontracteerd vermogen bij een grootverbruikaansluiting.',
   share:
-    'Deel van de aansluiting voor warmtepomp + batterij. De rest is voor overig gebruik en wordt op het piekmoment volledig benut verondersteld.',
+    'Deel van de aansluiting voor warmtepomp + batterij. De rest is voor overig gebruik en wordt op het piekmoment volledig benut verondersteld. Bij meerdere woningen is dit de aansluiting van de collectieve installatie (de rest: pompen, ventilatie, algemene ruimten); de woningen hebben elk een eigen aansluiting.',
   allowedExceedance:
     'Aantal uren per jaar dat de WP-groep boven het budget mag komen; gebruikt bij "kleinste passende aansluiting".',
   allowedComfort:
@@ -277,6 +285,8 @@ export const EXPLAIN: ExplainSection[] = [
       'Het gebouw is één thermische knoop met warmteverliescoëfficiënt $UA$ en warmtecapaciteit $C$. $UA$ volgt uit het ontwerpwarmteverlies bij −10 °C: $UA = P_{ontwerp} / (T_{i,ontwerp} - T_{e,ontwerp})$; de gebouwmassa is een tijdconstante $\\tau$ met $C = \\tau \\cdot UA$.',
       '$$Q = UA\\,(T_i - T_{e,f}) - G$$',
       'Hierin is $T_{e,f}$ de buitentemperatuur na een eerste-orde filter (traagheid van de gevel) en $G$ de interne winst, die via de stookgrens wordt ingevoerd: $G = UA\\,(T_{set} - T_{stookgrens})$. Boven de stookgrens is er dus geen warmtevraag. Na een nachtverlaging mag de regelaar tot de opwarmfactor × het piekvermogen extra leveren om het setpoint terug te winnen; dat geeft de opstookpiek van een kantoor.',
+      '**Meerdere woningen** op één warmtepomp rekenen als één gebouw met de totalen. Het piekvermogen is het ontwerpverlies van alle woningen samen: bij −10 °C hebben alle woningen tegelijk hun ontwerpverlies, dus er is geen gelijktijdigheidsfactor. Het tapwater is het aantal woningen × de behoefte per woning, met hetzelfde gemiddelde uurprofiel en één collectief boilervat; omdat dat profiel al een gemiddelde is, past het beter bij veel woningen dan bij één.',
+      '$$P_{ontwerp} = n \\cdot P_{woning} \\qquad E_{tap} = n \\cdot E_{tap,woning}$$',
     ],
   },
   {
@@ -315,6 +325,7 @@ export const EXPLAIN: ExplainSection[] = [
       '$$P = \\sqrt{3}\\,U\\,I \\quad (U = 400\\ \\mathrm{V},\\ \\cos\\varphi = 1)$$',
       'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. Het WP-budget is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
       'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van het WP-budget is daarmee overschrijding van de aansluiting.',
+      'Bij **meerdere woningen** is de aansluiting die van de collectieve installatie (standaard 3×40 A, waarvan 80 % voor warmtepomp en batterij; de rest voor pompen, ventilatie en algemene ruimten). De woningen zelf hebben elk een eigen aansluiting die hier niet meetelt.',
     ],
   },
   {
@@ -344,7 +355,7 @@ export const EXPLAIN: ExplainSection[] = [
       'Het gebouw is één thermische knoop: één warmtebalans voor de hele binnentemperatuur, zonder onderscheid tussen ruimtes en zonder zonnewinsten (conservatief).',
       '$$C\\,\\frac{dT_i}{dt} = Q_{geleverd} + G - UA\\,(T_i - T_{e,f})$$',
       'Het opwarmen gebeurt met een vaste opstooktijd. De warmtepompcapaciteit hangt alleen af van de buitentemperatuur; COP via Carnot met een vast rendement; geen cycling of minimale modulatie.',
-      'De buffer is een ideale opslag met vaste nuttige ΔT; de batterij is alleen voor de WP-groep, zonder degradatie of tariefsturing. Tapwater volgt een vast dagprofiel. Aansluitingen rekenen met cos φ = 1 en een volledig benut overig gebruik. De voorspellende laadregel kent het weer van de komende 24 uur.',
+      'De buffer is een ideale opslag met vaste nuttige ΔT; de batterij is alleen voor de WP-groep, zonder degradatie of tariefsturing. Tapwater volgt een vast dagprofiel; bij meerdere woningen zonder circulatieverlies en zonder extra spreiding door gelijktijdigheid. Aansluitingen rekenen met cos φ = 1 en een volledig benut overig gebruik. De voorspellende laadregel kent het weer van de komende 24 uur.',
       'De uitkomsten zijn indicatief voor conceptkeuze. Productselectie gebeurt altijd met fabrikantdata (capaciteitstabellen, geluid, hydrauliek).',
     ],
   },

@@ -7,6 +7,9 @@ export type { EmitterPreset } from '../data/heatPumpCurves';
 
 export type BuildingUse = 'residential' | 'office';
 
+/** Keuze in de UI: één woning, meerdere woningen op één warmtepomp, of kantoor. */
+export type BuildingKind = 'single' | 'multi' | 'office';
+
 export interface DhwConfig {
   enabled: boolean;
   /** nuttige tapwaterbehoefte [kWh/dag] bij 10 °C koud water */
@@ -19,6 +22,11 @@ export interface DhwConfig {
 
 export interface Building {
   use: BuildingUse;
+  /**
+   * aantal woningen op dezelfde warmtepomp (woning; kantoor altijd 1). Alleen voor invoer en weergave: het model rekent
+   * met de totalen van het gebouw (designLoadKw, dhw.dailyKwh en dhw.tankLitre gelden voor alle woningen samen).
+   */
+  dwellings: number;
   /** ontwerpwarmteverlies bij designOutdoorC en designIndoorC, excl. opwarmtoeslag [kW] */
   designLoadKw: number;
   designOutdoorC: number;
