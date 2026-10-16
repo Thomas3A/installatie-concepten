@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { fmt } from '../../../core/format';
+import { fmt } from '../core/format';
 import s from './ui.module.css';
 
 export function InfoIcon({ text, label }: { text: string; label: string }) {

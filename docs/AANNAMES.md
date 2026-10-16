@@ -178,3 +178,21 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 - **Comfortverlies bij begrenzen:** rood als het aantal uren meer dan 24 boven het toegestane aantal ligt, anders oranje.
 - **Kleine ΔT buffer** wordt ook getoond zonder buffer (het is een ontwerpadvies over de afgiftetemperatuur).
 - **Opstookpiek kantoor** alleen bij een opwarmfactor > 0.
+
+### Invoer en bediening (UI)
+
+- **Schuifbereik piekvermogen:** het getalveld accepteert 1–2000 kW; de schuif loopt voor een woning van 1 tot 30 kW en
+  voor een kantoor van 10 tot 500 kW, zodat de schuif bij gangbare waarden bruikbaar blijft.
+- **Gebouwfunctie wisselen** laadt alle standaardwaarden van die functie (spec §3); alleen het klimaatjaar blijft.
+- **Tapwater aanzetten** zonder boiler (kantoor) vult een boiler van 500 l en 20 kWh/dag in (woning: 200 l en 10 kWh/dag),
+  omdat tapwater zonder boiler elk uur een tekort geeft en de warmtepomp dan niet te dimensioneren is.
+- **Batterijvermogen** wordt in het expertdeel als C-waarde (0,2–2 C) ingesteld en als kW opgeslagen; bij een andere
+  capaciteit blijft de C-waarde gelijk.
+- **Klimaatstatistiek in de keuzelijst** komt uit een kleine tabel (`data/climateStats.ts`) die overeenkomt met de meta
+  van de JSON-bestanden (gecontroleerd door een test); zo laadt de pagina de uurdata alleen in de Web Worker.
+- **Rekenmotor:** een module-Web Worker (`model/worker.ts`) met verzoeken per id; zonder Worker (tests) draait dezelfde
+  motor in de hoofdthread. Herberekenen gebeurt 250 ms na de laatste wijziging; het gevoeligheidsraster alleen als dat
+  tabblad open is, met een cache op de invoer waarvan het raster afhangt (dus niet op buffer, batterij en WP-vermogen).
+- **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gekozen gebouwfunctie, plus
+  een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
+- **Footer:** de klimaatzin van spec §0.1 staat alleen op de pagina's van dit concept (veld `disclaimer` in de registry).

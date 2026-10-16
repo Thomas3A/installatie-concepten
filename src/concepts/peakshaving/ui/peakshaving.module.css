@@ -1,0 +1,285 @@
+/* Indeling en eigen onderdelen van het peakshaving-concept (gedeelde stijlen: src/ui/ui.module.css) */
+.page {
+  padding: 12px var(--gutter) 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.headControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.headField {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.headField select {
+  max-width: 340px;
+}
+.climateNote {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  color: var(--text-2);
+  margin: -4px 0 8px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-areas: 'inputs results';
+  gap: 14px;
+  align-items: start;
+}
+.inputs {
+  grid-area: inputs;
+  position: sticky;
+  top: 8px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding-right: 2px;
+  min-width: 0;
+}
+.results {
+  grid-area: results;
+  min-width: 0;
+}
+/* onder 1024 px: invoer boven het resultaat (spec §2.2) */
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'inputs'
+      'results';
+  }
+  .inputs {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* ---- invoerblokken */
+.block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  padding: 10px 12px 12px;
+  display: grid;
+  gap: 10px;
+}
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+}
+.stepNo {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex: none;
+}
+.expert {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+.expert > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.expertBody {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+.live {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.live strong {
+  color: var(--text);
+}
+.sliderWrap {
+  position: relative;
+}
+.markers {
+  position: relative;
+  height: 14px;
+  font-size: 0.68rem;
+  color: var(--text-2);
+}
+.marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.marker::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 1px;
+  height: 5px;
+  background: var(--text-2);
+}
+
+/* ---- KPI-kaarten */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 1279px) {
+  .kpiRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .kpiRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.kpiCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 9px 12px;
+  min-width: 0;
+}
+.kpiTitle {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.kpiValue {
+  font-size: 1.45rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  margin: 2px 0;
+}
+.kpiUnit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 4px;
+}
+.kpiLine {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.kpiStatus {
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-ok {
+  border-left-color: var(--ok);
+}
+.status-ok .kpiStatus {
+  color: var(--ok);
+}
+.status-warn {
+  border-left-color: var(--warn);
+}
+.status-warn .kpiStatus {
+  color: var(--warn);
+}
+.status-err {
+  border-left-color: var(--err);
+}
+.status-err .kpiStatus {
+  color: var(--err);
+}
+
+/* ---- advies */
+.advice {
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  line-height: 1.55;
+}
+.advice p {
+  margin: 0;
+}
+.busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.busy::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busy::before {
+    animation: none;
+  }
+}
+.selectedRow td {
+  font-weight: 650;
+  background: var(--accent-soft);
+}
+.placeholder {
+  color: var(--text-2);
+  padding: 24px 4px;
+}
+
+/* ---- print */
+@media print {
+  .layout {
+    display: block;
+  }
+  .inputs {
+    display: none;
+  }
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+  .kpiRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .kpiCard,
+  .advice {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}

@@ -164,3 +164,81 @@ export const MODE_LABELS = {
 } as const;
 
 export const UNIT_HOURS_PER_YEAR = 'uren/jaar';
+
+// ---------------------------------------------------------------------------------------------------------------
+// UI-teksten
+
+export const PAGE_TITLE = 'Peakshaving warmtepomp met buffer en batterij';
+export const PAGE_SUBTITLE =
+  'Lucht/water-warmtepomp · warmtebuffer · batterij · uursimulatie over een referentiejaar';
+
+/** Extra footerzin voor dit concept (spec §0.1). */
+export const FOOTER_CLIMATE =
+  'Klimaatdata: KNMI De Bilt (open data); referentiejaren zijn een reconstructie, geen officiële NEN 5060-data.';
+export const CLIMATE_RECONSTRUCTION =
+  'Reconstructie op basis van KNMI De Bilt; geen officiële NEN 5060-data.';
+export const CLIMATE_NOTE =
+  'Voor dimensioneren is T5 de gebruikelijke keuze; T1 is de stresstest. Het energiejaar is bedoeld voor jaarverbruik en SCOP, niet voor pieken.';
+
+export const TAB_LABELS = {
+  'koude-week': 'Koude week',
+  jaar: 'Jaar',
+  gevoeligheid: 'Gevoeligheid',
+  concept: 'Concept',
+  uitleg: 'Uitleg',
+} as const;
+
+export const BLOCK_TITLES = ['Gebouw', 'Aansluiting', 'Warmtepomp & afgifte', 'Maatregelen'] as const;
+
+/** Toelichting per invoer (spec §3, kolom "Toelichting"). */
+export const HELP = {
+  use: 'Schakelt de gebruiksschema’s en de standaardwaarden van alle invoer.',
+  designLoad:
+    'Ontwerpwarmteverlies (transmissie + ventilatie) bij T_e = −10 °C en de ontwerpbinnentemperatuur, exclusief opwarmtoeslag (NEN-EN 12831). Dit is de eerste invoer; de bereiken van buffer, batterij en warmtepomp worden hiervan afgeleid.',
+  designOutdoor: 'Ontwerpbuitentemperatuur volgens NEN-EN 12831 voor De Bilt.',
+  designIndoor: 'Binnentemperatuur die hoort bij het ingevoerde piekvermogen.',
+  setpointUse: 'Setpoint tijdens gebruik. Een woning is altijd "in gebruik".',
+  setpointSetback:
+    'Setpoint buiten gebruik. Woning: standaard geen nachtverlaging (advies bij warmtepompen); kantoor: 2 K verlaging.',
+  balanceTemp:
+    'Stookgrens tijdens gebruik: interne winsten = UA·(setpoint gebruik − stookgrens). Kantoor: verlichting, apparatuur en personen.',
+  mass: 'Tijdconstante τ van het gebouw; C = τ·UA. Licht 20 h, gemiddeld 40 h, zwaar 80 h. Kantoor standaard 20 h (ventilatie domineert).',
+  envelopeLag: 'Traagheid van de gevel: eerste-orde filter op de buitentemperatuur. 0 = uit.',
+  boost:
+    'Maximaal extra vermogen boven het stationaire verlies om het setpoint terug te winnen, als fractie van het piekvermogen.',
+  useHours: 'Gebruikstijden van het kantoor, maandag tot en met vrijdag (feestdagen worden genegeerd).',
+  preheat: 'Uren vóór gebruiksaanvang waarin naar het gebruikssetpoint wordt gestookt.',
+  dhw: 'Warm tapwater via een boilervat dat de warmtepomp met voorrang laadt.',
+  dhwDaily: 'Nuttige tapwaterbehoefte per dag, bij 10 °C koud water.',
+  tank: 'Inhoud van het boilervat; 85 % is benutbaar.',
+  tankTemp: 'Boilertemperatuur; begrensd op de maximale aanvoertemperatuur van de warmtepomp.',
+  connection: 'Aansluitwaarde van het gebouw: P = 0,230·I (1-fase) of 0,400·√3·I (3-fase), cos φ = 1.',
+  contracted: 'Gecontracteerd vermogen bij een grootverbruikaansluiting.',
+  share:
+    'Deel van de aansluiting voor warmtepomp + batterij. De rest is voor overig gebruik en wordt op het piekmoment volledig benut verondersteld.',
+  allowedExceedance:
+    'Aantal uren per jaar dat de WP-groep boven het budget mag komen; gebruikt bij "kleinste passende aansluiting".',
+  allowedComfort:
+    'Aantal uren comfortverlies per jaar dat bij het dimensioneren van de warmtepomp is toegestaan.',
+  emitter:
+    'Stooklijn: LT 35/28 °C (vloerverwarming, klimaatplafond), MT 45/35 °C (LT-radiatoren), HT 55/45 °C (bestaande radiatoren); aanvoer/retour bij ontwerpcondities.',
+  maxSupply:
+    'Maximale aanvoertemperatuur van de warmtepomp; de buffer wordt geladen tot deze temperatuur − 2 K.',
+  carnot: 'Carnot-rendement: COP = η·T_aanvoer/(T_aanvoer − T_e)·f_ontdooi.',
+  backup: 'Elektrisch bijstookelement met COP 1. Standaard uit.',
+  sizing:
+    'Automatisch: het kleinste vermogen (A7/W35) waarbij zonder elektrische begrenzing het comfort en het tapwater gehaald worden, in het gekozen klimaatjaar. Handmatig: zelf kiezen.',
+  bufferVolume:
+    'Watervolume van het buffervat. Ernaast: nuttige inhoud en het aantal uren piekvermogen dat erin past.',
+  strategy:
+    'Voorspellend: alleen laden als de warmtepomp binnen 24 uur tekortschiet (of als reserve voor tapwater). Altijd: laden zodra er restcapaciteit is.',
+  batteryCapacity: 'Bruto capaciteit; 90 % is bruikbaar. De batterij is alleen voor de WP-groep.',
+  batteryPower: 'Laad- en ontlaadvermogen als C-waarde (vermogen / capaciteit). Automatisch = 0,5 C.',
+  mode: 'Overschrijding tonen: de warmtepomp levert altijd en de uren boven het budget worden geteld. Aansluiting begrenst: het budget is hard; tekorten geven comfortverlies.',
+} as const;
+
+export const MASS_PRESETS = [
+  { label: 'Licht', value: 20 },
+  { label: 'Gemiddeld', value: 40 },
+  { label: 'Zwaar', value: 80 },
+] as const;

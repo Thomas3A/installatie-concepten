@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { designMessages, runtimeMessages, type Msg, type Severity } from '../model/checks';
 import { live, useStore } from '../store';
 import { MESSAGE_TEXTS } from '../texts';
-import { Formula, MathText } from './MathText';
+import { Formula, MathText } from '../../../ui/MathText';
 import s from './ui.module.css';
 
 const ICON: Record<Severity, string> = { fout: '🔴', waarschuwing: '🟠', info: '🔵' };

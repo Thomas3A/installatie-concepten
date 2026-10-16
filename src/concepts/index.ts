@@ -10,6 +10,8 @@ export interface ConceptDef {
   status: ConceptStatus;
   route: string;
   component?: LazyExoticComponent<ComponentType>;
+  /** extra zin in de footer-disclaimer op de pagina's van dit concept */
+  disclaimer?: string;
 }
 
 export const CONCEPTS: ConceptDef[] = [
@@ -21,6 +23,17 @@ export const CONCEPTS: ConceptDef[] = [
     status: 'actief',
     route: '/klimaatplafond',
     component: lazy(() => import('./klimaatplafond/ui/KlimaatplafondPage')),
+  },
+  {
+    id: 'peakshaving',
+    titel: 'Peakshaving warmtepomp met buffer en batterij',
+    beschrijving:
+      'Hoeveel buffervat en batterij zijn nodig om met een lucht/water-warmtepomp binnen de elektrische aansluiting te blijven? Uursimulatie met referentiejaren.',
+    status: 'actief',
+    route: '/peakshaving',
+    component: lazy(() => import('./peakshaving/ui/PeakshavingPage')),
+    disclaimer:
+      'Klimaatdata: KNMI De Bilt (open data); referentiejaren zijn een reconstructie, geen officiële NEN 5060-data.',
   },
   {
     id: 'vloer',
