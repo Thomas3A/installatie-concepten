@@ -219,7 +219,7 @@ describe('gevoeligheidsgrafiek', () => {
     const { container } = render(<SensitivityChart />);
     const text = container.textContent ?? '';
     expect(text).toContain('Benodigd WP-vermogen (P th,min)');
-    expect(text).toContain('Budget huidige aansluiting (P limiet)');
+    expect(text).toContain('WP-limiet huidige aansluiting (P limiet)');
     expect(text).not.toMatch(/P_/);
     expect(text).toContain('Overschr. [uur/jaar]');
   });
@@ -233,7 +233,7 @@ describe('gevoeligheidsgrafiek', () => {
       }),
     );
     const { container } = render(<SensitivityChart />);
-    expect(container.textContent).toContain('Budget huidige aansluiting (P limiet), boven de as (↑)');
+    expect(container.textContent).toContain('WP-limiet huidige aansluiting (P limiet), boven de as (↑)');
   });
 });
 
@@ -291,7 +291,7 @@ describe('korte teksten en bedieningshints (UX-plan §7 #14–18)', () => {
     const details = summary.closest('details')!;
     expect(details.open).toBe(false);
     // de batterijnuance staat alleen nog in de leeswijzer
-    expect(details.textContent).toMatch(/Met batterij ligt de piek vaak precies op het budget/);
+    expect(details.textContent).toMatch(/Met batterij ligt de piek vaak precies op de WP-limiet/);
     expect(text().match(/Met batterij ligt de piek/g)).toHaveLength(1);
     fireEvent.click(summary);
     expect(details.open).toBe(true);

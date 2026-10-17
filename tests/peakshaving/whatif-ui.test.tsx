@@ -130,7 +130,7 @@ describe('Wat als?: effectregels (§5.2)', () => {
     // knoptekst "Zet" (de waarde staat al in de regel), toegankelijke naam "Zet op 1,0 kWh"
     expect(batteryEffect()).toBe('Kleinste batterij voor 0 uur: 1,0 kWh' + 'Zet');
     expect(screen.getByRole('button', { name: 'Zet op 1,0 kWh' }).textContent).toBe('Zet');
-    expect(stepperText()).toBe('1×35 A · 8,05 kW · budget 3,22 kW (40 %)');
+    expect(stepperText()).toBe('1×35 A · 8,05 kW · limiet 3,22 kW (40 %)');
     // zonder maatregelen is er niets terug te zetten
     expect(screen.queryByRole('button', { name: 'Zonder maatregelen' })).toBeNull();
     // de effectregel beschrijft het getalveld
@@ -156,7 +156,7 @@ describe('Wat als?: effectregels (§5.2)', () => {
     // zonder raster (automatisch uit in de tests) geen regel over het plateau
     expect(bufferEffect()).toBe('24,1 kWh opslag ≈ 3,0 uur piekvermogen · warmtepomp 10,6 → 8,7 kW');
     expect(batteryEffect()).toBe(
-      'Doet nu niets: de piek (2,95 kW) blijft al onder het budget (3,22 kW). Een batterij helpt pas bij een kleinere aansluiting.' +
+      'Doet nu niets: de piek (2,95 kW) blijft al onder de limiet (3,22 kW). Een batterij helpt pas bij een kleinere aansluiting.' +
         '◀Probeer 1×25 A',
     );
 
@@ -168,7 +168,7 @@ describe('Wat als?: effectregels (§5.2)', () => {
     expect(
       within(screen.getByTestId('battery-effect')).getByRole('button', { name: 'Zet op 3,0 kWh' }),
     ).toBeTruthy();
-    expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    expect(stepperText()).toBe('1×25 A · 5,75 kW · limiet 2,30 kW (40 %)');
   });
 
   it('kantoor met tijdconstante 80 h (niet te dimensioneren): geen batterijadvies, geen "Zet" en geen 300,0 kW', async () => {
@@ -265,7 +265,7 @@ describe('Wat als?: knoppen met ongedaan maken', () => {
     act(() => fireEvent.click(screen.getByRole('button', { name: 'Probeer 1×25 A' })));
     expect(st().input.grid.connection).toBe('1x25');
     expect(st().notice?.text).toBe('Aansluiting 1×25 A');
-    expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    expect(stepperText()).toBe('1×25 A · 5,75 kW · limiet 2,30 kW (40 %)');
     expect(document.activeElement).toBe(screen.getByRole('group', { name: 'Aansluiting' }));
     act(() => st().undoLast());
     expect(st().input).toEqual(before);
@@ -310,10 +310,10 @@ describe('Wat als?: aansluitingsstapper', () => {
     expect(st().undo).toBeNull();
     // na een stap wordt de nieuwe aansluiting voorgelezen; een wijziging in de Basis (aandeel) niet
     const live = panel().querySelector<HTMLElement>('[aria-live="polite"]')!;
-    expect(live.textContent).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    expect(live.textContent).toBe('1×25 A · 5,75 kW · limiet 2,30 kW (40 %)');
     act(() => st().update((i) => ({ ...i, grid: { ...i.grid, heatPumpShare: 0.5 } })));
-    expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,88 kW (50 %)');
-    expect(live.textContent).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    expect(stepperText()).toBe('1×25 A · 5,75 kW · limiet 2,88 kW (50 %)');
+    expect(live.textContent).toBe('1×25 A · 5,75 kW · limiet 2,30 kW (40 %)');
     act(() => st().update((i) => ({ ...i, grid: { ...i.grid, heatPumpShare: 0.4 } })));
 
     // vanaf 3×80 A naar grootverbruik (minstens het vermogen van 3×80 A) en terug
@@ -321,7 +321,7 @@ describe('Wat als?: aansluitingsstapper', () => {
     act(() => fireEvent.click(larger));
     expect(st().input.grid.connection).toBe('grootverbruik');
     expect(st().input.grid.contractedKw).toBe(60);
-    expect(stepperText()).toBe('Grootverbruik · 60 kW · budget 24,0 kW (40 %)');
+    expect(stepperText()).toBe('Grootverbruik · 60 kW · limiet 24,0 kW (40 %)');
     expect(larger.getAttribute('aria-disabled')).toBe('true');
     act(() => fireEvent.click(larger));
     expect(st().input.grid.connection).toBe('grootverbruik');

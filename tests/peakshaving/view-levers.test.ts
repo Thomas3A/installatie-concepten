@@ -59,7 +59,7 @@ beforeAll(async () => {
       i.grid.mode = 'limited';
     }),
     plateau: variant('woning-basis', (i) => void (i.buffer.volumeM3 = 1.2)),
-    // 9 kW met LT 35 en 0,5 m³: de buffer laadt de piek precies tot het budget (3,22 kW), de batterij doet niets
+    // 9 kW met LT 35 en 0,5 m³: de buffer laadt de piek precies tot de limiet (3,22 kW), de batterij doet niets
     atBudget: variant('woning-basis', (i) => {
       i.building.designLoadKw = 9;
       i.heatPump.emitterPreset = 'LT';
@@ -141,7 +141,7 @@ describe('effectregel buffer', () => {
 });
 
 describe('effectregel batterij', () => {
-  it('geen batterij en uren boven budget: kleinste batterij voor 0 uur met "Zet" (naam "Zet op …")', async () => {
+  it('geen batterij en uren boven de limiet: kleinste batterij voor 0 uur met "Zet" (naam "Zet op …")', async () => {
     const s = batteryState(A.basis);
     expect(s.text).toBe('Kleinste batterij voor 0 uur: 1,0 kWh');
     // de waarde staat al in de regel; de toegankelijke naam noemt hem wel
@@ -165,14 +165,14 @@ describe('effectregel batterij', () => {
   it('batterij die niets doet', () => {
     const s = batteryState(A.both);
     expect(s.text).toBe(
-      'Doet nu niets: de piek (2,95 kW) blijft al onder het budget (3,22 kW). Een batterij helpt pas bij een kleinere aansluiting.',
+      'Doet nu niets: de piek (2,95 kW) blijft al onder de limiet (3,22 kW). Een batterij helpt pas bij een kleinere aansluiting.',
     );
     expect(s.fix?.label).toBe('Probeer 1×25 A');
   });
 
-  it('batterij die niets doet, met de piek afgerond op het budget: niet "onder" het budget', () => {
+  it('batterij die niets doet, met de piek afgerond op de limiet: niet "onder" de limiet', () => {
     expect(batteryState(A.atBudget).text).toBe(
-      'Doet nu niets: de piek (3,22 kW) komt al niet boven het budget. Een batterij helpt pas bij een kleinere aansluiting.',
+      'Doet nu niets: de piek (3,22 kW) komt al niet boven de limiet. Een batterij helpt pas bij een kleinere aansluiting.',
     );
   });
 
@@ -243,7 +243,7 @@ describe('effectregel batterij', () => {
 describe('aansluitingsstapper', () => {
   it('tekst en stappen in de volgorde van de lijst, daarna grootverbruik', () => {
     const s = connectionSteps({ connection: '1x35', contractedKw: 100, heatPumpShare: 0.4 });
-    expect(s.text).toBe('1×35 A · 8,05 kW · budget 3,22 kW (40 %)');
+    expect(s.text).toBe('1×35 A · 8,05 kW · limiet 3,22 kW (40 %)');
     expect(s.smaller).toEqual({ connection: '1x25', contractedKw: 100 });
     expect(s.larger).toEqual({ connection: '1x40', contractedKw: 100 });
     expect(connectionSteps({ connection: '1x25', contractedKw: 100, heatPumpShare: 0.4 }).smaller).toBeNull();
@@ -253,10 +253,10 @@ describe('aansluitingsstapper', () => {
     expect(largeContractedKw(10)).toBe(60);
     expect(largeContractedKw(100)).toBe(100);
     const top = connectionSteps({ connection: '3x80', contractedKw: 40, heatPumpShare: 0.5 });
-    expect(top.text).toBe('3×80 A · 55,4 kW · budget 27,7 kW (50 %)');
+    expect(top.text).toBe('3×80 A · 55,4 kW · limiet 27,7 kW (50 %)');
     expect(top.larger).toEqual({ connection: 'grootverbruik', contractedKw: 60 });
     const large = connectionSteps({ connection: 'grootverbruik', contractedKw: 100, heatPumpShare: 0.5 });
-    expect(large.text).toBe('Grootverbruik · 100 kW · budget 50,0 kW (50 %)');
+    expect(large.text).toBe('Grootverbruik · 100 kW · limiet 50,0 kW (50 %)');
     expect(large.larger).toBeNull();
     expect(large.smaller).toEqual({ connection: '3x80', contractedKw: 100 });
   });

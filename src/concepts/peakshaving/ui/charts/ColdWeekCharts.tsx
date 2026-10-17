@@ -396,7 +396,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
   elecSeries.push({ label: 'Aan de meter (WP-groep)', color: pal.text, width: 2, digits: 2 });
   if (derived.limit) {
     elecSeries.push({
-      label: `WP-budget ${fmt(pLimit, 2)} kW`,
+      label: `WP-limiet ${fmt(pLimit, 2)} kW`,
       color: pal.err,
       dash: [6, 4],
       width: 1.5,
@@ -417,7 +417,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
       },
     ],
     draw: [
-      // per uur een streepje onderaan: bij een venster van 9 dagen is het vlak boven het budget vaak maar smal
+      // per uur een streepje onderaan: bij een venster van 9 dagen is het vlak boven de limiet vaak maar smal
       (p: uPlot) => {
         if (derived.limit) markHoursAtBottom(p, N, (t) => se.pGrid[t] > pLimit + 1e-9, 5, pal.err);
       },
@@ -559,7 +559,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
             axes={elecAxes}
             hooks={elecHooks}
             legendExtras={elecLegend}
-            ariaLabel="Elektrisch vermogen in de koude week: warmtepomp, batterij, aan de meter en het WP-budget"
+            ariaLabel="Elektrisch vermogen in de koude week: warmtepomp, batterij, aan de meter en de WP-limiet"
             onReady={onReady(1)}
             exportName="koude-week-elektrisch"
             exportTitle={exportTitle('Koude week · Elektrisch (WP-groep)')}
@@ -567,7 +567,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
           />
           {derived.limit && (
             <p className={c.hint}>
-              Rood vlak: aan de meter boven het WP-budget; streepje onderaan: elk uur met overschrijding.
+              Rood vlak: aan de meter boven de WP-limiet; streepje onderaan: elk uur met overschrijding.
             </p>
           )}
         </section>

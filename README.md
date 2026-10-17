@@ -105,7 +105,7 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
   woningen en de tool toont de waarden per woning. Het rekenmodel rekent met de totalen van het gebouw (zie
   [`docs/AANNAMES.md`](docs/AANNAMES.md)).
 - **Resultaat:** een oordeel in één zin ("Past op 1×35 A met 0,50 m³ buffer"), een meterbalk (piek aan de meter tegen
-  het WP-budget, met het deel dat de batterij afschaaft) en drie tegels: Warmtepomp, Boven budget en Kleinste
+  de WP-limiet, met het deel dat de batterij afschaaft) en drie tegels: Warmtepomp, Boven de limiet en Kleinste
   aansluiting. Daaronder de gevolgen met begrenzer en in een strenge winter (T1), en knoppen "Wat helpt" of "Kleinere
   aansluiting volstaat ook" die een buffer, batterij, aandeel of aansluiting zetten, elk met ongedaan maken. Onder de
   kaart staan Opvallend, **Alle kerngetallen** (de acht KPI-kaarten) en **Robuustheid** (energiejaar, T5, T1).
@@ -113,7 +113,7 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
   "past vanaf"), de batterij, een stapper voor de aansluiting en **Verfijnen** (WP-vermogen automatisch of handmatig,
   laadstrategie, batterijvermogen). **↺ Zonder maatregelen** zet buffer en batterij terug op 0.
 - **Rondleiding:** bij een eerste bezoek (niet via een deellink) loopt een korte rondleiding in vijf stappen langs Basis,
-  WP-budget, Resultaat, buffer en batterij met aansluiting; de knop **Rondleiding** in de kop start hem opnieuw.
+  WP-limiet, Resultaat, buffer en batterij met aansluiting; de knop **Rondleiding** in de kop start hem opnieuw.
 - **Verdieping:** de schakelaar _Zonder begrenzer_ / _Met begrenzer_ voor grafieken en kerngetallen, en de tabbladen
   _Schema_ (live schema van warmtepomp, buffer, boiler, gebouw, meterkast en batterij voor het gekozen uur), _Koude week_
   (drie gekoppelde grafieken met scrubber en afspelen), _Jaar_ (belastingduurkrommen en maandbalans), _Gevoeligheid_

@@ -1,5 +1,5 @@
 // Tabblad Gevoeligheid (spec §7.3) — de kerngrafiek: piek aan de meter per batterijgrootte en het benodigde
-// WP-vermogen als functie van het buffervolume, met de budgetten van de standaardaansluitingen als referentielijnen.
+// WP-vermogen als functie van het buffervolume, met de WP-limieten van de standaardaansluitingen als referentielijnen.
 // Het raster komt rij voor rij uit de Web Worker; de grafiek tekent wat er al is. Tijdens een herberekening blijft het
 // vorige volledige raster (gedimd) staan tot de eerste nieuwe rij er is, zodat de pagina niet verspringt.
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -42,7 +42,7 @@ const PRINT_CHART_HEIGHT = 300;
 /** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
 const COMPACT_BELOW_PX = 560;
 /**
- * Een budgetlijn hoger dan deze factor × de hoogste meterpiek rekt de as niet op (bijv. grootverbruik): de krommen
+ * Een limietlijn hoger dan deze factor × de hoogste meterpiek rekt de as niet op (bijv. grootverbruik): de krommen
  * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
  */
 const OFF_SCALE_FACTOR = 2;
@@ -209,11 +209,11 @@ function chartData(
     (a, b) => a.volumeM3 - b.volumeM3 || a.limitKw - b.limitKw,
   );
   const maxNet = nets.length > 0 ? Math.max(...nets) : NaN;
-  // een budget ver boven de krommen (bijv. grootverbruik) rekt de as niet op
+  // een limiet ver boven de krommen (bijv. grootverbruik) rekt de as niet op
   const onScale = (kw: number): boolean => !(nets.length > 0) || kw <= OFF_SCALE_FACTOR * maxNet;
 
-  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens het huidige budget (als dat
-  // op de as past) en de budgetten met een overgang
+  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens de huidige limiet (als die
+  // op de as past) en de limieten met een overgang
   const relevantTop = niceCeil(
     Math.max(
       nets.length > 0 ? 1.15 * maxNet : 0,
@@ -257,7 +257,7 @@ function chartData(
     });
   }
 
-  // Twee assen in één vlak: de elektrische lijnen (meterpiek en budgetten) in de onderste helft, het thermische
+  // Twee assen in één vlak: de elektrische lijnen (meterpiek en limieten) in de onderste helft, het thermische
   // vermogen (WP en gebouw) in de bovenste strook, zodat de lijnen van beide assen elkaar niet bedekken.
   const elec = [...nets, ...lines.filter((l) => !l.offScale).map((l) => l.limitKw)];
   const yRange = bandRange(Math.min(...elec), Math.max(...elec), 0.06, 0.58);
@@ -317,14 +317,14 @@ function chartData(
   if (cur)
     extras.push({
       label: cur.offScale
-        ? 'Budget huidige aansluiting (P limiet), boven de as (↑)'
-        : 'Budget huidige aansluiting (P limiet)',
+        ? 'WP-limiet huidige aansluiting (P limiet), boven de as (↑)'
+        : 'WP-limiet huidige aansluiting (P limiet)',
       color: pal.err,
       dash: CURRENT_DASH,
     });
   if (lines.some((l) => !l.current)) {
     extras.push({
-      label: `Budget andere standaardaansluitingen (${pct})`,
+      label: `WP-limieten andere standaardaansluitingen (${pct})`,
       color: pal.text2,
       dash: OTHER_DASH,
     });
@@ -393,7 +393,7 @@ function volumePosition(u: uPlot, o: Overlay): number | null {
   return Number.isFinite(x) && x >= left - 0.5 && x <= left + width + 0.5 ? x : null;
 }
 
-/** Onder de reeksen: referentielijnen (budgetten van de aansluitingen) en het huidige buffervolume. */
+/** Onder de reeksen: referentielijnen (WP-limieten van de aansluitingen) en het huidige buffervolume. */
 function drawUnder(u: uPlot, o: Overlay): void {
   const ctx = u.ctx;
   const r = pixelRatio();
@@ -476,7 +476,7 @@ function drawOver(u: uPlot, o: Overlay): void {
     y1: ty + 3 * r,
   });
 
-  // budgetten ver boven de krommen (niet op de as): als label met pijl aan de bovenrand, rechts
+  // limieten ver boven de krommen (niet op de as): als label met pijl aan de bovenrand, rechts
   let offY = top + 12 * r;
   for (const l of o.lines.filter((q) => q.offScale)) {
     ctx.font = font(l.current ? 650 : 400);
@@ -734,7 +734,7 @@ function PointsTable({
   );
 }
 
-/** Leeswijzer onder de korte lead, standaard ingeklapt: assen, budgetlijnen en stippen, en de batterijnuance. */
+/** Leeswijzer onder de korte lead, standaard ingeklapt: assen, limietlijnen en stippen, en de batterijnuance. */
 function HowToRead({ bufferMaxM3 }: { bufferMaxM3: number }) {
   return (
     <details className={css.howTo}>
@@ -749,12 +749,12 @@ function HowToRead({ bufferMaxM3 }: { bufferMaxM3: number }) {
           benodigde WP-vermogen.
         </li>
         <li>
-          Gestippelde lijnen zijn de budgetten van de standaardaansluitingen. Ligt een lijn eronder, dan is
+          Gestippelde lijnen zijn de WP-limieten van de standaardaansluitingen. Ligt een lijn eronder, dan is
           die aansluiting toereikend; de stip markeert vanaf welk buffervolume.
         </li>
         <li>
-          Met batterij ligt de piek vaak precies op het budget van de huidige aansluiting: de batterij
-          gebruikt de ruimte tot dat budget om bij te laden.
+          Met batterij ligt de piek vaak precies op de WP-limiet van de huidige aansluiting: de batterij
+          gebruikt de ruimte tot die limiet om bij te laden.
         </li>
       </ul>
     </details>
@@ -873,7 +873,7 @@ function SensitivityView({
         onCursor={setHover}
         onClickX={pick}
         onReady={onReady}
-        ariaLabel="Gevoeligheid: piek aan de meter per batterijgrootte (linker as) en benodigd warmtepompvermogen (rechter as) als functie van het buffervolume, met de budgetten van de standaardaansluitingen als horizontale lijnen"
+        ariaLabel="Gevoeligheid: piek aan de meter per batterijgrootte (linker as) en benodigd warmtepompvermogen (rechter as) als functie van het buffervolume, met de WP-limieten van de standaardaansluitingen als horizontale lijnen"
         exportName="gevoeligheid"
         exportTitle={`Gevoeligheid: piek aan de meter en benodigd WP-vermogen per buffervolume${climate ? ` — klimaatjaar ${climate}` : ''}`}
         exportLabel="Gevoeligheid"

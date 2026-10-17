@@ -1,4 +1,4 @@
-// Elektrische aansluiting en WP-budget (spec §5.5).
+// Elektrische aansluiting en WP-limiet (spec §5.5).
 import {
   CONNECTIONS,
   findConnection,

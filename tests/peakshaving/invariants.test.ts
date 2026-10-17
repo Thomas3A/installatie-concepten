@@ -175,7 +175,7 @@ describe('invarianten per simulatie (spec §9.7)', () => {
         }
         for (const [key, v] of Object.entries(r.kpis) as [keyof SimulationKpis, number][]) {
           if (key === 'pLimitKw' && !Number.isFinite(sc.setup.pLimitKw)) {
-            // zonder elektrische limiet is het WP-budget per definitie oneindig
+            // zonder elektrische limiet is de WP-limiet per definitie oneindig
             expect(v, key).toBe(Infinity);
           } else {
             expect(Number.isFinite(v), `KPI ${key} = ${v}`).toBe(true);

@@ -38,7 +38,7 @@ function PrintSummary() {
       <p>
         {buildingText(b)} · piekvermogen {fmt(b.designLoadKw, 1)} kW{perDwelling(b.designLoadKw, 1, 'kW')} ·
         klimaatjaar {a?.climateName ?? input.climateYear} · aansluiting {connectionLabel(input.grid)} (
-        {fmt(input.grid.heatPumpShare * 100, 0)} % voor de WP, budget {fmt(gridLimitKw(input.grid), 2)} kW) ·
+        {fmt(input.grid.heatPumpShare * 100, 0)} % voor de WP, limiet {fmt(gridLimitKw(input.grid), 2)} kW) ·
         stooklijn {EMITTER_PRESETS[input.heatPump.emitterPreset].label} · max. aanvoer{' '}
         {fmt(input.heatPump.maxSupplyC, 0)} °C · WP{' '}
         {input.heatPump.sizingMode === 'auto' ? 'automatisch' : 'handmatig'}{' '}

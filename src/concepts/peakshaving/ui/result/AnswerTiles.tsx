@@ -1,4 +1,4 @@
-// Drie tegels (UX-plan §4.2, role=group "Antwoord"): Warmtepomp, Boven budget en Kleinste aansluiting, met de
+// Drie tegels (UX-plan §4.2, role=group "Antwoord"): Warmtepomp, Boven de limiet en Kleinste aansluiting, met de
 // verwijzing "zonder maatregelen …" zodra er een buffer of batterij is. Neutraal; alleen een te klein handmatig
 // WP-vermogen krijgt de toon "warn". "eigen vermogen kiezen" klapt in Wat als? Verfijnen open (revealSetting('sizing')).
 import u from '../../../../ui/ui.module.css';

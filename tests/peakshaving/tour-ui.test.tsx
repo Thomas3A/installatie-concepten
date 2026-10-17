@@ -438,7 +438,7 @@ describe('Rondleiding: stappen en knoppen', () => {
     }
     expect(TOUR_STEPS.map((s) => s.title)).toEqual([
       'Basis',
-      'WP-budget',
+      'WP-limiet',
       'Resultaat',
       'Wat als?',
       'Batterij en aansluiting',

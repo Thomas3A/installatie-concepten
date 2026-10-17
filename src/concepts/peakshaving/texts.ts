@@ -52,7 +52,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
     summary:
       'Als de aansluiting begrenst: {hours} uur comfortverlies per jaar (toegestaan {allowed}), laagste binnentemperatuur {minTi} °C.',
     why: [
-      'Met begrenzer (de aansluiting begrenst) mag de WP-groep niet boven het budget komen. Wat buffer en batterij niet kunnen overbruggen, wordt niet geleverd; de binnentemperatuur zakt dan meer dan 0,5 K onder het setpoint.',
+      'Met begrenzer (de aansluiting begrenst) mag de WP-groep niet boven de limiet komen. Wat buffer en batterij niet kunnen overbruggen, wordt niet geleverd; de binnentemperatuur zakt dan meer dan 0,5 K onder het setpoint.',
     ],
     solutions: [
       'Vergroot de buffer (helpt tegen uurpieken) of de batterij (schaaft de elektrische piek af).',
@@ -61,9 +61,9 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
   },
   batteryEmpty: {
     title: 'Batterij raakt leeg',
-    summary: 'In {hours} uur is de batterij ({capacity} kWh) leeg terwijl de WP-groep boven het budget zit.',
+    summary: 'In {hours} uur is de batterij ({capacity} kWh) leeg terwijl de WP-groep boven de limiet zit.',
     why: [
-      'De overschrijding duurt langer dan de batterij kan leveren. De batterij laadt alleen bij in uren onder de budgetlijn, en tijdens een koude periode zijn dat er te weinig.',
+      'De overschrijding duurt langer dan de batterij kan leveren. De batterij laadt alleen bij in uren onder de limiet, en tijdens een koude periode zijn dat er te weinig.',
     ],
     solutions: [
       'Kies een batterij met meer kWh.',
@@ -74,7 +74,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
     title: 'Batterijvermogen begrenst',
     summary: 'In {hours} uur is het ontlaadvermogen ({power} kW) de beperking, niet de lading.',
     why: [
-      'De overschrijding boven het budget is groter dan het ontlaadvermogen van de batterij, terwijl er nog lading over is. Meer kWh helpt dan niet; meer kW wel.',
+      'De overschrijding boven de limiet is groter dan het ontlaadvermogen van de batterij, terwijl er nog lading over is. Meer kWh helpt dan niet; meer kW wel.',
     ],
     solutions: ['Kies een batterij met een hogere C-waarde (Wat als? → Verfijnen).', 'Vergroot de buffer.'],
   },
@@ -260,7 +260,7 @@ export const HELP = {
     'Bij meerdere woningen is dit de aansluiting van de collectieve installatie (de rest: pompen, ventilatie, algemene ruimten); de woningen hebben elk een eigen aansluiting.',
   nightSetback: 'Buiten gebruikstijd 2 K lager stoken; uit = altijd op het gebruikssetpoint.',
   allowedExceedance:
-    'Aantal uren per jaar dat de WP-groep boven het budget mag komen; gebruikt bij "kleinste passende aansluiting".',
+    'Aantal uren per jaar dat de WP-groep boven de limiet mag komen; gebruikt bij "kleinste passende aansluiting".',
   allowedComfort:
     'Aantal uren comfortverlies per jaar dat bij het dimensioneren van de warmtepomp is toegestaan.',
   emitter:
@@ -279,7 +279,7 @@ export const HELP = {
   batteryCapacity:
     'Bruto capaciteit; 90 % is bruikbaar en het rendement is 90 % heen en terug. De batterij is alleen voor de WP-groep. Streepjes: 2, 4 en 8 uur piekvermogen, elektrisch bij COP 3.',
   batteryPower: 'Laad- en ontlaadvermogen als C-waarde (vermogen / capaciteit). Automatisch = 0,5 C.',
-  mode: 'Zonder begrenzer levert de warmtepomp altijd en tellen de uren boven het budget; met begrenzer is het budget hard en wordt een tekort comfortverlies. Het oordeel bovenaan toont altijd beide; deze keuze geldt voor de grafieken en Alle kerngetallen.',
+  mode: 'Zonder begrenzer levert de warmtepomp altijd en tellen de uren boven de limiet; met begrenzer is de limiet hard en wordt een tekort comfortverlies. Het oordeel bovenaan toont altijd beide; deze keuze geldt voor de grafieken en Alle kerngetallen.',
 } as const;
 
 export const MASS_PRESETS = [
@@ -303,9 +303,9 @@ export const EXPLAIN: ExplainSection[] = [
     title: '1. Wat de tool berekent',
     body: [
       'De tool simuleert uur voor uur een heel jaar (8760 uur, na een inregelweek): de warmtevraag van het gebouw, wat de lucht/water-warmtepomp daarvan direct kan leveren, wat het buffervat aanvult of opslaat, het tapwater in de boiler en wat de batterij aan de meterkant afschaaft.',
-      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven het WP-budget $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt. De tool telt dus de uren',
+      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven de WP-limiet $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt. De tool telt dus de uren',
       '$$\\begin{aligned} h_{overschr} &= \\#\\{\\, t : P_{net} > P_{limiet} \\,\\} \\\\ h_{comfort} &= \\#\\{\\, t \\in \\text{gebruik} : T_i < T_{set} - 0{,}5\\,\\mathrm{K} \\,\\} \\end{aligned}$$',
-      '*Zonder begrenzer* levert de warmtepomp altijd en telt de tool de uren boven het budget; *met begrenzer* (de aansluiting begrenst) is het budget hard, zodat tekorten als comfortverlies zichtbaar worden. Het resultaat toont altijd beide gevolgen: uren boven het budget zonder begrenzer en uren te koud met begrenzer. De schakelaar boven deze tabbladen geldt voor de grafieken en Alle kerngetallen.',
+      '*Zonder begrenzer* levert de warmtepomp altijd en telt de tool de uren boven de limiet; *met begrenzer* (de aansluiting begrenst) is de limiet hard, zodat tekorten als comfortverlies zichtbaar worden. Het resultaat toont altijd beide gevolgen: uren boven de limiet zonder begrenzer en uren te koud met begrenzer. De schakelaar boven deze tabbladen geldt voor de grafieken en Alle kerngetallen.',
     ],
   },
   {
@@ -344,17 +344,17 @@ export const EXPLAIN: ExplainSection[] = [
     body: [
       'Van de bruto capaciteit is 90 % bruikbaar; het rendement is 90 % heen en terug ($\\sqrt{0{,}9} \\approx 0{,}949$ per richting). Het vermogen is standaard 0,5 C (een batterij van 10 kWh levert 5 kW).',
       '$$\\begin{aligned} P_{net} &= P_{el} - P_{bat} \\\\ P_{bat} &= \\min(P_{el} - P_{limiet},\\ P_{bat,max},\\ SoC \\cdot \\eta) \\end{aligned}$$',
-      'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de budgetlijn bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
+      'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de limiet bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
     ],
   },
   {
     id: 'aansluiting',
-    title: '6. Aansluiting en budget',
+    title: '6. Aansluiting en WP-limiet',
     body: [
       'De standaardaansluitwaarden zijn 1×25, 1×35 en 1×40 A en 3×25 tot 3×80 A; het vermogen is $P = U\\,I$ bij 1-fase (230 V) en',
       '$$P = \\sqrt{3}\\,U\\,I \\quad (U = 400\\ \\mathrm{V},\\ \\cos\\varphi = 1)$$',
-      'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. Het WP-budget is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
-      'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van het WP-budget is daarmee overschrijding van de aansluiting.',
+      'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. De WP-limiet is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
+      'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van de WP-limiet is daarmee overschrijding van de aansluiting.',
       'Bij **meerdere woningen** is de aansluiting die van de collectieve installatie (standaard 3×35 A, waarvan 80 % voor warmtepomp en batterij; de rest voor pompen, ventilatie en algemene ruimten). De woningen zelf hebben elk een eigen aansluiting die hier niet meetelt.',
     ],
   },
@@ -478,13 +478,13 @@ export const BASIS_TEXTS = {
   stripOwnInput: 'Eigen invoer',
   /** toegankelijke naam van een chip in de strook */
   chipName: (label: string, value: string): string => `${label}: ${value}, wijzigen`,
-  /** budgetbalk bij het aandeel: "WP-budget **3,22 kW** · overig gebruik 4,83 kW" */
+  /** limietbalk bij het aandeel: "WP-limiet **3,22 kW** · overig gebruik 4,83 kW" */
   budgetBar: (
     budgetKw: number,
     otherKw: number,
     d: number,
   ): { lead: string; budget: string; rest: string } => ({
-    lead: 'WP-budget ',
+    lead: 'WP-limiet ',
     budget: `${fmt(budgetKw, d)} kW`,
     rest: ` · overig gebruik ${fmt(otherKw, d)} kW`,
   }),
@@ -502,9 +502,9 @@ export const BASIS_TEXTS = {
   chipDhw: (dailyKwh: number, perDwelling = false): string =>
     `tapwater ${fmtKwhPerDay(dailyKwh)} kWh/dag${perDwelling ? ' per woning' : ''}`,
   chipDhwOff: 'geen tapwater',
-  /** "budget 3,22 kW · 40 %"; `d` = decimalen van het budget (kwDigitsFor) */
+  /** "limiet 3,22 kW · 40 %"; `d` = decimalen van de limiet (kwDigitsFor) */
   chipBudget: (budgetKw: number, sharePct: number, d: number): string =>
-    `budget ${fmt(budgetKw, d)} kW · ${fmt(sharePct, 0)} %`,
+    `limiet ${fmt(budgetKw, d)} kW · ${fmt(sharePct, 0)} %`,
   /** stooklijn als aanvoer/retour bij ontwerpcondities: "MT 45/35" */
   chipEmitter: (preset: string, supplyC: number, returnC: number): string =>
     `${preset} ${fmt(supplyC, 0)}/${fmt(returnC, 0)}`,
@@ -516,7 +516,7 @@ export const BASIS_TEXTS = {
   chipNightSetback: (on: boolean): string => (on ? 'nachtverlaging' : 'geen nachtverlaging'),
   /** kantoor: label van de chip met de gebruikstijden */
   useHoursLabel: 'Gebruikstijden',
-  budgetLegend: 'WP-budget',
+  budgetLegend: 'WP-limiet',
   otherLegend: 'overig gebruik',
 } as const;
 
@@ -547,7 +547,7 @@ export const ROBUSTNESS_NOTE = (heatPumpKw: number): string =>
 
 /**
  * Percentage in hele procenten; een klein maar echt verschil dat op 0 zou afronden wordt "< 1" ("0,01 kW (< 1 %)"),
- * zoals de tegel Boven budget "< 1 kWh/jaar" zegt.
+ * zoals de tegel Boven de limiet "< 1 kWh/jaar" zegt.
  */
 function fmtPct(pct: number): string {
   return pct > 0 && pct < 0.5 ? '< 1' : fmt(pct, 0);
@@ -595,22 +595,22 @@ export const VERDICT_TEXTS = {
     solution ? `${cause} ${solution}` : cause,
   /** boven het toegestane aantal uren */
   over: (hours: number, budgetKw: number, overKw: number, pct: number, d: number): string =>
-    `${fmt(hours, 0)} uur per jaar boven het WP-budget van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW (${fmtPct(pct)} %) erboven.`,
-  /** boven budget, maar binnen het toegestane aantal uren */
+    `${fmt(hours, 0)} uur per jaar boven de WP-limiet van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW (${fmtPct(pct)} %) erboven.`,
+  /** boven de limiet, maar binnen het toegestane aantal uren */
   within: (hours: number, budgetKw: number, overKw: number, d: number): string =>
-    `${fmt(hours, 0)} uur per jaar boven het WP-budget van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW erboven.`,
+    `${fmt(hours, 0)} uur per jaar boven de WP-limiet van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW erboven.`,
   margin: (peakKw: number, marginKw: number, pct: number, budgetKw: number, d: number): string =>
-    `Piek aan de meter ${fmt(peakKw, d)} kW, ${fmt(marginKw, d)} kW (${fmtPct(pct)} %) onder het budget van ${fmt(budgetKw, d)} kW.`,
-  /** zonder afschaving, met een marge die afgerond 0 is (bijv. een buffer die precies tot het budget laadt) */
-  atBudget: (peakKw: number, d: number): string => `Piek aan de meter ${fmt(peakKw, d)} kW = budget.`,
+    `Piek aan de meter ${fmt(peakKw, d)} kW, ${fmt(marginKw, d)} kW (${fmtPct(pct)} %) onder de limiet van ${fmt(budgetKw, d)} kW.`,
+  /** zonder afschaving, met een marge die afgerond 0 is (bijv. een buffer die precies tot de limiet laadt) */
+  atBudget: (peakKw: number, d: number): string => `Piek aan de meter ${fmt(peakKw, d)} kW = limiet.`,
   shaved: (peakKw: number, shavedKw: number, d: number): string =>
-    `Piek aan de meter ${fmt(peakKw, d)} kW = budget; de batterij schaaft ${fmt(shavedKw, d)} kW af.`,
+    `Piek aan de meter ${fmt(peakKw, d)} kW = limiet; de batterij schaaft ${fmt(shavedKw, d)} kW af.`,
   /** modus "met begrenzer": de piek zonder batterij is daar niet bekend */
   shavedLimited: (peakKw: number, d: number): string =>
-    `Piek aan de meter ${fmt(peakKw, d)} kW = budget; de batterij schaaft de piek af.`,
+    `Piek aan de meter ${fmt(peakKw, d)} kW = limiet; de batterij schaaft de piek af.`,
   /** visueel verborgen statusregel */
   live: (headline: string, hours: number): string =>
-    `${headline}: ${fmt(hours, 0)} uur per jaar boven het budget.`,
+    `${headline}: ${fmt(hours, 0)} uur per jaar boven de limiet.`,
   words: VERDICT_WORDS,
   /** vaste balk onderaan: "Past niet · 101 uur · WP 10,6 kW"; zonder WP-vermogen (null) zonder het laatste deel */
   mini: (status: keyof typeof VERDICT_WORDS, hours: number, heatPumpKw: number | null): string =>
@@ -671,10 +671,10 @@ export const VERDICT_TEXTS = {
         (Math.abs(delta) >= 0.05 ? ` (${delta > 0 ? '+' : ''}${fmt(delta, 1)})` : '')
       );
     },
-    exceedance: 'Boven budget',
+    exceedance: 'Boven de limiet',
     /**
-     * "12 kWh/jaar"; hoe ver de piek boven het budget komt, staat al in de detailzin. Een kleine hoeveelheid die op 0
-     * zou afronden wordt "< 1 kWh/jaar": er zijn immers uren boven het budget.
+     * "12 kWh/jaar"; hoe ver de piek boven de limiet komt, staat al in de detailzin. Een kleine hoeveelheid die op 0
+     * zou afronden wordt "< 1 kWh/jaar": er zijn immers uren boven de limiet.
      */
     exceedanceLine: (kwh: number): string => (kwh > 0 && kwh < 0.5 ? '< 1' : fmt(kwh, 0)) + ' kWh/jaar',
     exceedanceNone: 'geen enkel uur',
@@ -694,11 +694,11 @@ export const VERDICT_TEXTS = {
   },
   meter: {
     peak: (peakKw: number, d: number): string => `Piek aan de meter ${fmt(peakKw, d)} kW`,
-    /** label van de budgetstreep: "budget 3,22 kW" (aandeel en aansluiting staan in de stapper en de strook) */
-    budget: (budgetKw: number, d: number): string => `budget ${fmt(budgetKw, d)} kW`,
+    /** label van de limietstreep: "limiet 3,22 kW" (aandeel en aansluiting staan in de stapper en de strook) */
+    budget: (budgetKw: number, d: number): string => `limiet ${fmt(budgetKw, d)} kW`,
     without: (kw: number, d: number): string => `zonder maatregelen ${fmt(kw, d)} kW`,
     aria: (peakKw: number, budgetKw: number, d: number): string =>
-      `Piek aan de meter ${fmt(peakKw, d)} kW tegen een budget van ${fmt(budgetKw, d)} kW`,
+      `Piek aan de meter ${fmt(peakKw, d)} kW tegen de WP-limiet van ${fmt(budgetKw, d)} kW`,
   },
   /** gevolg met begrenzer (modus "aansluiting begrenst") */
   limiter: (hours: number, minIndoorC: number, dhwShortfallH: number): string =>
@@ -706,7 +706,7 @@ export const VERDICT_TEXTS = {
     (dhwShortfallH > 0 ? ` · ${fmt(dhwShortfallH, 0)} uur tapwatertekort` : '') +
     '.',
   stress: (exceedanceH: number, comfortLossH: number): string =>
-    `Strenge winter (T1): ${fmt(exceedanceH, 0)} uur boven budget, ${fmt(comfortLossH, 0)} uur te koud.`,
+    `Strenge winter (T1): ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
   /**
    * T1 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op T1 gedimensioneerd: dat zeggen, want de regel
    * "Strenge winter (T1): … uur te koud" bij T5 gold voor de (kleinere) warmtepomp van T5.
@@ -738,7 +738,7 @@ export const WHATIF_TEXTS = {
   },
   bufferPlateau: 'Meer buffer maakt de warmtepomp niet kleiner: een buffer overbrugt uren, geen dagen.',
   batteryNeeded: (kwh: number): string => `Kleinste batterij voor 0 uur: ${fmt(kwh, 1)} kWh`,
-  batteryInfeasible: 'Geen batterij binnen bereik haalt 0 uur boven budget.',
+  batteryInfeasible: 'Geen batterij binnen bereik haalt 0 uur boven de limiet.',
   batteryNotNeeded: (conn: string): string => `Niet nodig op ${conn}.`,
   batteryHelpsSmaller: 'Een batterij helpt pas bij een kleinere aansluiting.',
   /**
@@ -746,11 +746,11 @@ export const WHATIF_TEXTS = {
    * die het oordeel en de tegel juist niet tonen.
    */
   batterySizingFailed: 'Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
-  /** afgerond gelijk aan het budget (bijv. een buffer die precies tot het budget laadt): niet "onder" */
+  /** afgerond gelijk aan de limiet (bijv. een buffer die precies tot de limiet laadt): niet "onder" */
   batteryIdle: (peakKw: number, budgetKw: number, d: number): string =>
     fmt(peakKw, d) === fmt(budgetKw, d)
-      ? `Doet nu niets: de piek (${fmt(peakKw, d)} kW) komt al niet boven het budget.`
-      : `Doet nu niets: de piek (${fmt(peakKw, d)} kW) blijft al onder het budget (${fmt(budgetKw, d)} kW).`,
+      ? `Doet nu niets: de piek (${fmt(peakKw, d)} kW) komt al niet boven de limiet.`
+      : `Doet nu niets: de piek (${fmt(peakKw, d)} kW) blijft al onder de limiet (${fmt(budgetKw, d)} kW).`,
   batteryEffect: (
     usableKwh: number,
     powerKw: number,
@@ -769,9 +769,9 @@ export const WHATIF_TEXTS = {
   /** knop bij de batterij; de UI zet er een ◀ (aria-hidden) voor */
   trySmaller: (conn: string): string => `Probeer ${conn}`,
   connectionLabel: 'Aansluiting',
-  /** "1×35 A · 8,05 kW · budget 3,22 kW (40 %)" */
+  /** "1×35 A · 8,05 kW · limiet 3,22 kW (40 %)" */
   stepper: (label: string, kw: string, budget: string, pct: number): string =>
-    `${label} · ${kw} kW · budget ${budget} kW (${fmt(pct, 0)} %)`,
+    `${label} · ${kw} kW · limiet ${budget} kW (${fmt(pct, 0)} %)`,
   smallerConnection: 'Kleinere aansluiting',
   largerConnection: 'Grotere aansluiting',
   miniTitle: 'Benodigde warmtepomp [kW]',
@@ -850,13 +850,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     anchor: 'budget',
-    title: 'WP-budget',
-    text: 'Hier kies je welk deel van de aansluiting de warmtepomp mag gebruiken: dat WP-budget is de grens waartegen alles wordt getoetst.',
+    title: 'WP-limiet',
+    text: 'Hier kies je welk deel van de aansluiting de warmtepomp mag gebruiken: tegen die WP-limiet wordt alles getoetst.',
   },
   {
     anchor: 'verdict',
     title: STEP_TITLES.result,
-    text: 'Hier staat het antwoord: past de warmtepomp binnen het budget, hoeveel uur per jaar niet, en wat zou helpen.',
+    text: 'Hier staat het antwoord: past de warmtepomp binnen de limiet, hoeveel uur per jaar niet, en wat zou helpen.',
   },
   {
     anchor: 'buffer',

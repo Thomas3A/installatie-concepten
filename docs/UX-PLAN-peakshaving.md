@@ -27,6 +27,7 @@ met het model nagerekend.
   alleen na het toetsenbord naar de knop Rondleiding, de popover staat in de tabvolgorde direct na zijn anker en zit
   vast aan het anker, en de Basis is verfijnd (na afloop, en als je hem zelf inklapt); zie `docs/AANNAMES.md` ›
   "Rondleiding".
+- **Terminologie:** de term "budget" heet in de tool "WP-limiet" (kort: "limiet"), op verzoek van de gebruiker.
 
 ## 0. Werkwijze en branch
 

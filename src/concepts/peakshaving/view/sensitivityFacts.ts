@@ -161,7 +161,7 @@ function completeRows(rows: readonly (SensitivityRow | null)[]): SensitivityRow[
 
 /**
  * Kleinste rasterpunt V > 0 waarop de warmtepomp zonder batterij (P_th,min(V), automatisch) hoogstens `allowedH` uur
- * boven het budget komt. Alleen exacte rasterpunten: het verband is niet monotoon (B10). null als er geen is.
+ * boven de limiet komt. Alleen exacte rasterpunten: het verband is niet monotoon (B10). null als er geen is.
  */
 export function firstFitVolume(
   rows: readonly (SensitivityRow | null)[],

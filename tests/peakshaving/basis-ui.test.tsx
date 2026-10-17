@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Stap 1 · Basis (UX-plan §2.3, §2.5, §3, §10 WP-B): velden per gebouwfunctie, Nachtverlaging, budgetbalk, de regel met
+// Stap 1 · Basis (UX-plan §2.3, §2.5, §3, §10 WP-B): velden per gebouwfunctie, Nachtverlaging, limietbalk, de regel met
 // het voorbeeld, Meer instellingen met badge, de ingeklapte strook (toolbar met roving tabindex, chips die de Basis
 // openen en de focus op het veld zetten), "Bekijk het resultaat" en verzoeken van revealSetting.
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -280,15 +280,15 @@ describe('Basis: Nachtverlaging (alleen kantoor)', () => {
   });
 });
 
-describe('Basis: budgetbalk, voorbeeldregel en ankers', () => {
-  it('budgetbalk als hint van het aandeel: "WP-budget 3,22 kW · overig gebruik 4,83 kW", ook bij grootverbruik', () => {
+describe('Basis: limietbalk, voorbeeldregel en ankers', () => {
+  it('limietbalk als hint van het aandeel: "WP-limiet 3,22 kW · overig gebruik 4,83 kW", ook bij grootverbruik', () => {
     renderBasis();
     const share = field('Aandeel voor warmtepomp');
-    expect(description(share)).toBe('% WP-budget 3,22 kW · overig gebruik 4,83 kW');
+    expect(description(share)).toBe('% WP-limiet 3,22 kW · overig gebruik 4,83 kW');
     expect(screen.getByText('3,22 kW').tagName).toBe('STRONG');
     typeAndBlur(share, '60');
     expect(description(field('Aandeel voor warmtepomp'))).toBe(
-      '% WP-budget 4,83 kW · overig gebruik 3,22 kW',
+      '% WP-limiet 4,83 kW · overig gebruik 3,22 kW',
     );
 
     load('office');
@@ -296,7 +296,7 @@ describe('Basis: budgetbalk, voorbeeldregel en ankers', () => {
       st().update((i) => ({ ...i, grid: { ...i.grid, connection: 'grootverbruik', contractedKw: 100 } })),
     );
     expect(description(field('Aandeel voor warmtepomp'))).toBe(
-      '% WP-budget 50,0 kW · overig gebruik 50,0 kW',
+      '% WP-limiet 50,0 kW · overig gebruik 50,0 kW',
     );
   });
 
@@ -412,7 +412,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Stooklijn (afgifte): MT 45/35, wijzigen',
       'Warm tapwater: tapwater 10 kWh/dag, wijzigen',
       'Aansluitwaarde: 1×35 A, wijzigen',
-      'Aandeel voor warmtepomp: budget 3,22 kW · 40 %, wijzigen',
+      'Aandeel voor warmtepomp: limiet 3,22 kW · 40 %, wijzigen',
       'Klimaatjaar: T5, wijzigen',
     ]);
     const toolbar = screen.getByRole('toolbar', { name: 'Basis' });
@@ -426,7 +426,7 @@ describe('Basis ingeklapt: de strook', () => {
       'MT 45/35',
       'tapwater 10 kWh/dag',
       '1×35 A',
-      'budget 3,22 kW · 40 %',
+      'limiet 3,22 kW · 40 %',
       'T5',
     ]);
   });
@@ -439,7 +439,7 @@ describe('Basis ingeklapt: de strook', () => {
     expect(chipNames()).toContain('Piekvermogen verwarming (totaal): 50,0 kW (5,0 kW/woning), wijzigen');
     expect(chipNames()).toContain('Gebouwfunctie: 10 woningen, wijzigen');
     expect(chipNames()).toContain('Warm tapwater: tapwater 6,0 kWh/dag per woning, wijzigen');
-    expect(chipNames()).toContain('Aandeel voor warmtepomp: budget 19,40 kW · 80 %, wijzigen');
+    expect(chipNames()).toContain('Aandeel voor warmtepomp: limiet 19,40 kW · 80 %, wijzigen');
     expect(toolbar.textContent).toContain('kW/woning');
     expect(toolbar.textContent).not.toMatch(/≈/);
     expect(toolbar.textContent).not.toMatch(/kW per woning/);
@@ -457,7 +457,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Gebruikstijden: gebruik 7–18 uur, wijzigen',
       'Nachtverlaging: nachtverlaging, wijzigen',
       'Aansluitwaarde: 3×80 A, wijzigen',
-      'Aandeel voor warmtepomp: budget 27,7 kW · 50 %, wijzigen',
+      'Aandeel voor warmtepomp: limiet 27,7 kW · 50 %, wijzigen',
       'Klimaatjaar: T5, wijzigen',
     ]);
     expect(screen.queryByText(/per woning/)).toBeNull();
@@ -542,7 +542,7 @@ describe('Basis ingeklapt: de strook', () => {
     expect(scrollSpy).toHaveBeenCalled();
 
     collapse();
-    click(screen.getByRole('button', { name: 'Aandeel voor warmtepomp: budget 3,22 kW · 40 %, wijzigen' }));
+    click(screen.getByRole('button', { name: 'Aandeel voor warmtepomp: limiet 3,22 kW · 40 %, wijzigen' }));
     expect(document.activeElement).toBe(field('Aandeel voor warmtepomp'));
 
     collapse();

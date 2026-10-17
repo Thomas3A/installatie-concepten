@@ -24,7 +24,7 @@ const MONTH_X = Array.from({ length: 12 }, (_, i) => i);
 /** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
 const COMPACT_BELOW_PX = 560;
 /**
- * Een budgetlijn hoger dan deze factor × de hoogste kromme rekt de as niet op (bijv. grootverbruik): de krommen
+ * Een limietlijn hoger dan deze factor × de hoogste kromme rekt de as niet op (bijv. grootverbruik): de krommen
  * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
  */
 const OFF_SCALE_FACTOR = 2;
@@ -326,8 +326,8 @@ function electricChart(a: Analysis, pal: Palette) {
   const limits = connectionLimits(a, pal);
   const extras: LegendExtra[] = limits.map((l) => {
     const [net, noBat, bare] = curves.map((c) => hoursAbove(c, l.limitKw));
-    // bij een andere aansluiting geteld in deze doorrekening (buffer, batterij en boiler laden tegen het huidige
-    // budget); het oordeel rekent die aansluiting opnieuw door en kan een uur verschillen: "≈"
+    // bij een andere aansluiting geteld in deze doorrekening (buffer, batterij en boiler laden tegen de huidige
+    // limiet); het oordeel rekent die aansluiting opnieuw door en kan een uur verschillen: "≈"
     const approx = l.current ? '' : '≈ ';
     const counts =
       net === noBat && noBat === bare
@@ -347,7 +347,7 @@ function electricChart(a: Analysis, pal: Palette) {
     width: l.current ? 2 : 1.5,
     text: `${l.current ? 'huidig: ' : ''}${l.name}`,
   }));
-  // budgetten ver boven de krommen rekken de as niet op (ze komen als label aan de bovenrand)
+  // limieten ver boven de krommen rekken de as niet op (ze komen als label aan de bovenrand)
   const onScale = limits.filter((l) => l.limitKw <= OFF_SCALE_FACTOR * peak).map((l) => l.limitKw);
   const yMax = niceCeil(Math.max(peak, ...onScale) * 1.06);
   const data: uPlot.AlignedData = [RANK, d.pElectricWithoutBuffer, d.pGrid, d.pElectricNoBattery];
@@ -530,7 +530,7 @@ function YearChartsView({ a }: { a: Analysis }) {
             hooks={hLinesHook(elec.lines, pal.surface)}
             legendExtras={elec.extras}
             height={300}
-            ariaLabel="Jaarbelastingduurkromme elektrisch: vermogen aan de meter per uur, aflopend gesorteerd, met en zonder maatregelen en de budgetten van drie aansluitingen"
+            ariaLabel="Jaarbelastingduurkromme elektrisch: vermogen aan de meter per uur, aflopend gesorteerd, met en zonder maatregelen en de WP-limieten van drie aansluitingen"
             exportName="peakshaving-duurkromme-elektrisch"
             exportTitle={`Jaarbelastingduurkromme elektrisch (warmtepompgroep) — ${climate}`}
             exportLabel="Duurkromme elektrisch"

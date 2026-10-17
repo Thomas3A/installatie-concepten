@@ -133,7 +133,7 @@ export function batteryState(a: Analysis, ranges: Ranges = a.ranges): BatterySta
     }
     return withSmaller(t.batteryNotNeeded(currentConnectionText(a)));
   }
-  // de batterij is niet nodig: zonder batterij al geen uur boven budget
+  // de batterij is niet nodig: zonder batterij al geen uur boven de limiet
   if (rb && rb.feasible && rb.capacityKwh === 0)
     return withSmaller(t.batteryIdle(ex.pGridMaxKw, a.pLimitKw, d));
 
@@ -159,7 +159,7 @@ export function batteryState(a: Analysis, ranges: Ranges = a.ranges): BatterySta
 type GridChoice = Pick<GridConnection, 'connection' | 'contractedKw'>;
 
 export interface ConnectionSteps {
-  /** "1×35 A · 8,05 kW · budget 3,22 kW (40 %)" */
+  /** "1×35 A · 8,05 kW · limiet 3,22 kW (40 %)" */
   text: string;
   /** naam van de huidige keuze: "1×35 A" of "Grootverbruik" */
   label: string;

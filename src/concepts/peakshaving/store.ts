@@ -596,7 +596,7 @@ export function configureEngine(options: EngineClientOptions = {}): void {
 
 /**
  * Standaarduur van de scrubber en het conceptschema: het uur van max P_net in de koude week zelf (168 uur, spec §8);
- * bij gelijke P_net (bijv. een batterij die op het budget afschaaft) het uur met de hoogste P_el.
+ * bij gelijke P_net (bijv. een batterij die op de limiet afschaaft) het uur met de hoogste P_el.
  */
 export function defaultScrubHour(a: Analysis): number {
   const { pGrid, pElectric } = a.main.series;

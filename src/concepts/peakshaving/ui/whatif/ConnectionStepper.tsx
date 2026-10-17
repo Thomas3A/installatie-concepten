@@ -15,7 +15,7 @@ export function ConnectionStepper() {
   const grid = useStore((st) => st.input.grid);
   const update = useStore((st) => st.update);
   const steps = connectionSteps(grid);
-  // het laatste deel ("budget 3,22 kW (40 %)") op een eigen regel
+  // het laatste deel ("limiet 3,22 kW (40 %)") op een eigen regel
   const cut = steps.text.lastIndexOf(SEPARATOR);
   const head = cut >= 0 ? steps.text.slice(0, cut) : steps.text;
   const tail = cut >= 0 ? steps.text.slice(cut + SEPARATOR.length) : null;
@@ -54,7 +54,7 @@ export function ConnectionStepper() {
           <span aria-hidden="true">◀</span>
         </button>
         <span id={textId} className={css.stepperText} data-testid="connection-stepper-text">
-          {/* bewust twee regels, "1×35 A · 8,05 kW" en "budget 3,22 kW (40 %)": in de kolom van Wat als? past het
+          {/* bewust twee regels, "1×35 A · 8,05 kW" en "limiet 3,22 kW (40 %)": in de kolom van Wat als? past het
               niet op één regel, en zo hangt er geen "·" aan het eind van de eerste regel. De scheiding blijft voor
               schermlezers en in de tekst staan. */}
           <SeparatedText text={head} />
@@ -75,7 +75,7 @@ export function ConnectionStepper() {
           <span aria-hidden="true">▶</span>
         </button>
       </div>
-      {/* de nieuwe aansluiting en het budget na een stap (de knoppen houden hun naam); geen role="status": die is er
+      {/* de nieuwe aansluiting en de limiet na een stap (de knoppen houden hun naam); geen role="status": die is er
           alleen voor het oordeel en de melding onderaan */}
       <span className="sr-only" aria-live="polite">
         {announced}

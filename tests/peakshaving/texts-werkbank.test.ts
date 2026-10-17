@@ -18,7 +18,7 @@ describe('Basis: tapwaterhint en chips van de strook', () => {
     expect(BASIS_TEXTS.chipDhw(b.dhw.dailyKwh)).toBe('tapwater 10 kWh/dag');
     const budget = gridLimitKw(i.grid);
     expect(BASIS_TEXTS.chipBudget(budget, 100 * i.grid.heatPumpShare, kwDigitsFor(budget))).toBe(
-      'budget 3,22 kW · 40 %',
+      'limiet 3,22 kW · 40 %',
     );
     const p = EMITTER_PRESETS[i.heatPump.emitterPreset];
     expect(BASIS_TEXTS.chipEmitter(p.id, p.supplyDesignC, p.returnDesignC)).toBe('MT 45/35');
@@ -87,13 +87,13 @@ describe('buffervolume in teksten', () => {
 describe('percentages in de detailzin', () => {
   it('een klein maar echt verschil wordt "< 1 %", niet "0 %"', () => {
     expect(VERDICT_TEXTS.margin(46.4, 0.2, 0.43, 46.6, 1)).toBe(
-      'Piek aan de meter 46,4 kW, 0,2 kW (< 1 %) onder het budget van 46,6 kW.',
+      'Piek aan de meter 46,4 kW, 0,2 kW (< 1 %) onder de limiet van 46,6 kW.',
     );
     expect(VERDICT_TEXTS.over(2, 3.22, 0.01, 0.3, 2)).toBe(
-      '2 uur per jaar boven het WP-budget van 3,22 kW, tot 0,01 kW (< 1 %) erboven.',
+      '2 uur per jaar boven de WP-limiet van 3,22 kW, tot 0,01 kW (< 1 %) erboven.',
     );
     expect(VERDICT_TEXTS.over(101, 3.22, 0.26, 8.1, 2)).toBe(
-      '101 uur per jaar boven het WP-budget van 3,22 kW, tot 0,26 kW (8 %) erboven.',
+      '101 uur per jaar boven de WP-limiet van 3,22 kW, tot 0,26 kW (8 %) erboven.',
     );
     expect(VERDICT_TEXTS.margin(3.18, 0.04, 1.2, 3.22, 2)).toContain('(1 %)');
   });

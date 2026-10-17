@@ -1,5 +1,5 @@
-// Meterbalk (UX-plan §4.3): piek aan de meter tegen het WP-budget, in HTML/CSS. Neutraal blauw tot min(piek, budget),
-// rood boven het budget, groen gearceerd wat de batterij afschaaft, een zwarte streep op het budget en een grijze
+// Meterbalk (UX-plan §4.3): piek aan de meter tegen de WP-limiet, in HTML/CSS. Neutraal blauw tot min(piek, limiet),
+// rood boven de limiet, groen gearceerd wat de batterij afschaaft, een zwarte streep op de limiet en een grijze
 // schaduwstreep op de piek zonder maatregelen. Het model (schaal, delen, teksten) komt uit view/verdict.ts.
 import type { CSSProperties } from 'react';
 import type { MeterModel, MeterSpan } from '../../view/verdict';

@@ -50,7 +50,7 @@ export interface Fix {
    * hendel die na de knop de focus krijgt (via revealSetting). Alleen hendels van Wat als? (WhatIfFieldKey, het type
    * dwingt dat af): die klappen de Basis niet open en bewaren dus ook geen keuze voor de Basis. De aansluiting gaat
    * daarom naar 'connectionStepper', niet naar 'connection' (het veld Aansluitwaarde in de Basis), en het aandeel ook:
-   * de stappertekst noemt het nieuwe budget met het aandeel ("budget 3,54 kW (44 %)").
+   * de stappertekst noemt de nieuwe limiet met het aandeel ("limiet 3,54 kW (44 %)").
    */
   target: WhatIfFieldKey;
   apply: (i: PeakshavingInput) => PeakshavingInput;
@@ -148,7 +148,7 @@ export function tryConnectionFix(c: Pick<ConnectionAdvice, 'id' | 'label' | 'pow
 }
 
 /**
- * Aandeel voor de warmtepomp in hele procenten. De focus gaat naar de stapper in Wat als? (die toont het budget met
+ * Aandeel voor de warmtepomp in hele procenten. De focus gaat naar de stapper in Wat als? (die toont de limiet met
  * het aandeel), niet naar het veld in de Basis: dat zou de ingeklapte Basis openklappen boven het oordeel.
  */
 export function shareFix(pct: number): Fix {
@@ -225,17 +225,17 @@ export function batteryForZero(a: Analysis): number | null {
   return ceilToStep(rb.capacityKwh, a.ranges.batteryStepKwh);
 }
 
-/** Aandeel waarbij de huidige meterpiek precies binnen het budget valt (B11), in hele procenten. */
+/** Aandeel waarbij de huidige meterpiek precies binnen de limiet valt (B11), in hele procenten. */
 export function shareForPeak(a: Analysis): number {
   return Math.ceil((100 * exceedanceKpis(a).pGridMaxKw) / a.connectionKw - 1e-9);
 }
 
 /**
- * Heeft het WP-budget het laden van de boiler ergens afgeremd (zonder batterij)? Tapwater gaat vóór de
- * ruimteverwarming en laadt per uur min(capaciteit, ruimte in de boiler, budget × COP). De boiler is dus opslag:
- * remt het budget het laden af, dan laadt de boiler bij een groter budget sneller en kan de piek aan de meter
- * stijgen (nieuwbouw: 2,905 kW bij 40 %, 2,966 kW bij 51 %, met budget 2,933 kW). Remt het budget nergens af, dan
- * is de doorrekening gelijk aan die zonder budget en verandert een groter budget niets aan de piek.
+ * Heeft de WP-limiet het laden van de boiler ergens afgeremd (zonder batterij)? Tapwater gaat vóór de
+ * ruimteverwarming en laadt per uur min(capaciteit, ruimte in de boiler, limiet × COP). De boiler is dus opslag:
+ * remt de limiet het laden af, dan laadt de boiler bij een hogere limiet sneller en kan de piek aan de meter
+ * stijgen (nieuwbouw: 2,905 kW bij 40 %, 2,966 kW bij 51 %, met limiet 2,933 kW). Remt de limiet nergens af, dan
+ * is de doorrekening gelijk aan die zonder limiet en verandert een hogere limiet niets aan de piek.
  * Het laden van de boiler hangt niet af van de modus (tapwater komt eerst), dus de uurreeks van de hoofdsimulatie
  * volstaat. De inregelweek vóór het rekenjaar staat niet in de uurreeksen; de test over alle voorbeelden bewaakt dat.
  */
@@ -282,7 +282,7 @@ export function helpFixes(a: Analysis, sens: SensitivityState | null, targetH: n
   // aansluiting: de kleinste passende, als die groter is dan de huidige
   if (a.smallest.powerKw > a.connectionKw + 1e-9) fixes.push(connectionFix(a.smallest));
 
-  // aandeel: alleen zonder opslag is de drempel exact (B11); de boiler telt als opslag zodra het budget hem afremt
+  // aandeel: alleen zonder opslag is de drempel exact (B11); de boiler telt als opslag zodra de limiet hem afremt
   if (V === 0 && E === 0 && !boilerLimitedByBudget(a)) {
     const p = shareForPeak(a);
     if (p <= 100 && p > 100 * input.grid.heatPumpShare + 1e-9) fixes.push(shareFix(p));

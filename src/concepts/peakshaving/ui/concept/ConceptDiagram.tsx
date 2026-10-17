@@ -111,8 +111,8 @@ function summaryText(a: Analysis, h: HourState): string {
   parts.push(
     `Meterkast: aansluiting ${a.connectionLabel} (${kw(a.connectionKw)} kW), ${
       Number.isFinite(a.pLimitKw)
-        ? `overig gebruik ${kw(a.connectionKw - a.pLimitKw)} kW, WP-budget ${kw(a.pLimitKw)} kW`
-        : 'geen WP-budget ingesteld'
+        ? `overig gebruik ${kw(a.connectionKw - a.pLimitKw)} kW, WP-limiet ${kw(a.pLimitKw)} kW`
+        : 'geen WP-limiet ingesteld'
     }, warmtepomp${h.qBackup > FLOW_EPS_KW ? ' en bijstook' : ''} ${kw(h.pElectric)} kW, WP-groep aan de meter ${kw(h.pGrid)} kW${
       h.exceedKw > FLOW_EPS_KW ? `, overschrijding ${kw(h.exceedKw)} kW` : ''
     }.`,

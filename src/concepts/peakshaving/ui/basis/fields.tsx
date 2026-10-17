@@ -359,7 +359,7 @@ export function ContractedField() {
   );
 }
 
-/** Aandeel voor warmtepomp, met de budgetbalk als hint (dus ook als beschrijving van het getalveld). */
+/** Aandeel voor warmtepomp, met de limietbalk als hint (dus ook als beschrijving van het getalveld). */
 export function ShareField() {
   const g = useStore((st) => st.input.grid);
   const multi = useStore((st) => buildingKind(st.input.building) === 'multi');

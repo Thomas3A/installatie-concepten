@@ -1,8 +1,8 @@
 // Getalnotatie van de werkbank (UX-plan §4.1): kW onder 20 met 2 decimalen, daarboven met 1.
 
 /**
- * Decimalen voor kW-waarden rond een budget: < 20 kW twee, anders één. Alle kW-getallen in één zin krijgen de
- * decimalen van het budget, zodat "tot 18,6 kW" naast "budget 27,7 kW" staat en "2,18 kW" naast "19,40 kW".
+ * Decimalen voor kW-waarden rond een limiet: < 20 kW twee, anders één. Alle kW-getallen in één zin krijgen de
+ * decimalen van de limiet, zodat "tot 18,6 kW" naast "limiet 27,7 kW" staat en "2,18 kW" naast "19,40 kW".
  */
 export function kwDigitsFor(refKw: number): number {
   return Number.isFinite(refKw) && Math.abs(refKw) < 20 ? 2 : 1;

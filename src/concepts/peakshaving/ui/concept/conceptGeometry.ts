@@ -472,9 +472,9 @@ export interface MeterScale {
   x: (kw: number) => number;
   /** x-positie van een vermogen van de WP-groep [kW]: gestapeld ná het overige gebruik */
   wp: (kw: number) => number;
-  /** overig gebruik (1 − aandeel)·P_aansluiting [kW]; 0 zonder WP-budget */
+  /** overig gebruik (1 − aandeel)·P_aansluiting [kW]; 0 zonder WP-limiet */
   otherKw: number;
-  /** x van het einde van de aansluiting (bij een WP-budget ook de budgetlijn) */
+  /** x van het einde van de aansluiting (bij een WP-limiet ook de limietlijn) */
   connX: number;
   /** true als het deel 'overig gebruik' is ingekort (breukteken) */
   compressed: boolean;
@@ -487,8 +487,8 @@ const OVERFLOW_MARGIN = 1.03;
 
 /**
  * Schaal van de meterkastbalk. De balk is het aansluitvermogen; de segmenten worden gestapeld: eerst het overige
- * gebruik (grijs), daarna de WP-groep (P_net, plus batterijladen of het deel dat de batterij levert). Het WP-budget
- * eindigt dus precies op het einde van de aansluiting (budgetlijn); wat de WP-groep daarboven vraagt, steekt als
+ * gebruik (grijs), daarna de WP-groep (P_net, plus batterijladen of het deel dat de batterij levert). De WP-limiet
+ * eindigt dus precies op het einde van de aansluiting (limietlijn); wat de WP-groep daarboven vraagt, steekt als
  * overschrijding buiten de balk uit. Is het overige gebruik veel groter dan de WP-groep, dan wordt dat deel
  * ingekort en met een breukteken getekend; de WP-groep blijft lineair.
  */
@@ -506,7 +506,7 @@ export function meterScale(
   const budget = hasLimit ? Math.min(limitKw, connectionKw) : connOk ? connectionKw : 0;
   const other = hasLimit ? connectionKw - budget : 0;
   const conn = connOk ? connectionKw : Math.max(stack, 0.1);
-  // bereik van de WP-groep op de balk: het budget, of meer als de WP-groep in het venster erboven komt
+  // bereik van de WP-groep op de balk: de limiet, of meer als de WP-groep in het venster erboven komt
   const protrudes = other + stack > conn + 1e-9;
   const span = Math.max(budget, stack, 0.1) * (protrudes ? OVERFLOW_MARGIN : 1);
   if (other <= 2 * span) {

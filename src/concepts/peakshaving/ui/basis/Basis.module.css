@@ -1,4 +1,4 @@
-/* Stap 1 · Basis (UX-plan §2.2–§2.5, §3): open paneel, ingeklapte strook, Meer instellingen en budgetbalk.
+/* Stap 1 · Basis (UX-plan §2.2–§2.5, §3): open paneel, ingeklapte strook, Meer instellingen en limietbalk.
    Alleen pc/laptop: ≥ 1280 px 4 kolommen, 1024–1279 px 3. Smaller (tablet, telefoon) toont de schil een melding;
    de Basis valt dan terug op 2 kolommen zonder verdere afstemming. */
 .basis {
@@ -253,7 +253,7 @@
   font-weight: 600;
 }
 
-/* ---- budgetbalk onder het aandeel: de aansluiting verdeeld in WP-budget en overig gebruik */
+/* ---- limietbalk onder het aandeel: de aansluiting verdeeld in WP-limiet en overig gebruik */
 .budget {
   display: block;
   margin-top: 4px;

@@ -307,10 +307,10 @@ export function MeterStatic({ a, scale }: { a: Analysis; scale: MeterScale }) {
   const other = scale.otherKw;
   const xWp = scale.wp(0);
   const share = fmt(a.input.grid.heatPumpShare * 100, 0);
-  // labels boven de haken: overig links; WP-budget rechts uitgelijnd op de budgetlijn, of bij een smalle haak
+  // labels boven de haken: overig links; WP-limiet rechts uitgelijnd op de limietlijn, of bij een smalle haak
   // vanaf het begin van die haak; bij te weinig ruimte wordt het overig-label korter
   let otherText = `overig gebruik ${kw(other)} kW`;
-  const wpPlain = `WP-budget Plimiet ${kw(lim)} kW (${share} %)`;
+  const wpPlain = `WP-limiet Plimiet ${kw(lim)} kW (${share} %)`;
   const wpWidth = approxTextWidth(wpPlain);
   const rightEdge = m.x + m.w - 14;
   let wpStart: number = m.barX0;
@@ -373,14 +373,14 @@ export function MeterStatic({ a, scale }: { a: Analysis; scale: MeterScale }) {
             d={`M${other > 0 ? xWp + 3 : m.barX0} ${m.bracketY + 4} V${m.bracketY} H${scale.connX} V${m.bracketY + 4}`}
           />
           <text x={wpStart} y={m.bracketTextY}>
-            WP-budget <Sym m="P" s="limiet" />
+            WP-limiet <Sym m="P" s="limiet" />
             <tspan className={c.b}>{`${kw(lim)} kW`}</tspan>
             <tspan className={c.t2}>{` (${share}\u00a0%)`}</tspan>
           </text>
         </>
       ) : (
         <text x={m.barX0} y={m.bracketTextY} className={c.t2}>
-          geen WP-budget ingesteld
+          geen WP-limiet ingesteld
         </text>
       )}
     </g>
@@ -413,7 +413,7 @@ export function MeterDynamic({ h, scale }: { h: HourState; scale: MeterScale }) 
       {seg.charge && r(seg.charge[0], seg.charge[1], c.segCharge, 0, 3)}
       {seg.overflow && r(seg.overflow[0], seg.overflow[1], c.segOverflow, 0, 4)}
       {seg.discharge && r(seg.discharge[0], seg.discharge[1], c.segDischarge, 6, 3)}
-      {/* budgetlijn = einde van de aansluiting */}
+      {/* limietlijn = einde van de aansluiting */}
       {hasLimit && (
         <line x1={scale.connX} y1={y - 6} x2={scale.connX} y2={y + m.barH + 6} className={c.budget} />
       )}
@@ -461,7 +461,7 @@ export function MeterDynamic({ h, scale }: { h: HourState; scale: MeterScale }) 
       />
       {!hasLimit ? (
         <text x={s2 + 18} y={m.legendY} className={c.t2}>
-          geen WP-budget
+          geen WP-limiet
         </text>
       ) : exceeding ? (
         <text x={s2 + 18} y={m.legendY} className={`${c.err} ${c.b}`}>

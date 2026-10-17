@@ -236,14 +236,14 @@ describe('Resultaat: opbouw', () => {
     const live = statuses[0];
     expect(card().contains(live)).toBe(true);
     expect(live.className).toBe('sr-only');
-    expect(live.textContent).toBe('Past niet op 1×35 A: 101 uur per jaar boven het budget.');
+    expect(live.textContent).toBe('Past niet op 1×35 A: 101 uur per jaar boven de limiet.');
     const text = live.firstChild;
     // rekenen (zelfde doorrekening): dezelfde tekstknoop, niets nieuws voor te lezen
     act(() => useStore.setState({ busy: true }));
     expect(live.firstChild).toBe(text);
     show(cases.buffer);
     expect(screen.getByRole('status')).toBe(live);
-    expect(live.textContent).toBe('Past op 1×35 A met 0,50 m³ buffer: 0 uur per jaar boven het budget.');
+    expect(live.textContent).toBe('Past op 1×35 A met 0,50 m³ buffer: 0 uur per jaar boven de limiet.');
     // het advies op papier heeft geen aria-live meer
     expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
   });
@@ -255,7 +255,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     render(<VerdictCard />);
     expect(screen.getByText('Past niet op 1×35 A').tagName).toBe('P');
     expect(
-      screen.getByText('101 uur per jaar boven het WP-budget van 3,22 kW, tot 0,26 kW (8 %) erboven.'),
+      screen.getByText('101 uur per jaar boven de WP-limiet van 3,22 kW, tot 0,26 kW (8 %) erboven.'),
     ).toBeTruthy();
     const icon = document.querySelector('#ps-oordeel-kop [aria-hidden="true"]')!;
     expect(icon.textContent).toBe('✕');
@@ -271,17 +271,17 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(fixes.classList.contains('noPrint')).toBe(true);
     // meterbalk
     const meter = screen.getByRole('img', {
-      name: 'Piek aan de meter 3,48 kW tegen een budget van 3,22 kW',
+      name: 'Piek aan de meter 3,48 kW tegen de WP-limiet van 3,22 kW',
     });
     expect(meter.closest('[data-testid="meter-bar"]')?.textContent).toBe(
-      'Piek aan de meter 3,48 kW' + 'budget 3,22 kW',
+      'Piek aan de meter 3,48 kW' + 'limiet 3,22 kW',
     );
     expect(meter.querySelector('[class*="over"]')).not.toBeNull();
     expect(meter.querySelector('[class*="shaved"]')).toBeNull();
     expect(meter.querySelector('[class*="shadowMark"]')).toBeNull();
     // tegels
     expect(tileText('Warmtepomp')).toBe('Warmtepomp | 10,6kW th | A7/W35 · 7,4 kW bij −10 °C');
-    expect(tileText('Boven budget')).toBe('Boven budget | 101uur/jaar | 12 kWh/jaar');
+    expect(tileText('Boven de limiet')).toBe('Boven de limiet | 101uur/jaar | 12 kWh/jaar');
     expect(tileText('Kleinste aansluiting')).toBe(
       'Kleinste aansluiting | 1×40 A | 1 stap groter dan de huidige',
     );
@@ -292,7 +292,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(limiter.textContent).toBe('Met begrenzer: geen uur te koud (laagste 19,5 °C).toon in grafieken');
     // zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart
     expect(screen.getByTestId('stress-line').textContent).toBe(
-      'Strenge winter (T1): 111 uur boven budget, 40 uur te koud.',
+      'Strenge winter (T1): 111 uur boven de limiet, 40 uur te koud.',
     );
     expect(within(screen.getByTestId('stress-line')).queryByRole('button')).toBeNull();
   });
@@ -303,7 +303,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(card().getAttribute('data-tone')).toBe('ok');
     expect(screen.getByText('Past op 1×35 A met 0,50 m³ buffer')).toBeTruthy();
     expect(
-      screen.getByText('Piek aan de meter 3,18 kW, 0,04 kW (1 %) onder het budget van 3,22 kW.'),
+      screen.getByText('Piek aan de meter 3,18 kW, 0,04 kW (1 %) onder de limiet van 3,22 kW.'),
     ).toBeTruthy();
     // op 1×25 A is een batterij nodig: alleen de aansluiting, het oordeel noemt daarna de exacte batterij
     expect(buttonNames(fixGroup('Kleinere aansluiting volstaat ook'))).toEqual([
@@ -313,8 +313,8 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(tileText('Warmtepomp')).toMatch(
       /^Warmtepomp \| 9,4kW th \| A7\/W35 · \d+,\d kW bij −10 °C \| zonder maatregelen 10,6 kW \(−1,2\)$/,
     );
-    expect(tileText('Boven budget')).toBe(
-      'Boven budget | 0uur/jaar | geen enkel uur | zonder maatregelen 101 uur',
+    expect(tileText('Boven de limiet')).toBe(
+      'Boven de limiet | 0uur/jaar | geen enkel uur | zonder maatregelen 101 uur',
     );
     expect(tileText('Kleinste aansluiting')).toBe(
       'Kleinste aansluiting | 1×35 A | gelijk aan de huidige | zonder maatregelen 1×40 A',
@@ -324,7 +324,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(meter.querySelector('[class*="shadowMark"]')).not.toBeNull();
     expect(screen.getByText('zonder maatregelen 3,48 kW')).toBeTruthy();
     expect(screen.getByTestId('stress-line').textContent).toMatch(
-      /^Strenge winter \(T1\): 0 uur boven budget, 48 uur te koud\./,
+      /^Strenge winter \(T1\): 0 uur boven de limiet, 48 uur te koud\./,
     );
   });
 
@@ -334,14 +334,14 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     // de batterij doet op 1×35 A niets: geen eer in de kop
     expect(screen.getByText('Past op 1×35 A met 1,00 m³ buffer')).toBeTruthy();
     expect(
-      screen.getByText('Piek aan de meter 2,95 kW, 0,27 kW (8 %) onder het budget van 3,22 kW.'),
+      screen.getByText('Piek aan de meter 2,95 kW, 0,27 kW (8 %) onder de limiet van 3,22 kW.'),
     ).toBeTruthy();
     expect(buttonNames(fixGroup('Kleinere aansluiting volstaat ook'))).toEqual(['Probeer 1×25 A']);
 
     show(cases.both25);
     expect(screen.getByText('Past op 1×25 A met 1,00 m³ buffer en 5,0 kWh batterij')).toBeTruthy();
     expect(
-      screen.getByText('Piek aan de meter 2,30 kW = budget; de batterij schaaft 0,62 kW af.'),
+      screen.getByText('Piek aan de meter 2,30 kW = limiet; de batterij schaaft 0,62 kW af.'),
     ).toBeTruthy();
     expect(screen.queryByRole('group', { name: /Wat helpt|Kleinere aansluiting/ })).toBeNull();
     const limiter = screen.getByTestId('limiter-line');
@@ -351,7 +351,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     // meterbalk: gearceerd wat de batterij afschaaft
     const meter = screen.getByRole('img', { name: /^Piek aan de meter 2,30 kW/ });
     expect(meter.querySelector('[class*="shaved"]')).not.toBeNull();
-    // de piek ligt op het budget (hoogstens een afrondingsverschil erboven): geen zichtbaar rood deel
+    // de piek ligt op de limiet (hoogstens een afrondingsverschil erboven): geen zichtbaar rood deel
     const over = meter.querySelector<HTMLElement>('[class*="over"]');
     expect(over === null || parseFloat(over.style.width) < 0.5).toBe(true);
   });
@@ -361,7 +361,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     render(<VerdictCard />);
     expect(screen.getByText('Past niet op 3×80 A')).toBeTruthy();
     expect(
-      screen.getByText('327 uur per jaar boven het WP-budget van 27,7 kW, tot 18,6 kW (67 %) erboven.'),
+      screen.getByText('327 uur per jaar boven de WP-limiet van 27,7 kW, tot 18,6 kW (67 %) erboven.'),
     ).toBeTruthy();
     expect(buttonNames(fixGroup('Wat helpt'))).toEqual([
       '20,00 m³ buffer',
@@ -373,9 +373,9 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
       /^!Met begrenzer: 115 uur te koud \(laagste 15,2 °C\)\./,
     );
     expect(screen.getByTestId('stress-line').textContent).toMatch(
-      /^Strenge winter \(T1\): 424 uur boven budget, 157 uur te koud\./,
+      /^Strenge winter \(T1\): 424 uur boven de limiet, 157 uur te koud\./,
     );
-    expect(screen.getByText('budget 27,7 kW')).toBeTruthy();
+    expect(screen.getByText('limiet 27,7 kW')).toBeTruthy();
   });
 });
 
@@ -387,13 +387,13 @@ describe('Resultaat: andere toestanden', () => {
     expect(document.querySelector('#ps-oordeel-kop [aria-hidden="true"]')!.textContent).toBe('!');
     expect(screen.getByText('Past op 1×35 A, binnen de toegestane 5 uur')).toBeTruthy();
     expect(
-      screen.getByText('4 uur per jaar boven het WP-budget van 3,46 kW, tot 0,02 kW erboven.'),
+      screen.getByText('4 uur per jaar boven de WP-limiet van 3,46 kW, tot 0,02 kW erboven.'),
     ).toBeTruthy();
     const fixes = fixGroup('Wat helpt');
     expect(fixes.querySelector('[data-pending]')?.textContent).toBe('wordt berekend…');
     expect(buttonNames(fixes)).toEqual(['0,5 kWh batterij', 'of 44 % voor de warmtepomp']);
     expect(within(card()).getByRole('status').textContent).toBe(
-      'Past op 1×35 A, binnen de toegestane 5 uur: 4 uur per jaar boven het budget.',
+      'Past op 1×35 A, binnen de toegestane 5 uur: 4 uur per jaar boven de limiet.',
     );
   });
 
@@ -447,7 +447,7 @@ describe('Resultaat: andere toestanden', () => {
         value: '65,8',
         line: 'A7/W35 · 46,0 kW bij −10 °C · 6,6 kW/woning',
       },
-      { ...base, id: 'exceedance', title: 'Boven budget', value: '0', line: 'geen enkel uur' },
+      { ...base, id: 'exceedance', title: 'Boven de limiet', value: '0', line: 'geen enkel uur' },
       {
         ...base,
         id: 'smallest',
@@ -476,7 +476,7 @@ describe('Resultaat: andere toestanden', () => {
     expect(tileText('Warmtepomp (handmatig)')).toBe('Warmtepomp (handmatig) | 8,0kW th | benodigd 10,6 kW');
     expect(within(t).queryByRole('button')).toBeNull();
     // de andere tegels blijven neutraal
-    expect(tile('Boven budget').getAttribute('data-tone')).toBe('neutral');
+    expect(tile('Boven de limiet').getAttribute('data-tone')).toBe('neutral');
   });
 });
 
@@ -590,7 +590,7 @@ describe('Resultaat: modus', () => {
     render(<VerdictCard />);
     const snapshot = (): string[] => [
       card().querySelector('#ps-oordeel-kop p')!.textContent!,
-      ...['Warmtepomp', 'Boven budget', 'Kleinste aansluiting'].map(tileText),
+      ...['Warmtepomp', 'Boven de limiet', 'Kleinste aansluiting'].map(tileText),
       screen.getByRole('img').getAttribute('aria-label')!,
       screen.getByTestId('limiter-line').textContent!,
       screen.getByTestId('stress-line').textContent!,

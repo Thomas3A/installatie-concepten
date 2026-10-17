@@ -1,4 +1,4 @@
-// Modeltests buiten de Python-referentie: invoer normaliseren (spec §3), aansluiting en budget (§5.5),
+// Modeltests buiten de Python-referentie: invoer normaliseren (spec §3), aansluiting en WP-limiet (§5.5),
 // meldingen (§6.4), KPI-kaarten en advies (§6.1, §6.2) en de volledige doorrekening analyze() (§4.4, §6.3, §7, §9.6).
 import { beforeAll, describe, expect, it } from 'vitest';
 import { CONNECTIONS, type ConnectionId } from '../../src/concepts/peakshaving/data/connections';
@@ -547,7 +547,7 @@ describe('withDesignLoad (spec §3.5, laatste punt)', () => {
 // model/grid.ts
 // ---------------------------------------------------------------------------------------------------------------
 
-describe('aansluiting en WP-budget (spec §5.5)', () => {
+describe('aansluiting en WP-limiet (spec §5.5)', () => {
   const EXPECTED: [ConnectionId, number][] = [
     ['1x25', 5.75],
     ['1x35', 8.05],
@@ -756,7 +756,7 @@ describe('meldingen uit samengestelde feiten (spec §6.4)', () => {
     // reeksen met precies één uur per situatie
     const z = (): Float64Array => new Float64Array(HOURS_PER_YEAR);
     const s = { ...base.series!, pGrid: z(), pElectric: z(), qBackup: z(), qDhw: z(), socBattery: z() };
-    // uur 100: piek aan de meter in een bijstookuur, batterij leeg terwijl boven het budget
+    // uur 100: piek aan de meter in een bijstookuur, batterij leeg terwijl boven de limiet
     s.pGrid[100] = 5;
     s.qBackup[100] = 2;
     // uur 200: elektrische piek tijdens boilerladen, overschrijding groter dan het batterijvermogen met lading over
@@ -801,7 +801,7 @@ describe('meldingen uit samengestelde feiten (spec §6.4)', () => {
     expect(batteryPowerLimits(run, P_LIMIT, 10, 3)).toBe(0);
     expect(dhwCausesPeak(run)).toBe(true);
     expect(backupCausesPeak(run)).toBe(true);
-    // zonder batterij of zonder eindig budget telt er niets
+    // zonder batterij of zonder eindige limiet telt er niets
     expect(batteryRunsEmpty(run, P_LIMIT, 0)).toBe(0);
     expect(batteryRunsEmpty(run, Infinity, 10)).toBe(0);
     expect(batteryPowerLimits(run, Infinity, 10, 1)).toBe(0);
@@ -907,7 +907,7 @@ describe('meldingen uit samengestelde feiten (spec §6.4)', () => {
 // ---------------------------------------------------------------------------------------------------------------
 
 describe('kleurcodes KPI-kaarten (spec §6.1)', () => {
-  it('piek aan de meter: groen ≤ budget, oranje ≤ 110 %, rood daarboven', () => {
+  it('piek aan de meter: groen ≤ limiet, oranje ≤ 110 %, rood daarboven', () => {
     expect(meterPeakStatus(3, 3.22)).toBe('ok');
     expect(meterPeakStatus(3.22, 3.22)).toBe('ok');
     expect(meterPeakStatus(3.3, 3.22)).toBe('warn');
@@ -916,7 +916,7 @@ describe('kleurcodes KPI-kaarten (spec §6.1)', () => {
     expect(meterPeakStatus(10, 3.22)).toBe('err');
   });
 
-  it('piek aan de meter zonder budget is neutraal', () => {
+  it('piek aan de meter zonder limiet is neutraal', () => {
     expect(meterPeakStatus(10, Infinity)).toBe('neutral');
   });
 
@@ -989,13 +989,13 @@ describe('KPI-kaarten (spec §6.1)', () => {
     expect(cards.energy.lines[0].text).toMatch(/^\d{1,3}\.\d{3} kWh elektriciteit\/jaar$/);
     // secundaire regels
     expect(cards.peakDemand.lines[0].text).toBe(`Ontwerpverlies ${nl(8, 1)} kW`);
-    expect(cards.meterPeak.lines[0].text).toBe(`WP-budget ${nl(3.22, 2)} kW`);
+    expect(cards.meterPeak.lines[0].text).toBe(`WP-limiet ${nl(3.22, 2)} kW`);
     expect(cards.heatPump.lines.some((l) => l.text.includes(`${nl(a.sizing.withBuffer * 0.7, 1)} kW`))).toBe(
       true,
     );
   });
 
-  it('kleuren woning standaard: piek 3,48 kW bij budget 3,22 kW is oranje, 101 uur is rood', () => {
+  it('kleuren woning standaard: piek 3,48 kW bij limiet 3,22 kW is oranje, 101 uur is rood', () => {
     const cards = Object.fromEntries(buildKpiCards(analysisOf('woning')).map((c) => [c.id, c]));
     expect(cards.meterPeak.status).toBe('warn');
     expect(cards.exceedance.status).toBe('err');
@@ -1005,7 +1005,7 @@ describe('KPI-kaarten (spec §6.1)', () => {
     expect(cards.exceedance.statusText).toBeTruthy();
   });
 
-  it('kleuren woning met 1 m³ buffer: binnen budget en 0 uur is groen; "zonder buffer" doorgestreept', () => {
+  it('kleuren woning met 1 m³ buffer: binnen de limiet en 0 uur is groen; "zonder buffer" doorgestreept', () => {
     const a = analysisOf('woningBuffer1');
     const cards = Object.fromEntries(buildKpiCards(a).map((c) => [c.id, c]));
     expect(cards.meterPeak.status).toBe('ok');
@@ -1041,14 +1041,14 @@ describe('advies-banner (spec §6.2)', () => {
       .map((p) => p.text)
       .join('');
 
-  it('met overschrijding: noemt de uren per jaar boven het budget', () => {
+  it('met overschrijding: noemt de uren per jaar boven de limiet', () => {
     const a = analysisOf('woning');
     const t = text(a);
     expect(t).toContain(
       `Zonder buffer en batterij heeft de warmtepomp ${nl(a.sizing.withBuffer, 1)} kW (A7/W35) nodig`,
     );
-    expect(t).toContain('blijft de WP-groep 101 uur per jaar boven het budget van 3,22 kW (1×35 A, 40 %).');
-    expect(t).not.toContain('het hele jaar binnen het budget');
+    expect(t).toContain('blijft de WP-groep 101 uur per jaar boven de limiet van 3,22 kW (1×35 A, 40 %).');
+    expect(t).not.toContain('het hele jaar binnen de limiet');
     expect(t).toContain('Kleinste passende aansluiting: 1×40 A.');
     expect(t).toContain(
       `Zonder maatregelen: ${nl(a.withoutMeasures.nominalKw, 1)} kW warmtepomp, 101 uur overschrijding, 1×40 A.`,
@@ -1057,10 +1057,10 @@ describe('advies-banner (spec §6.2)', () => {
     expect(parts.find((p) => p.text === '101')?.strong).toBe(true);
   });
 
-  it('bij 0 uur: "blijft de WP-groep het hele jaar binnen het budget"', () => {
+  it('bij 0 uur: "blijft de WP-groep het hele jaar binnen de limiet"', () => {
     const a = analysisOf('woningBuffer1');
     const t = text(a);
-    expect(t).toContain('blijft de WP-groep het hele jaar binnen het budget van 3,22 kW (1×35 A, 40 %).');
+    expect(t).toContain('blijft de WP-groep het hele jaar binnen de limiet van 3,22 kW (1×35 A, 40 %).');
     expect(t).toContain(`Met ${nl(1, 2)} m³ buffer`);
     expect(t).toContain(`heeft de warmtepomp ${nl(a.sizing.withBuffer, 1)} kW (A7/W35) nodig`);
     expect(t).toContain('Kleinste passende aansluiting: 1×35 A.');
@@ -1270,8 +1270,8 @@ describe("review: meldingen, advies en KPI's", () => {
     const t = buildAdvice(a)
       .map((p) => p.text)
       .join('');
-    expect(t).toContain('de begrenzer houdt de WP-groep binnen het budget');
-    expect(t).not.toContain('uur per jaar boven het budget');
+    expect(t).toContain('de begrenzer houdt de WP-groep binnen de limiet');
+    expect(t).not.toContain('uur per jaar boven de limiet');
     expect(a.main.kpis.exceedanceHours).toBe(0);
     // de kaart "Uren overschrijding" toont de tegenhanger zonder begrenzer
     const card = buildKpiCards(a).find((c) => c.id === 'exceedance')!;

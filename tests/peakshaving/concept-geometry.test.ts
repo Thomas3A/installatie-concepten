@@ -16,12 +16,12 @@ import {
 } from '../../src/concepts/peakshaving/ui/concept/conceptGeometry';
 
 describe('meterScale', () => {
-  it('gestapeld: overig gebruik links, daarna de WP-groep; budgetlijn = einde van de aansluiting', () => {
+  it('gestapeld: overig gebruik links, daarna de WP-groep; limietlijn = einde van de aansluiting', () => {
     const s = meterScale(8.05, 3.22, 3.0, 100, 850);
     expect(s.compressed).toBe(false);
     expect(s.otherKw).toBeCloseTo(4.83, 9);
     expect(s.x(0)).toBe(100);
-    // de WP-groep past binnen het budget: de aansluiting vult de hele balk
+    // de WP-groep past binnen de limiet: de aansluiting vult de hele balk
     expect(s.connX).toBeCloseTo(850, 6);
     expect(s.wp(0)).toBeCloseTo(100 + (750 * 4.83) / 8.05, 6);
     expect(s.wp(3.22)).toBeCloseTo(s.connX, 6);
@@ -44,7 +44,7 @@ describe('meterScale', () => {
     expect(s.wp(3) - s.wp(0)).toBeCloseTo((s.wp(6) - s.wp(0)) / 2, 6);
   });
 
-  it('zonder WP-budget: geen overig gebruik, WP-groep vanaf het begin', () => {
+  it('zonder WP-limiet: geen overig gebruik, WP-groep vanaf het begin', () => {
     const s = meterScale(8.05, Infinity, 5, 0, 1000);
     expect(s.otherKw).toBe(0);
     expect(s.wp(0)).toBe(0);

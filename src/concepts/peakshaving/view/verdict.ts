@@ -15,9 +15,9 @@ import { connectionIndex, type SensitivityState } from './sensitivityFacts';
 export type VerdictStatus = 'sizingFailed' | 'nearlyFit' | 'notFit' | 'withinAllowed' | 'fitAmple' | 'fit';
 export type VerdictTone = 'ok' | 'warn' | 'err';
 
-/** "Past net niet": de piek ligt hoogstens 3 % boven het budget (B15). */
+/** "Past net niet": de piek ligt hoogstens 3 % boven de limiet (B15). */
 export const NEARLY_FIT_FRACTION = 0.03;
-/** "Past ruim": meer dan 25 % marge onder het budget en geen batterij die afschaaft (B15). */
+/** "Past ruim": meer dan 25 % marge onder de limiet en geen batterij die afschaaft (B15). */
 export const AMPLE_MARGIN_FRACTION = 0.25;
 /** Een batterij schaaft af als de piek zonder batterij meer dan 5 W hoger ligt. */
 export const SHAVE_EPS_KW = 0.005;
@@ -30,18 +30,18 @@ export interface MeterSpan {
   end: number;
 }
 
-/** Meterbalk (§4.3): piek aan de meter tegen het budget, op een schaal 0…maxKw. */
+/** Meterbalk (§4.3): piek aan de meter tegen de WP-limiet, op een schaal 0…maxKw. */
 export interface MeterModel {
   maxKw: number;
   peakKw: number;
   budgetKw: number;
-  /** neutraal vlak van 0 tot min(piek, budget) */
+  /** neutraal vlak van 0 tot min(piek, limiet) */
   base: MeterSpan;
-  /** boven het budget (--err) */
+  /** boven de limiet (--err) */
   over: MeterSpan | null;
   /** gearceerd: wat de batterij afschaaft (alleen in modus overschrijding) */
   shaved: MeterSpan | null;
-  /** streep op het budget (fractie) */
+  /** streep op de limiet (fractie) */
   budgetPos: number;
   /** schaduwstreep: piek zonder maatregelen (alleen met buffer of batterij) */
   shadowKw: number | null;
@@ -104,7 +104,7 @@ const ICON: Record<VerdictTone, Verdict['icon']> = { ok: '✓', warn: '!', err: 
 
 /**
  * Afschaving door de batterij [kW], of null als er niets wordt afgeschaafd. In modus "met begrenzer" volgt
- * `a.noBattery` de modus en is het bedrag onbekend: dan NaN als de batterij nodig is voor 0 uur boven budget.
+ * `a.noBattery` de modus en is het bedrag onbekend: dan NaN als de batterij nodig is voor 0 uur boven de limiet.
  */
 function shavedKw(a: Analysis): number | null {
   const ex = exceedanceKpis(a);
@@ -205,7 +205,7 @@ function tiles(a: Analysis): [Tile, Tile, Tile] {
     id: 'heatPump',
     title: auto ? t.heatPump : t.heatPumpManual,
     value: failed ? '–' : fmt(a.nominalKw, 1),
-    // thermisch: naast "Piek aan de meter" en "budget" (elektrisch) zou "kW" doen denken dat 10,6 kW in 3,22 kW past
+    // thermisch: naast "Piek aan de meter" en "limiet" (elektrisch) zou "kW" doen denken dat 10,6 kW in 3,22 kW past
     unit: VERDICT_TEXTS.tiles.heatPumpUnit,
     line: failed
       ? t.heatPumpNeeded(NaN)
@@ -298,14 +298,14 @@ function detailOf(a: Analysis, status: VerdictStatus, d: number): string {
       const shaved = shavedKw(a);
       if (shaved !== null)
         return Number.isFinite(shaved) ? v.shaved(peak, shaved, d) : v.shavedLimited(peak, d);
-      // piek (afgerond) op het budget, bijv. met een buffer die precies tot het budget laadt: geen "0,00 kW (0 %)"
+      // piek (afgerond) op de limiet, bijv. met een buffer die precies tot de limiet laadt: geen "0,00 kW (0 %)"
       if (Math.round((budget - peak) * 10 ** d) === 0) return v.atBudget(peak, d);
       return v.margin(peak, budget - peak, (100 * (budget - peak)) / budget, budget, d);
     }
   }
 }
 
-/** De batterij is niet nodig: zonder batterij al geen uur boven het budget (de batterijregel zegt "Doet nu niets"). */
+/** De batterij is niet nodig: zonder batterij al geen uur boven de limiet (de batterijregel zegt "Doet nu niets"). */
 function batteryIdle(a: Analysis): boolean {
   const rb = a.requiredBattery;
   return a.input.battery.capacityKwh > 0 && !!rb && rb.feasible && rb.capacityKwh === 0;

@@ -32,7 +32,7 @@ export interface StripChip {
 
 /**
  * Chips van de strook (puur): gebouw, piekvermogen ("kW/woning" bij meerdere woningen), stooklijn, tapwater of bij
- * kantoor gebruikstijden en nachtverlaging, aansluiting, budget en klimaatjaar. Wijkt Meer instellingen af van de
+ * kantoor gebruikstijden en nachtverlaging, aansluiting, WP-limiet en klimaatjaar. Wijkt Meer instellingen af van de
  * standaard op meer dan het klimaatjaar (dat heeft al een chip), dan ook "Meer instellingen · 3 aangepast": het oordeel
  * kan van die verborgen waarden afhangen (toegestane uren, Carnot-rendement, …), ook na een deellink.
  */

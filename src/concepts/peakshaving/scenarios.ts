@@ -48,7 +48,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: "Woning jaren '70 · zonder maatregelen",
     group: 'single',
     description:
-      'De warmtepomp wordt gedimensioneerd op de piek en komt zo’n honderd uur per jaar boven het budget van 3,2 kW.',
+      'De warmtepomp wordt gedimensioneerd op de piek en komt zo’n honderd uur per jaar boven de WP-limiet van 3,2 kW.',
     build: residential(() => undefined),
   },
   {
@@ -92,7 +92,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: '10 woningen · zonder maatregelen',
     group: 'multi',
     description:
-      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt zo’n 66 kW en zit ruim honderd uur per jaar boven het budget van 19,4 kW; pas 3×40 A past.',
+      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt zo’n 66 kW en zit ruim honderd uur per jaar boven de WP-limiet van 19,4 kW; pas 3×40 A past.',
     build: multiDwelling(() => undefined),
   },
   {
@@ -112,7 +112,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: 'Kantoor 100 kW · zonder maatregelen',
     group: 'office',
     description:
-      'De opstookpiek na het weekend bepaalt de warmtepomp; de WP-groep zit honderden uren boven het budget.',
+      'De opstookpiek na het weekend bepaalt de warmtepomp; de WP-groep zit honderden uren boven de limiet.',
     build: office(() => undefined),
   },
   {
