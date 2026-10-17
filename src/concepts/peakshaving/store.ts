@@ -1,4 +1,5 @@
 // Zustand-store voor het peakshaving-concept: invoer, afgeleide bereiken, resultaten uit de Worker en UI-toestand.
+// UI-toestand (Basis open/dicht, eigen invoer, ongedaan maken, rondleiding) komt nooit in de deelbare link.
 import { create } from 'zustand';
 import { defaultInput } from './data/defaults';
 import { createEngineClient, type EngineClient, type EngineClientOptions } from './engineClient';
@@ -18,21 +19,32 @@ import type { SensitivityRow } from './model/sizing';
 import type { BuildingKind, BuildingUse, ClimateYearId, PeakshavingInput } from './model/types';
 import { findScenario } from './scenarios';
 import { decodeInput, encodeInput, sameInput, scenarioIdOf } from './share';
+import { TOAST_TEXTS } from './texts';
+import { readKey, STORAGE_KEYS, writeKey } from './ui/storage';
+import type { SensitivityState } from './view/sensitivityFacts';
+import { isWhatIfField, type FieldKey } from './view/types';
+
+export type { SensitivityState } from './view/sensitivityFacts';
+export type { FieldKey } from './view/types';
 
 export type TabId = 'koude-week' | 'jaar' | 'gevoeligheid' | 'concept' | 'uitleg';
 
 /** Wachttijd na de laatste wijziging voordat er wordt herberekend [ms] (spec §7.4). */
 export const DEBOUNCE_MS = 250;
 export const DEFAULT_SCENARIO = 'woning-basis';
+/** Standaardtabblad van Verdieping: het schema. */
+export const DEFAULT_TAB: TabId = 'concept';
 
-export interface SensitivityState {
-  key: string;
-  rows: (SensitivityRow | null)[];
-  total: number;
-  /** klaar: alle rijen berekend, of afgebroken met een fout (dan staat `error` gevuld en is het raster onvolledig) */
-  done: boolean;
-  /** foutmelding van de rekenmotor; zo'n raster komt niet in de cache en wordt bij een volgend verzoek opnieuw berekend */
-  error?: string;
+/** Melding onderaan (toast): 'example' → "Terug naar je invoer", 'kind' en 'fix' → "Ongedaan maken". */
+export interface Notice {
+  kind: 'example' | 'kind' | 'fix';
+  text: string;
+}
+
+/** Invoer van vóór de laatste knop of gebouwfunctiewissel (één stap terug). */
+export interface UndoEntry {
+  input: PeakshavingInput;
+  scenarioId: string | null;
 }
 
 interface State {
@@ -51,6 +63,22 @@ interface State {
   copied: boolean;
   /** printversie wordt opgebouwd (grafieken buiten beeld, daarna window.print()) */
   printing: boolean;
+  /** Basis open (eerste bezoek) of ingeklapt tot een strook; bewaard in localStorage, nooit in de link */
+  basisOpen: boolean;
+  /** verzoek om een veld te tonen en te focussen; `seq` maakt een herhaald verzoek voor hetzelfde veld zichtbaar */
+  reveal: { target: FieldKey; seq: number } | null;
+  /** eigen invoer, bewaard bij het laden van een voorbeeld of een andere gebouwfunctie */
+  ownInput: PeakshavingInput | null;
+  undo: UndoEntry | null;
+  notice: Notice | null;
+  /** gevoeligheidsraster na elke doorrekening (standaard aan, uit in de tests) */
+  autoSensitivity: boolean;
+  /** pagina geopend met een deellink (?c=): Basis dicht, geen automatische rondleiding */
+  openedFromLink: boolean;
+  /** stap van de rondleiding (0…), null = niet actief */
+  tourStep: number | null;
+  /** rondleiding mag vanzelf starten bij een eerste bezoek (uit in de tests) */
+  tourAutoStart: boolean;
   // acties
   update: (fn: (i: PeakshavingInput) => PeakshavingInput) => void;
   setDesignLoad: (kw: number) => void;
@@ -63,7 +91,10 @@ interface State {
   applyScenario: (id: string) => void;
   loadInput: (input: PeakshavingInput, scenarioId?: string | null) => void;
   fromShareHash: (code: string) => boolean;
-  /** na een rekenfout opnieuw proberen: doorrekening en (op het tabblad Gevoeligheid) het raster */
+  /**
+   * na een rekenfout opnieuw proberen: doorrekening en, als er een raster nodig is (tabblad Gevoeligheid, printen of
+   * automatisch), ook een raster dat bij deze invoer mislukte
+   */
   retry: () => void;
   toShareHash: () => string;
   setTab: (t: TabId) => void;
@@ -73,6 +104,25 @@ interface State {
   /** printversie opbouwen: rekent zo nodig ook het gevoeligheidsraster en print als alles klaar is */
   requestPrint: () => void;
   endPrint: () => void;
+  /** Basis open of dicht; `persist` = false bewaart de keuze niet (bijv. bij een deellink) */
+  setBasisOpen: (open: boolean, persist?: boolean) => void;
+  /** veld tonen: opent zo nodig de Basis; de UI klapt Meer instellingen of Verfijnen open en zet de focus */
+  revealSetting: (target: FieldKey) => void;
+  /** bewaarde eigen invoer terugzetten */
+  restoreOwnInput: () => void;
+  /**
+   * knop "Wat helpt" e.d.: invoer wijzigen met één stap ongedaan maken en een melding "{label} · Ongedaan maken".
+   * Verandert de knop niets (of is er geen tekst), dan gebeurt er niets: geen stap terug en geen melding.
+   */
+  applyFix: (label: string, fn: (i: PeakshavingInput) => PeakshavingInput) => void;
+  undoLast: () => void;
+  /** melding sluiten; daarmee vervalt ook het ongedaan maken */
+  dismissNotice: () => void;
+  setAutoSensitivity: (on: boolean) => void;
+  startTour: () => void;
+  setTourStep: (n: number) => void;
+  /** rondleiding sluiten (Overslaan of Klaar) en als gezien bewaren */
+  endTour: () => void;
 }
 
 let client: EngineClient | null = null;
@@ -88,6 +138,13 @@ const sensitivityCache = new Map<string, SensitivityState>();
  * getoond, en komt na afloop in de cache; alleen als zijn sleutel wordt getoond, gaan de rijen ook naar de UI.
  */
 let running: SensitivityState | null = null;
+/**
+ * Het laatst mislukte raster, als dat bij de invoer van dat moment hoorde. Zolang de sleutel gelijk blijft, vraagt een
+ * doorrekening (automatisch raster, schuif, knop) het niet opnieuw op: anders rekent na een fout het hele raster bij
+ * elke schuifstap opnieuw (UX-plan §5.3) en wisselt de mini-grafiek tussen "wordt berekend" en "niet beschikbaar".
+ * Opnieuw alleen bij een expliciete vraag (Opnieuw proberen, tabblad Gevoeligheid, printen) of een andere sleutel.
+ */
+let failedSensitivity: SensitivityState | null = null;
 
 function engine(): EngineClient {
   client ??= createEngineClient(onResponse, engineOptions);
@@ -97,6 +154,13 @@ function engine(): EngineClient {
 /** Toon `next` als het getoonde raster bij dezelfde invoer-sleutel hoort. */
 function showSensitivity(next: SensitivityState): void {
   if (useStore.getState().sensitivity?.key === next.key) useStore.setState({ sensitivity: next });
+}
+
+/** Mislukt of onvolledig raster: niet in de cache, wel onthouden als het bij de huidige invoer hoort. */
+function failSensitivity(failed: SensitivityState): void {
+  running = null;
+  if (failed.key === sensitivityKey(useStore.getState().input)) failedSensitivity = failed;
+  showSensitivity(failed);
 }
 
 function onResponse(msg: EngineResponse): void {
@@ -121,11 +185,13 @@ function onResponse(msg: EngineResponse): void {
     case 'sensitivity-done': {
       if (msg.id !== latestSensitivity || !running || running.key !== msg.key) return;
       const complete = running.total === msg.total && running.rows.every((r) => r !== null);
-      const finished: SensitivityState = complete
-        ? { ...running, done: true }
-        : { ...running, done: true, error: 'gevoeligheidsraster onvolledig berekend' };
+      if (!complete) {
+        failSensitivity({ ...running, done: true, error: 'gevoeligheidsraster onvolledig berekend' });
+        return;
+      }
+      const finished: SensitivityState = { ...running, done: true };
       running = null;
-      if (complete) sensitivityCache.set(msg.key, finished);
+      sensitivityCache.set(msg.key, finished);
       showSensitivity(finished);
       return;
     }
@@ -141,18 +207,19 @@ function onResponse(msg: EngineResponse): void {
         useStore.setState({ busy: false, error: msg.message + note });
       }
       if (msg.id === latestSensitivity && running) {
-        // niet in de cache: een volgend verzoek voor deze invoer rekent opnieuw
-        const failed: SensitivityState = { ...running, done: true, error: msg.message };
-        running = null;
-        showSensitivity(failed);
+        // niet in de cache: Opnieuw proberen, het tabblad Gevoeligheid, printen of een andere invoer rekent opnieuw
+        failSensitivity({ ...running, done: true, error: msg.message });
       }
       return;
     }
   }
 }
 
-/** Herbereken nu (zonder wachttijd). */
-function computeNow(): void {
+/**
+ * Herbereken nu (zonder wachttijd); het raster ook bij het tabblad Gevoeligheid, bij printen of automatisch.
+ * `retry` = Opnieuw proberen: ook een raster dat bij deze sleutel mislukte, wordt opnieuw gevraagd.
+ */
+function computeNow(retry = false): void {
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -161,26 +228,33 @@ function computeNow(): void {
   latestAnalyze = nextId++;
   useStore.setState({ busy: true });
   engine().post({ type: 'analyze', id: latestAnalyze, input });
-  if (tab === 'gevoeligheid' || useStore.getState().printing) requestSensitivity();
+  const st = useStore.getState();
+  if (tab === 'gevoeligheid' || st.printing || st.autoSensitivity) requestSensitivity(retry);
 }
 
 function schedule(): void {
   if (timer) clearTimeout(timer);
   useStore.setState({ busy: true });
-  timer = setTimeout(computeNow, DEBOUNCE_MS);
+  timer = setTimeout(() => computeNow(), DEBOUNCE_MS);
 }
 
-/** Gevoeligheidsraster alleen als het tabblad open is (of bij printen), met cache op de invoer-sleutel. */
-function requestSensitivity(): void {
+/**
+ * Gevoeligheidsraster op verzoek (tabblad, printen of automatisch), met cache op de invoer-sleutel. `explicit` = de
+ * gebruiker vraagt erom (Opnieuw proberen, tabblad Gevoeligheid, printen): dan ook opnieuw na een fout bij deze
+ * sleutel; anders blijft een mislukt raster staan tot de sleutel verandert.
+ */
+function requestSensitivity(explicit = false): void {
   const { input, sensitivity } = useStore.getState();
   const key = sensitivityKey(input);
-  // klaar (cache) of nog onderweg: alleen tonen
-  const known = sensitivityCache.get(key) ?? (running && running.key === key ? running : null);
+  if (failedSensitivity && (explicit || failedSensitivity.key !== key)) failedSensitivity = null;
+  // klaar (cache), nog onderweg of bij deze sleutel mislukt: alleen tonen
+  const known =
+    sensitivityCache.get(key) ?? (running && running.key === key ? running : null) ?? failedSensitivity;
   if (known) {
     if (sensitivity !== known) useStore.setState({ sensitivity: known });
     return;
   }
-  // nieuw verzoek, ook na een fout; de motor breekt een lopend raster voor een andere invoer dan af
+  // nieuw verzoek; de motor breekt een lopend raster voor een andere invoer dan af
   latestSensitivity = nextId++;
   running = { key, rows: [], total: 0, done: false };
   useStore.setState({ sensitivity: running });
@@ -188,6 +262,11 @@ function requestSensitivity(): void {
 }
 
 const initialInput = normalizeInput(findScenario(DEFAULT_SCENARIO)?.build() ?? defaultInput('residential'));
+
+/** Een handmatige invoerwijziging: het ongedaan maken vervalt, en daarmee een melding die erop steunt. */
+function manualChange(st: Pick<State, 'notice'>): Pick<State, 'undo' | 'notice'> {
+  return { undo: null, notice: st.notice && st.notice.kind !== 'example' ? null : st.notice };
+}
 
 export const useStore = create<State>((set, get) => ({
   input: initialInput,
@@ -197,40 +276,70 @@ export const useStore = create<State>((set, get) => ({
   busy: true,
   error: null,
   sensitivity: null,
-  tab: 'koude-week',
+  tab: DEFAULT_TAB,
   scrubHour: null,
   playing: false,
   copied: false,
   printing: false,
+  basisOpen: readKey(STORAGE_KEYS.basis) !== 'dicht',
+  reveal: null,
+  ownInput: null,
+  undo: null,
+  notice: null,
+  autoSensitivity: import.meta.env.MODE !== 'test',
+  openedFromLink: false,
+  tourStep: null,
+  tourAutoStart: import.meta.env.MODE !== 'test',
 
   update: (fn) => {
     const next = normalizeInput(fn(get().input));
-    set({ input: next, ranges: rangesOf(next), scenarioId: null });
+    set({ input: next, ranges: rangesOf(next), scenarioId: null, ...manualChange(get()) });
     schedule();
   },
   setDesignLoad: (kw) => {
     const next = withDesignLoad(get().input, kw);
-    set({ input: next, ranges: rangesOf(next), scenarioId: null });
+    set({ input: next, ranges: rangesOf(next), scenarioId: null, ...manualChange(get()) });
     schedule();
   },
   setUse: (use) => {
     const next = switchUse(get().input, use);
-    set({ input: next, ranges: rangesOf(next), scenarioId: scenarioIdOf(next), scrubHour: null });
+    set({
+      input: next,
+      ranges: rangesOf(next),
+      scenarioId: scenarioIdOf(next),
+      scrubHour: null,
+      ...manualChange(get()),
+    });
     schedule();
   },
   setKind: (kind) => {
-    const next = switchKind(get().input, kind);
+    const st = get();
+    const next = switchKind(st.input, kind);
     // dezelfde keuze nogmaals: niets wijzigen (het scenario blijft dan ook staan)
-    if (next === get().input) return;
-    // de standaardinvoer van een keuze is meestal ook een scenario (zoals bij een gedeelde link)
-    set({ input: next, ranges: rangesOf(next), scenarioId: scenarioIdOf(next), scrubHour: null });
+    if (next === st.input) return;
+    // over eigen invoer heen: die bewaren, met één stap terug en een melding "… · Ongedaan maken"
+    const own = st.scenarioId === null;
+    set({
+      input: next,
+      ranges: rangesOf(next),
+      // de standaardinvoer van een keuze is meestal ook een scenario (zoals bij een gedeelde link)
+      scenarioId: scenarioIdOf(next),
+      scrubHour: null,
+      ...(own
+        ? {
+            ownInput: st.input,
+            undo: { input: st.input, scenarioId: st.scenarioId },
+            notice: { kind: 'kind', text: TOAST_TEXTS.kindLoaded(kind) },
+          }
+        : manualChange(st)),
+    });
     schedule();
   },
   setDwellings: (n) => {
     const next = withDwellings(get().input, n);
     // kantoor, ongeldig of ongewijzigd aantal: niets te doen
     if (next === get().input) return;
-    set({ input: next, ranges: rangesOf(next), scenarioId: null });
+    set({ input: next, ranges: rangesOf(next), scenarioId: null, ...manualChange(get()) });
     schedule();
   },
   setClimateYear: (id) => {
@@ -239,11 +348,27 @@ export const useStore = create<State>((set, get) => ({
   },
   applyScenario: (id) => {
     const sc = findScenario(id);
-    if (sc) get().loadInput(sc.build(), id);
+    if (!sc) return;
+    const st = get();
+    get().loadInput(sc.build(), id);
+    // over eigen invoer heen: die bewaren en terug kunnen ("Terug naar je invoer")
+    if (st.scenarioId === null)
+      set({
+        ownInput: st.input,
+        notice: { kind: 'example', text: TOAST_TEXTS.exampleLoaded(sc.shortTitle) },
+      });
   },
   loadInput: (input, scenarioId = null) => {
     const next = normalizeInput(input);
-    set({ input: next, ranges: rangesOf(next), scenarioId, scrubHour: null, playing: false });
+    set({
+      input: next,
+      ranges: rangesOf(next),
+      scenarioId,
+      scrubHour: null,
+      playing: false,
+      undo: null,
+      notice: null,
+    });
     computeNow();
   },
   fromShareHash: (code) => {
@@ -251,13 +376,16 @@ export const useStore = create<State>((set, get) => ({
     if (!input) return false;
     // link van een ongewijzigd scenario: dat scenario (met titel) tonen
     get().loadInput(input, scenarioIdOf(input));
+    // de ontvanger ziet eerst het resultaat; de keuze voor de Basis wordt niet bewaard
+    get().setBasisOpen(false, false);
+    set({ openedFromLink: true });
     return true;
   },
-  retry: () => computeNow(),
+  retry: () => computeNow(true),
   toShareHash: () => encodeInput(get().input),
   setTab: (tab) => {
     set({ tab });
-    if (tab === 'gevoeligheid') requestSensitivity();
+    if (tab === 'gevoeligheid') requestSensitivity(true);
   },
   setScrubHour: (scrubHour) => set({ scrubHour }),
   setPlaying: (playing) => set({ playing }),
@@ -265,11 +393,71 @@ export const useStore = create<State>((set, get) => ({
   requestPrint: () => {
     set({ printing: true, playing: false });
     // wachtende invoer direct doorrekenen; na een rekenfout eerst opnieuw proberen (anders print de vorige uitkomst)
-    if (timer || get().error) computeNow();
-    requestSensitivity();
+    if (timer || get().error) computeNow(true);
+    requestSensitivity(true);
   },
   endPrint: () => set({ printing: false }),
+  setBasisOpen: (open, persist = true) => {
+    set({ basisOpen: open });
+    if (persist) writeKey(STORAGE_KEYS.basis, open ? 'open' : 'dicht');
+  },
+  revealSetting: (target) => {
+    const seq = (get().reveal?.seq ?? 0) + 1;
+    set({ reveal: { target, seq } });
+    if (!isWhatIfField(target)) get().setBasisOpen(true);
+  },
+  restoreOwnInput: () => {
+    const own = get().ownInput;
+    if (!own) return;
+    get().loadInput(own, null);
+    set({ ownInput: null });
+  },
+  applyFix: (label, fn) => {
+    const st = get();
+    const next = normalizeInput(fn(st.input));
+    // niets te doen (bijv. een plaatshouder zolang het raster rekent, of de waarde staat er al): geen stap terug en
+    // geen melding; zonder tekst geen melding " · Ongedaan maken"
+    if (label.trim() === '' || sameInput(next, st.input)) return;
+    set({
+      input: next,
+      ranges: rangesOf(next),
+      scenarioId: scenarioIdOf(next),
+      undo: { input: st.input, scenarioId: st.scenarioId },
+      notice: { kind: 'fix', text: label },
+    });
+    computeNow();
+  },
+  undoLast: () => {
+    const { undo, ownInput } = get();
+    if (!undo) return;
+    set({
+      input: undo.input,
+      ranges: rangesOf(undo.input),
+      scenarioId: undo.scenarioId,
+      undo: null,
+      notice: null,
+      // terug naar de eigen invoer van vóór een gebouwfunctiewissel: die hoeft niet meer bewaard
+      ownInput: ownInput === undo.input ? null : ownInput,
+    });
+    computeNow();
+  },
+  dismissNotice: () => set({ notice: null, undo: null }),
+  setAutoSensitivity: (on) => {
+    set({ autoSensitivity: on });
+    if (on) requestSensitivity();
+  },
+  startTour: () => set({ tourStep: 0 }),
+  setTourStep: (n) => set({ tourStep: n }),
+  endTour: () => {
+    set({ tourStep: null });
+    writeKey(STORAGE_KEYS.tour, 'gezien');
+  },
 }));
+
+/** De rondleiding is al eens afgerond of overgeslagen. */
+export function tourSeen(): boolean {
+  return readKey(STORAGE_KEYS.tour) !== null;
+}
 
 /** Eerste berekening starten (aangeroepen door de pagina bij het openen). */
 export function startEngine(): void {
@@ -290,6 +478,7 @@ export function configureEngine(options: EngineClientOptions = {}): void {
   }
   latestAnalyze = latestSensitivity = nextId++;
   running = null;
+  failedSensitivity = null;
   sensitivityCache.clear();
   useStore.setState({ sensitivity: null, busy: false, error: null });
 }

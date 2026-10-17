@@ -1,0 +1,58 @@
+/* Meldingen: ernst als tekstlabel en een ▸/▾-marker bij "Waarom?" (de algemene stijl komt uit ui.module.css). */
+.head {
+  padding: 6px 8px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.sev {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sevError {
+  color: var(--err);
+}
+.sevWarning {
+  color: var(--warn);
+}
+.sevInfo {
+  color: var(--info);
+}
+.sevIcon {
+  display: inline-block;
+  min-width: 1em;
+  text-align: center;
+}
+.why > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+.why > summary::-webkit-details-marker {
+  display: none;
+}
+.why > summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--text-2);
+}
+.why[open] > summary::before {
+  content: '▾';
+}
+.list {
+  margin-bottom: 12px;
+}
+.compact {
+  margin-bottom: 0;
+}
+.compact .head {
+  padding: 4px 8px;
+}
+.empty {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.88rem;
+}

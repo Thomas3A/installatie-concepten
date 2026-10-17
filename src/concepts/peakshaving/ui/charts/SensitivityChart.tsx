@@ -7,17 +7,20 @@ import type uPlot from 'uplot';
 import { fmt } from '../../../../core/format';
 import { cssColor, UPlotChart, type ChartSeries, type LegendExtra } from '../../../../ui/charts/UPlotChart';
 import ui from '../../../../ui/ui.module.css';
-import { CONNECTIONS, LARGE_CONNECTION_ID, type ConnectionDef } from '../../data/connections';
+import { CONNECTIONS, LARGE_CONNECTION_ID } from '../../data/connections';
 import { connectionLabel, connectionPowerKw, limitFromConnection } from '../../model/grid';
 import { connectionText } from '../../model/kpis';
 import { bufferHoursOfPeak, type Ranges } from '../../model/ranges';
-import {
-  SENSITIVITY_BATTERY_FRACTIONS,
-  SENSITIVITY_VOLUME_FRACTIONS,
-  type SensitivityRow,
-} from '../../model/sizing';
+import { SENSITIVITY_VOLUME_FRACTIONS } from '../../model/sizing';
 import type { PeakshavingInput } from '../../model/types';
 import { useStore, type SensitivityState } from '../../store';
+import {
+  compact,
+  gridModel,
+  transitionsOf,
+  type GridModel,
+  type Transition,
+} from '../../view/sensitivityFacts';
 import { pixelRatio } from './coldWeekDraw';
 import css from './SensitivityChart.module.css';
 
@@ -108,26 +111,7 @@ function batteryStyle(j: number, pal: Palette): { color: string; width: number }
 
 // ---------------------------------------------------------------- notatie
 
-/** Getal met zo weinig decimalen als nodig (hoogstens `maxDigits`): 0; 0,2; 0,25; 7,5. */
-function compact(v: number, maxDigits = 2): string {
-  for (let d = 0; d < maxDigits; d++) {
-    const k = 10 ** d;
-    if (Math.abs(Math.round(v * k) - v * k) < 1e-6) return fmt(v, d);
-  }
-  return fmt(v, maxDigits);
-}
-
 const batteryName = (kwh: number): string => (kwh > 0 ? `batterij ${compact(kwh)} kWh` : 'zonder batterij');
-
-/** Batterijen van een overgang in één korte tekst: "zonder batterij", "batterij 15 / 30 kWh". */
-function batteriesText(indexes: number[], caps: number[]): string {
-  const none = indexes.some((j) => !(caps[j] > 0));
-  const sizes = indexes.filter((j) => caps[j] > 0).map((j) => compact(caps[j]));
-  const parts: string[] = [];
-  if (none) parts.push('zonder batterij');
-  if (sizes.length > 0) parts.push(`batterij ${sizes.join(' / ')} kWh`);
-  return parts.join(' en ');
-}
 
 /** Mooie bovengrens voor een as (1; 1,2; 1,4; … 9 · 10^k). */
 function niceCeil(v: number): number {
@@ -171,89 +155,6 @@ function bandRange(lo: number, hi: number, f0: number, f1: number): [number, num
 }
 
 // ---------------------------------------------------------------- gegevens
-
-interface GridModel {
-  /** aantal buffervolumes (13) */
-  n: number;
-  /** aantal berekende rijen */
-  computed: number;
-  /** buffervolumes [m³]; nog niet berekende rijen uit de vaste fracties van V_max */
-  x: number[];
-  /** batterijcapaciteiten [kWh], oplopend */
-  caps: number[];
-  rows: (SensitivityRow | null)[];
-}
-
-function gridModel(sens: SensitivityState, ranges: Ranges): GridModel {
-  const n = sens.total > 0 ? sens.total : SENSITIVITY_VOLUME_FRACTIONS.length;
-  const rows = Array.from({ length: n }, (_, i) => sens.rows[i] ?? null);
-  const x = rows.map(
-    (r, i) => r?.volumeM3 ?? (SENSITIVITY_VOLUME_FRACTIONS[i] ?? i / Math.max(1, n - 1)) * ranges.bufferMaxM3,
-  );
-  const first = rows.find((r): r is SensitivityRow => r !== null);
-  const caps = first
-    ? first.cells.map((c) => c.capacityKwh)
-    : SENSITIVITY_BATTERY_FRACTIONS.map((f) => f * ranges.batteryMaxKwh);
-  return { n, computed: rows.filter((r) => r !== null).length, x, caps, rows };
-}
-
-/** Overgang: vanaf dit buffervolume is deze aansluiting toereikend voor deze batterij(en). */
-interface Transition {
-  conn: ConnectionDef;
-  limitKw: number;
-  volumeM3: number;
-  /** batterij-indexen (oplopend) */
-  batteries: number[];
-  text: string;
-}
-
-/** Past de kleinste aansluiting van cel j binnen aansluiting c? (grootverbruik telt niet als passend) */
-function fitsConnection(row: SensitivityRow, j: number, c: ConnectionDef): boolean {
-  const s = row.cells[j]?.smallest;
-  return !!s && s.id !== LARGE_CONNECTION_ID && Number.isFinite(s.powerKw) && s.powerKw <= c.powerKw + 1e-9;
-}
-
-/**
- * Per batterijlijn en per standaardaansluiting het eerste buffervolume V > 0 vanaf waar die aansluiting toereikend is
- * (en bij de volgende berekende punten blijft); alleen echte overgangen, dus niet als de aansluiting bij V = 0 al
- * volstaat. Overgangen op hetzelfde punt worden samengevoegd.
- */
-function transitionsOf(m: GridModel, share: number): Transition[] {
-  const r0 = m.rows[0];
-  if (!r0) return [];
-  const later: number[] = [];
-  m.rows.forEach((r, i) => {
-    if (i > 0 && r) later.push(i);
-  });
-  const found = new Map<string, Omit<Transition, 'text'>>();
-  for (let j = 0; j < m.caps.length; j++) {
-    for (const c of CONNECTIONS) {
-      if (fitsConnection(r0, j, c)) continue;
-      const fits = (i: number): boolean => fitsConnection(m.rows[i] as SensitivityRow, j, c);
-      // begin van de aaneengesloten reeks passende punten aan het eind; anders het eerste passende punt
-      let first = -1;
-      for (let k = later.length - 1; k >= 0 && fits(later[k]); k--) first = later[k];
-      if (first < 0) first = later.find(fits) ?? -1;
-      if (first < 0) continue;
-      const limitKw = limitFromConnection(c.powerKw, share);
-      if (!Number.isFinite(limitKw)) continue;
-      const key = `${c.id}@${first}`;
-      const t = found.get(key);
-      if (t) t.batteries.push(j);
-      else
-        found.set(key, {
-          conn: c,
-          limitKw,
-          volumeM3: (m.rows[first] as SensitivityRow).volumeM3,
-          batteries: [j],
-        });
-    }
-  }
-  return [...found.values()].map((t) => ({
-    ...t,
-    text: `${t.conn.label} vanaf ${fmt(t.volumeM3, 2)} m³ (${batteriesText(t.batteries, m.caps)})`,
-  }));
-}
 
 interface RefLine {
   limitKw: number;
