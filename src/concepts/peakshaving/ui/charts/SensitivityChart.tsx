@@ -1,5 +1,5 @@
 // Tabblad Gevoeligheid (spec §7.3) — de kerngrafiek: piek aan de meter per batterijgrootte en het benodigde
-// WP-vermogen als functie van het buffervolume, met de budgetten van de standaardaansluitingen als referentielijnen.
+// WP-vermogen als functie van het buffervolume, met de WP-limieten van de standaardaansluitingen als referentielijnen.
 // Het raster komt rij voor rij uit de Web Worker; de grafiek tekent wat er al is. Tijdens een herberekening blijft het
 // vorige volledige raster (gedimd) staan tot de eerste nieuwe rij er is, zodat de pagina niet verspringt.
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -7,19 +7,31 @@ import type uPlot from 'uplot';
 import { fmt } from '../../../../core/format';
 import { cssColor, UPlotChart, type ChartSeries, type LegendExtra } from '../../../../ui/charts/UPlotChart';
 import ui from '../../../../ui/ui.module.css';
-import { CONNECTIONS, LARGE_CONNECTION_ID, type ConnectionDef } from '../../data/connections';
+import { CONNECTIONS, LARGE_CONNECTION_ID } from '../../data/connections';
 import { connectionLabel, connectionPowerKw, limitFromConnection } from '../../model/grid';
 import { connectionText } from '../../model/kpis';
 import { bufferHoursOfPeak, type Ranges } from '../../model/ranges';
-import {
-  SENSITIVITY_BATTERY_FRACTIONS,
-  SENSITIVITY_VOLUME_FRACTIONS,
-  type SensitivityRow,
-} from '../../model/sizing';
+import { SENSITIVITY_VOLUME_FRACTIONS } from '../../model/sizing';
 import type { PeakshavingInput } from '../../model/types';
 import { useStore, type SensitivityState } from '../../store';
+import {
+  compact,
+  gridModel,
+  transitionsOf,
+  type GridModel,
+  type Transition,
+} from '../../view/sensitivityFacts';
 import { pixelRatio } from './coldWeekDraw';
 import css from './SensitivityChart.module.css';
+
+/** Teksten van dit tabblad (UX-plan §7 #14, #15); de klikhint en "De gevoeligheid wordt berekend" zijn testankers. */
+const TEXT = {
+  lead: 'Waar de lijnen vlak worden, helpt meer buffer niet meer; een stip markeert vanaf welk buffervolume een aansluiting volstaat.',
+  howToRead: 'Hoe lees ik dit?',
+  pending: 'De gevoeligheid wordt berekend…',
+  clickHint: 'Klik in de grafiek om het buffervolume te kiezen.',
+  readout: 'Beweeg over de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
+} as const;
 
 // vaste middentint die in het lichte én donkere thema leesbaar is (zelfde oranje als de buffer in de andere tabbladen)
 const HEAT_PUMP_COLOR = '#e8892b';
@@ -30,7 +42,7 @@ const PRINT_CHART_HEIGHT = 300;
 /** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
 const COMPACT_BELOW_PX = 560;
 /**
- * Een budgetlijn hoger dan deze factor × de hoogste meterpiek rekt de as niet op (bijv. grootverbruik): de krommen
+ * Een limietlijn hoger dan deze factor × de hoogste meterpiek rekt de as niet op (bijv. grootverbruik): de krommen
  * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
  */
 const OFF_SCALE_FACTOR = 2;
@@ -108,26 +120,7 @@ function batteryStyle(j: number, pal: Palette): { color: string; width: number }
 
 // ---------------------------------------------------------------- notatie
 
-/** Getal met zo weinig decimalen als nodig (hoogstens `maxDigits`): 0; 0,2; 0,25; 7,5. */
-function compact(v: number, maxDigits = 2): string {
-  for (let d = 0; d < maxDigits; d++) {
-    const k = 10 ** d;
-    if (Math.abs(Math.round(v * k) - v * k) < 1e-6) return fmt(v, d);
-  }
-  return fmt(v, maxDigits);
-}
-
 const batteryName = (kwh: number): string => (kwh > 0 ? `batterij ${compact(kwh)} kWh` : 'zonder batterij');
-
-/** Batterijen van een overgang in één korte tekst: "zonder batterij", "batterij 15 / 30 kWh". */
-function batteriesText(indexes: number[], caps: number[]): string {
-  const none = indexes.some((j) => !(caps[j] > 0));
-  const sizes = indexes.filter((j) => caps[j] > 0).map((j) => compact(caps[j]));
-  const parts: string[] = [];
-  if (none) parts.push('zonder batterij');
-  if (sizes.length > 0) parts.push(`batterij ${sizes.join(' / ')} kWh`);
-  return parts.join(' en ');
-}
 
 /** Mooie bovengrens voor een as (1; 1,2; 1,4; … 9 · 10^k). */
 function niceCeil(v: number): number {
@@ -171,89 +164,6 @@ function bandRange(lo: number, hi: number, f0: number, f1: number): [number, num
 }
 
 // ---------------------------------------------------------------- gegevens
-
-interface GridModel {
-  /** aantal buffervolumes (13) */
-  n: number;
-  /** aantal berekende rijen */
-  computed: number;
-  /** buffervolumes [m³]; nog niet berekende rijen uit de vaste fracties van V_max */
-  x: number[];
-  /** batterijcapaciteiten [kWh], oplopend */
-  caps: number[];
-  rows: (SensitivityRow | null)[];
-}
-
-function gridModel(sens: SensitivityState, ranges: Ranges): GridModel {
-  const n = sens.total > 0 ? sens.total : SENSITIVITY_VOLUME_FRACTIONS.length;
-  const rows = Array.from({ length: n }, (_, i) => sens.rows[i] ?? null);
-  const x = rows.map(
-    (r, i) => r?.volumeM3 ?? (SENSITIVITY_VOLUME_FRACTIONS[i] ?? i / Math.max(1, n - 1)) * ranges.bufferMaxM3,
-  );
-  const first = rows.find((r): r is SensitivityRow => r !== null);
-  const caps = first
-    ? first.cells.map((c) => c.capacityKwh)
-    : SENSITIVITY_BATTERY_FRACTIONS.map((f) => f * ranges.batteryMaxKwh);
-  return { n, computed: rows.filter((r) => r !== null).length, x, caps, rows };
-}
-
-/** Overgang: vanaf dit buffervolume is deze aansluiting toereikend voor deze batterij(en). */
-interface Transition {
-  conn: ConnectionDef;
-  limitKw: number;
-  volumeM3: number;
-  /** batterij-indexen (oplopend) */
-  batteries: number[];
-  text: string;
-}
-
-/** Past de kleinste aansluiting van cel j binnen aansluiting c? (grootverbruik telt niet als passend) */
-function fitsConnection(row: SensitivityRow, j: number, c: ConnectionDef): boolean {
-  const s = row.cells[j]?.smallest;
-  return !!s && s.id !== LARGE_CONNECTION_ID && Number.isFinite(s.powerKw) && s.powerKw <= c.powerKw + 1e-9;
-}
-
-/**
- * Per batterijlijn en per standaardaansluiting het eerste buffervolume V > 0 vanaf waar die aansluiting toereikend is
- * (en bij de volgende berekende punten blijft); alleen echte overgangen, dus niet als de aansluiting bij V = 0 al
- * volstaat. Overgangen op hetzelfde punt worden samengevoegd.
- */
-function transitionsOf(m: GridModel, share: number): Transition[] {
-  const r0 = m.rows[0];
-  if (!r0) return [];
-  const later: number[] = [];
-  m.rows.forEach((r, i) => {
-    if (i > 0 && r) later.push(i);
-  });
-  const found = new Map<string, Omit<Transition, 'text'>>();
-  for (let j = 0; j < m.caps.length; j++) {
-    for (const c of CONNECTIONS) {
-      if (fitsConnection(r0, j, c)) continue;
-      const fits = (i: number): boolean => fitsConnection(m.rows[i] as SensitivityRow, j, c);
-      // begin van de aaneengesloten reeks passende punten aan het eind; anders het eerste passende punt
-      let first = -1;
-      for (let k = later.length - 1; k >= 0 && fits(later[k]); k--) first = later[k];
-      if (first < 0) first = later.find(fits) ?? -1;
-      if (first < 0) continue;
-      const limitKw = limitFromConnection(c.powerKw, share);
-      if (!Number.isFinite(limitKw)) continue;
-      const key = `${c.id}@${first}`;
-      const t = found.get(key);
-      if (t) t.batteries.push(j);
-      else
-        found.set(key, {
-          conn: c,
-          limitKw,
-          volumeM3: (m.rows[first] as SensitivityRow).volumeM3,
-          batteries: [j],
-        });
-    }
-  }
-  return [...found.values()].map((t) => ({
-    ...t,
-    text: `${t.conn.label} vanaf ${fmt(t.volumeM3, 2)} m³ (${batteriesText(t.batteries, m.caps)})`,
-  }));
-}
 
 interface RefLine {
   limitKw: number;
@@ -299,11 +209,11 @@ function chartData(
     (a, b) => a.volumeM3 - b.volumeM3 || a.limitKw - b.limitKw,
   );
   const maxNet = nets.length > 0 ? Math.max(...nets) : NaN;
-  // een budget ver boven de krommen (bijv. grootverbruik) rekt de as niet op
+  // een limiet ver boven de krommen (bijv. grootverbruik) rekt de as niet op
   const onScale = (kw: number): boolean => !(nets.length > 0) || kw <= OFF_SCALE_FACTOR * maxNet;
 
-  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens het huidige budget (als dat
-  // op de as past) en de budgetten met een overgang
+  // relevant bereik voor de referentielijnen: tot 1,15 × hoogste meterpiek, minstens de huidige limiet (als die
+  // op de as past) en de limieten met een overgang
   const relevantTop = niceCeil(
     Math.max(
       nets.length > 0 ? 1.15 * maxNet : 0,
@@ -347,7 +257,7 @@ function chartData(
     });
   }
 
-  // Twee assen in één vlak: de elektrische lijnen (meterpiek en budgetten) in de onderste helft, het thermische
+  // Twee assen in één vlak: de elektrische lijnen (meterpiek en limieten) in de onderste helft, het thermische
   // vermogen (WP en gebouw) in de bovenste strook, zodat de lijnen van beide assen elkaar niet bedekken.
   const elec = [...nets, ...lines.filter((l) => !l.offScale).map((l) => l.limitKw)];
   const yRange = bandRange(Math.min(...elec), Math.max(...elec), 0.06, 0.58);
@@ -407,14 +317,14 @@ function chartData(
   if (cur)
     extras.push({
       label: cur.offScale
-        ? 'Budget huidige aansluiting (P limiet), boven de as (↑)'
-        : 'Budget huidige aansluiting (P limiet)',
+        ? 'WP-limiet huidige aansluiting (P limiet), boven de as (↑)'
+        : 'WP-limiet huidige aansluiting (P limiet)',
       color: pal.err,
       dash: CURRENT_DASH,
     });
   if (lines.some((l) => !l.current)) {
     extras.push({
-      label: `Budget andere standaardaansluitingen (${pct})`,
+      label: `WP-limieten andere standaardaansluitingen (${pct})`,
       color: pal.text2,
       dash: OTHER_DASH,
     });
@@ -483,7 +393,7 @@ function volumePosition(u: uPlot, o: Overlay): number | null {
   return Number.isFinite(x) && x >= left - 0.5 && x <= left + width + 0.5 ? x : null;
 }
 
-/** Onder de reeksen: referentielijnen (budgetten van de aansluitingen) en het huidige buffervolume. */
+/** Onder de reeksen: referentielijnen (WP-limieten van de aansluitingen) en het huidige buffervolume. */
 function drawUnder(u: uPlot, o: Overlay): void {
   const ctx = u.ctx;
   const r = pixelRatio();
@@ -566,7 +476,7 @@ function drawOver(u: uPlot, o: Overlay): void {
     y1: ty + 3 * r,
   });
 
-  // budgetten ver boven de krommen (niet op de as): als label met pijl aan de bovenrand, rechts
+  // limieten ver boven de krommen (niet op de as): als label met pijl aan de bovenrand, rechts
   let offY = top + 12 * r;
   for (const l of o.lines.filter((q) => q.offScale)) {
     ctx.font = font(l.current ? 650 : 400);
@@ -683,12 +593,7 @@ function Readout({
 }) {
   const row = idx !== null ? m.rows[idx] : null;
   if (!row) {
-    return (
-      <div className={css.readout}>
-        Beweeg over de grafiek voor de uren overschrijding en de kleinste passende aansluiting per
-        batterijgrootte bij dat buffervolume.
-      </div>
-    );
+    return <div className={css.readout}>{TEXT.readout}</div>;
   }
   const hours = bufferHoursOfPeak(row.volumeM3, kwhPerM3, designLoadKw);
   return (
@@ -829,6 +734,33 @@ function PointsTable({
   );
 }
 
+/** Leeswijzer onder de korte lead, standaard ingeklapt: assen, limietlijnen en stippen, en de batterijnuance. */
+function HowToRead({ bufferMaxM3 }: { bufferMaxM3: number }) {
+  return (
+    <details className={css.howTo}>
+      <summary>{TEXT.howToRead}</summary>
+      <ul>
+        <li>
+          Van links naar rechts neemt het buffervolume toe, tot {`${compact(bufferMaxM3)}\u00a0m³`}; de
+          bovenste as geeft hetzelfde volume in uren piekvermogen.
+        </li>
+        <li>
+          Onderin (linker as) de piek aan de meter per batterijgrootte; bovenin (rechter as, oranje) het
+          benodigde WP-vermogen.
+        </li>
+        <li>
+          Gestippelde lijnen zijn de WP-limieten van de standaardaansluitingen. Ligt een lijn eronder, dan is
+          die aansluiting toereikend; de stip markeert vanaf welk buffervolume.
+        </li>
+        <li>
+          Met batterij ligt de piek vaak precies op de WP-limiet van de huidige aansluiting: de batterij
+          gebruikt de ruimte tot die limiet om bij te laden.
+        </li>
+      </ul>
+    </details>
+  );
+}
+
 /** Instellingen waarvoor een raster is berekend (voor het tonen van een vorig raster tijdens een herberekening). */
 interface GridContext {
   grid: GridSettings;
@@ -941,7 +873,7 @@ function SensitivityView({
         onCursor={setHover}
         onClickX={pick}
         onReady={onReady}
-        ariaLabel="Gevoeligheid: piek aan de meter per batterijgrootte (linker as) en benodigd warmtepompvermogen (rechter as) als functie van het buffervolume, met de budgetten van de standaardaansluitingen als horizontale lijnen"
+        ariaLabel="Gevoeligheid: piek aan de meter per batterijgrootte (linker as) en benodigd warmtepompvermogen (rechter as) als functie van het buffervolume, met de WP-limieten van de standaardaansluitingen als horizontale lijnen"
         exportName="gevoeligheid"
         exportTitle={`Gevoeligheid: piek aan de meter en benodigd WP-vermogen per buffervolume${climate ? ` — klimaatjaar ${climate}` : ''}`}
         exportLabel="Gevoeligheid"
@@ -1012,20 +944,15 @@ export function SensitivityChart({ print = false }: { print?: boolean }) {
           welk buffervolume (tot {compact(ranges.bufferMaxM3)} m³).
         </p>
       ) : (
-        <p className={`${ui.hint} ${css.lead}`}>
-          Van links naar rechts neemt het buffervolume toe (tot {compact(ranges.bufferMaxM3)} m³): waar de
-          lijnen vlak worden (plateau) helpt meer buffer niet meer, en ligt een lijn onder een gestippelde
-          lijn, dan is die aansluiting toereikend — de stip markeert vanaf welk buffervolume. Met batterij
-          ligt de piek vaak precies op het budget van de huidige aansluiting, omdat de batterij de ruimte tot
-          dat budget gebruikt om bij te laden.
-        </p>
+        <>
+          <p className={`${ui.hint} ${css.lead}`}>{TEXT.lead}</p>
+          <HowToRead bufferMaxM3={ranges.bufferMaxM3} />
+        </>
       )}
       {!print && (
         // vaste hoogte: de voortgang en de klikhint staan op dezelfde plek, dus niets verspringt
         <div className={css.statusRow}>
-          <p className={`${css.clickHint} ${busy ? css.off : ''}`}>
-            Klik in de grafiek om het buffervolume te kiezen.
-          </p>
+          <p className={`${css.clickHint} ${busy ? css.off : ''}`}>{TEXT.clickHint}</p>
           <div className={`${css.progress} ${busy ? '' : css.off}`}>
             <progress max={n} value={computed} aria-label="Voortgang gevoeligheidsberekening" />
             <span>
@@ -1057,9 +984,7 @@ export function SensitivityChart({ print = false }: { print?: boolean }) {
         </div>
       ) : error === null ? (
         <p className={css.placeholder} style={{ minHeight: height + 120 }}>
-          De gevoeligheid wordt berekend: per buffervolume eerst het benodigde WP-vermogen, daarna per
-          batterijgrootte de piek aan de meter en de kleinste passende aansluiting. De grafiek verschijnt
-          zodra het eerste punt klaar is.
+          {TEXT.pending}
         </p>
       ) : null}
     </div>

@@ -65,7 +65,7 @@ function argmax(a: ArrayLike<number>): number {
   return idx;
 }
 
-/** Aantal uren met een lege batterij terwijl de WP-groep boven het budget zit. */
+/** Aantal uren met een lege batterij terwijl de WP-groep boven de limiet zit. */
 export function batteryRunsEmpty(run: SimulationResult, pLimitKw: number, capacityKwh: number): number {
   const s = run.series;
   if (!s || capacityKwh <= 0 || !Number.isFinite(pLimitKw)) return 0;

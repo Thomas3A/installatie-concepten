@@ -1,17 +1,23 @@
 // @vitest-environment jsdom
 // Grafiekonderdelen: naam van de exportknoppen, smalle weergave met astitels boven de grafiek, gevoeligheidsgrafiek
 // die tijdens een herberekening het vorige raster laat staan, een foutmelding toont en een verre aansluiting niet
-// op de as zet.
-import { act, cleanup, render, screen } from '@testing-library/react';
+// op de as zet; korte leads en bedieningshints (muis) in Koude week, Jaar en Gevoeligheid.
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import refJson from '../../src/concepts/peakshaving/data/referentiejaren.json';
 import { CONNECTIONS } from '../../src/concepts/peakshaving/data/connections';
+import { analyze, type Analysis } from '../../src/concepts/peakshaving/model/analysis';
+import { decodeReferenceYear, type ReferenceYearsJson } from '../../src/concepts/peakshaving/model/climate';
 import {
   SENSITIVITY_BATTERY_FRACTIONS,
   SENSITIVITY_VOLUME_FRACTIONS,
   type SensitivityRow,
 } from '../../src/concepts/peakshaving/model/sizing';
+import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import { useStore, type SensitivityState } from '../../src/concepts/peakshaving/store';
+import { ColdWeekCharts } from '../../src/concepts/peakshaving/ui/charts/ColdWeekCharts';
 import { SensitivityChart } from '../../src/concepts/peakshaving/ui/charts/SensitivityChart';
+import { YearCharts } from '../../src/concepts/peakshaving/ui/charts/YearCharts';
 import { UPlotChart } from '../../src/ui/charts/UPlotChart';
 
 // uPlot tekent op canvas; jsdom heeft geen canvas, dus een lege stand-in
@@ -213,7 +219,7 @@ describe('gevoeligheidsgrafiek', () => {
     const { container } = render(<SensitivityChart />);
     const text = container.textContent ?? '';
     expect(text).toContain('Benodigd WP-vermogen (P th,min)');
-    expect(text).toContain('Budget huidige aansluiting (P limiet)');
+    expect(text).toContain('WP-limiet huidige aansluiting (P limiet)');
     expect(text).not.toMatch(/P_/);
     expect(text).toContain('Overschr. [uur/jaar]');
   });
@@ -227,6 +233,90 @@ describe('gevoeligheidsgrafiek', () => {
       }),
     );
     const { container } = render(<SensitivityChart />);
-    expect(container.textContent).toContain('Budget huidige aansluiting (P limiet), boven de as (↑)');
+    expect(container.textContent).toContain('WP-limiet huidige aansluiting (P limiet), boven de as (↑)');
+  });
+});
+
+describe('korte teksten en bedieningshints (UX-plan §7 #14–18)', () => {
+  let a: Analysis;
+  beforeAll(() => {
+    const climate = decodeReferenceYear(refJson as unknown as ReferenceYearsJson, 'T5');
+    a = analyze(findScenario('woning-buffer-batterij')!.build(), climate);
+  });
+  beforeEach(() => {
+    act(() => useStore.setState({ input: a.input, ranges: initial.ranges, analysis: a, scrubHour: null }));
+  });
+
+  const text = (): string => document.body.textContent ?? '';
+
+  it('Koude week: één korte bedieningshint; de oude lange hint is weg', () => {
+    render(<ColdWeekCharts />);
+    expect(
+      screen.getByText('Sleep om te zoomen, klik om een uur te kiezen; ◀ ▶ schuift door het jaar.'),
+    ).toBeTruthy();
+    // het testanker van de intro blijft
+    expect(screen.getByText(/Koudste week \(hoogste warmtevraag\)/)).toBeTruthy();
+    expect(text()).not.toMatch(/Shift \+ scrollwiel|De panelen bewegen samen/);
+  });
+
+  it('Koude week: de printversie heeft geen bedieningshint', () => {
+    render(<ColdWeekCharts print />);
+    expect(text()).not.toMatch(/Sleep om te zoomen/);
+  });
+
+  it('Jaar: korte leads per grafiek en een korte x-as-hint', () => {
+    render(<YearCharts />);
+    for (const lead of [
+      'Alle uren van het jaar, van hoog naar laag; boven een lijn is die aansluiting te klein (uren in de legenda).',
+      'Warmtevraag per uur, van hoog naar laag, met wat de warmtepomp bij −10 °C levert.',
+      'Warmte per bron en elektriciteit per maand; de lijn is de SCOP.',
+    ]) {
+      expect(screen.getByText(lead)).toBeTruthy();
+    }
+    expect(text()).toContain(
+      `Klimaatjaar ${a.climateShort}. Logaritmisch: de piekuren groot. Sleep om in te zoomen, dubbelklik om terug te gaan.`,
+    );
+    expect(text()).not.toMatch(/Elk punt is één uur|eerste paar honderd piekuren/);
+  });
+
+  it('Gevoeligheid: korte lead, de leeswijzer ingeklapt onder "Hoe lees ik dit?"', () => {
+    act(() => useStore.setState({ sensitivity: grid('a') }));
+    render(<SensitivityChart />);
+    expect(
+      screen.getByText(
+        'Waar de lijnen vlak worden, helpt meer buffer niet meer; een stip markeert vanaf welk buffervolume een aansluiting volstaat.',
+      ),
+    ).toBeTruthy();
+    const summary = screen.getByText('Hoe lees ik dit?');
+    const details = summary.closest('details')!;
+    expect(details.open).toBe(false);
+    // de batterijnuance staat alleen nog in de leeswijzer
+    expect(details.textContent).toMatch(/Met batterij ligt de piek vaak precies op de WP-limiet/);
+    expect(text().match(/Met batterij ligt de piek/g)).toHaveLength(1);
+    fireEvent.click(summary);
+    expect(details.open).toBe(true);
+  });
+
+  it('Gevoeligheid: korte plaatshouder; de printversie heeft geen leeswijzer', () => {
+    act(() => useStore.setState({ sensitivity: { key: 'a', rows: [], total: 0, done: false } }));
+    const { unmount } = render(<SensitivityChart />);
+    expect(screen.getByText('De gevoeligheid wordt berekend…')).toBeTruthy();
+    unmount();
+
+    act(() => useStore.setState({ sensitivity: grid('a') }));
+    render(<SensitivityChart print />);
+    expect(screen.queryByText('Hoe lees ik dit?')).toBeNull();
+    expect(screen.queryByText(/Klik in de grafiek/)).toBeNull();
+  });
+
+  it('Gevoeligheid: klikhint en uitleesregel', () => {
+    act(() => useStore.setState({ sensitivity: grid('a') }));
+    render(<SensitivityChart />);
+    expect(screen.getByText('Klik in de grafiek om het buffervolume te kiezen.')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Beweeg over de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
+      ),
+    ).toBeTruthy();
   });
 });

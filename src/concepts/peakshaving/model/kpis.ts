@@ -27,7 +27,7 @@ export interface KpiCard {
 
 const kw = (x: number, d = 1): string => (Number.isFinite(x) ? `${fmt(x, d)} kW` : 'niet te bepalen');
 
-/** Kleurcode piek aan de meter: groen ≤ budget, oranje ≤ 110 %, rood daarboven. */
+/** Kleurcode piek aan de meter: groen ≤ limiet, oranje ≤ 110 %, rood daarboven. */
 export function meterPeakStatus(peakKw: number, limitKw: number): KpiStatus {
   if (!Number.isFinite(limitKw)) return 'neutral';
   if (peakKw <= limitKw + 1e-6) return 'ok';
@@ -151,14 +151,14 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
       status: meterStatus,
       statusText:
         meterStatus === 'ok'
-          ? 'binnen budget'
+          ? 'binnen de limiet'
           : meterStatus === 'warn'
-            ? '≤ 110 % budget'
+            ? '≤ 110 % limiet'
             : meterStatus === 'err'
-              ? 'boven budget'
+              ? 'boven de limiet'
               : undefined,
       lines: [
-        { text: `WP-budget ${Number.isFinite(a.pLimitKw) ? kw(a.pLimitKw, 2) : 'onbegrensd'}` },
+        { text: `WP-limiet ${Number.isFinite(a.pLimitKw) ? kw(a.pLimitKw, 2) : 'onbegrensd'}` },
         { text: `Zonder batterij ${kw(a.noBattery.pGridMaxKw, 2)}` },
         { text: `${other}: ${kw(c.pGridMaxKw, 2)}` },
       ],
@@ -178,7 +178,7 @@ export function buildKpiCards(a: Analysis): KpiCard[] {
             ? 'binnen toegestaan'
             : 'boven toegestaan',
       lines: [
-        { text: `Max. ${kw(k.maxExceedanceKw, 2)} · ${fmt(k.exceedanceKwh, 0)} kWh/jaar boven budget` },
+        { text: `Max. ${kw(k.maxExceedanceKw, 2)} · ${fmt(k.exceedanceKwh, 0)} kWh/jaar boven de limiet` },
         ...(limitedMain ? [{ text: `${other}: ${fmt(ex.exceedanceHours, 0)} uur` }] : []),
         ...(batteryLine ? [{ text: batteryLine }] : []),
       ],
@@ -270,7 +270,7 @@ export function buildAdvice(a: Analysis): AdvicePart[] {
   const conn = `${currentConnectionText(a)}, ${fmt(100 * a.input.grid.heatPumpShare, 0)} %`;
   if (a.main.mode === 'limited') {
     parts.push(
-      { text: '; de begrenzer houdt de WP-groep binnen het budget van ' },
+      { text: '; de begrenzer houdt de WP-groep binnen de limiet van ' },
       { text: budget, strong: true },
       { text: ` (${conn})` },
       {
@@ -282,7 +282,7 @@ export function buildAdvice(a: Analysis): AdvicePart[] {
     );
   } else if (k.exceedanceHours === 0) {
     parts.push(
-      { text: ' en blijft de WP-groep het hele jaar binnen het budget van ' },
+      { text: ' en blijft de WP-groep het hele jaar binnen de limiet van ' },
       { text: budget, strong: true },
       { text: ` (${conn}).` },
     );
@@ -290,7 +290,7 @@ export function buildAdvice(a: Analysis): AdvicePart[] {
     parts.push(
       { text: ' en blijft de WP-groep ' },
       { text: fmt(k.exceedanceHours, 0), strong: true },
-      { text: ' uur per jaar boven het budget van ' },
+      { text: ' uur per jaar boven de limiet van ' },
       { text: budget, strong: true },
       { text: ` (${conn}).` },
     );

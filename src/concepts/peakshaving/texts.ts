@@ -1,5 +1,7 @@
 // Alle Nederlandse teksten van het peakshaving-concept op één plek (UI, tooltips, meldingen, uitleg).
-// Plaatshouders {naam} worden gevuld door model/messages.ts.
+// Plaatshouders {naam} worden gevuld door model/messages.ts; de sjabloonfuncties onderaan vullen hun getallen zelf
+// met fmt() (nl-NL).
+import { fmt } from '../../core/format';
 
 export type MessageCode =
   | 'sizingFailed'
@@ -30,8 +32,8 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
     ],
     solutions: [
       'Vergroot het boilervat of verlaag de tapwaterbehoefte.',
-      'Sta een paar uur comfortverlies toe (Aansluiting → Expert).',
-      'Controleer de opwarmfactor en het verlaagde setpoint (Gebouw → Expert).',
+      'Sta een paar uur comfortverlies toe (Meer instellingen → Beoordeling).',
+      'Controleer de opwarmfactor en het verlaagde setpoint (Meer instellingen → Gebouw).',
     ],
   },
   backupPeak: {
@@ -50,7 +52,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
     summary:
       'Als de aansluiting begrenst: {hours} uur comfortverlies per jaar (toegestaan {allowed}), laagste binnentemperatuur {minTi} °C.',
     why: [
-      'In de modus "aansluiting begrenst" mag de WP-groep niet boven het budget komen. Wat buffer en batterij niet kunnen overbruggen, wordt niet geleverd; de binnentemperatuur zakt dan meer dan 0,5 K onder het setpoint.',
+      'Met begrenzer (de aansluiting begrenst) mag de WP-groep niet boven de limiet komen. Wat buffer en batterij niet kunnen overbruggen, wordt niet geleverd; de binnentemperatuur zakt dan meer dan 0,5 K onder het setpoint.',
     ],
     solutions: [
       'Vergroot de buffer (helpt tegen uurpieken) of de batterij (schaaft de elektrische piek af).',
@@ -59,9 +61,9 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
   },
   batteryEmpty: {
     title: 'Batterij raakt leeg',
-    summary: 'In {hours} uur is de batterij ({capacity} kWh) leeg terwijl de WP-groep boven het budget zit.',
+    summary: 'In {hours} uur is de batterij ({capacity} kWh) leeg terwijl de WP-groep boven de limiet zit.',
     why: [
-      'De overschrijding duurt langer dan de batterij kan leveren. De batterij laadt alleen bij in uren onder de budgetlijn, en tijdens een koude periode zijn dat er te weinig.',
+      'De overschrijding duurt langer dan de batterij kan leveren. De batterij laadt alleen bij in uren onder de limiet, en tijdens een koude periode zijn dat er te weinig.',
     ],
     solutions: [
       'Kies een batterij met meer kWh.',
@@ -72,9 +74,9 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
     title: 'Batterijvermogen begrenst',
     summary: 'In {hours} uur is het ontlaadvermogen ({power} kW) de beperking, niet de lading.',
     why: [
-      'De overschrijding boven het budget is groter dan het ontlaadvermogen van de batterij, terwijl er nog lading over is. Meer kWh helpt dan niet; meer kW wel.',
+      'De overschrijding boven de limiet is groter dan het ontlaadvermogen van de batterij, terwijl er nog lading over is. Meer kWh helpt dan niet; meer kW wel.',
     ],
-    solutions: ['Kies een batterij met een hogere C-waarde (Maatregelen → Expert).', 'Vergroot de buffer.'],
+    solutions: ['Kies een batterij met een hogere C-waarde (Wat als? → Verfijnen).', 'Vergroot de buffer.'],
   },
   smallBufferDeltaT: {
     title: 'Kleine ΔT buffer',
@@ -95,7 +97,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
       'Een buffer overbrugt uren, geen dagen: de koudste periode in {year} duurt {days} dagen met gemiddeld {meanT} °C; de warmtepomp moet het gemiddelde van die dagen zelf kunnen leveren.',
     ],
     solutions: [
-      'Houd de buffer op het knikpunt van de gevoeligheidsgrafiek.',
+      'Houd de buffer op het knikpunt in de grafiek boven de bufferschuif.',
       'Verlaag het warmteverlies of accepteer enkele uren comfortverlies.',
     ],
   },
@@ -175,30 +177,52 @@ export const UNIT_HOURS_PER_YEAR = 'uur/jaar';
 // UI-teksten
 
 export const PAGE_TITLE = 'Peakshaving warmtepomp met buffer en batterij';
-export const PAGE_SUBTITLE =
-  'Lucht/water-warmtepomp · warmtebuffer · batterij · uursimulatie over een referentiejaar';
+/** Vraagregel onder de titel. */
+export const PAGE_QUESTION =
+  'Past de warmtepomp op de aansluiting, en hoeveel buffer of batterij is daarvoor nodig?';
+/** Korte melding bovenaan op een telefoon of tablet (alleen via CSS zichtbaar); de pagina eronder blijft bruikbaar. */
+export const SMALL_SCREEN_NOTICE =
+  'Deze tool is gemaakt voor een pc of laptop. Op een telefoon of tablet past niet alles goed; je kunt gewoon verder scrollen, maar voor het beste overzicht open je hem op de pc.';
+/** Knoppen Deel link en Print / PDF in de kop. */
+export const HEADER_TEXTS = {
+  share: 'Deel link',
+  shareCopied: '✓ Link gekopieerd',
+  shareShown: 'Link getoond',
+  sharePrompt: 'Kopieer deze link:',
+  print: 'Print / PDF',
+  printing: 'Printversie voorbereiden…',
+} as const;
 
 /** Extra footerzin voor dit concept (spec §0.1). */
 export const FOOTER_CLIMATE =
   'Klimaatdata: KNMI De Bilt (open data); referentiejaren zijn een reconstructie, geen officiële NEN 5060-data.';
 export const CLIMATE_RECONSTRUCTION =
   'Reconstructie op basis van KNMI De Bilt; geen officiële NEN 5060-data.';
-export const CLIMATE_NOTE =
-  'Voor dimensioneren is T5 de gebruikelijke keuze; T1 is de stresstest. Het energiejaar is bedoeld voor jaarverbruik en SCOP, niet voor pieken.';
+/** Korte noot onder de statistiekregel in Meer instellingen › Klimaat. */
+export const CLIMATE_NOTE_SHORT =
+  'T5 = gebruikelijk ontwerpjaar · T1 = stresstest · ★ = aanbevolen stressjaar.';
+/**
+ * Optietekst van de referentiejaren in de keuzelijst Klimaatjaar: zonder "(≈ NEN 5060:2018 …)", want dat staat al in
+ * de groepskop ("Referentiejaren (reconstructie NEN 5060:2018)"); zo past de gekozen optie in de kolom.
+ */
+export const CLIMATE_OPTION_LABELS = {
+  T5: 'Ontwerpjaar T5 — gematigd streng',
+  T1: 'Ontwerpjaar T1 — zeer streng',
+  energie: 'Energiejaar — langjarig gemiddeld',
+} as const;
 
+/** Tabbladen van Verdieping, in deze volgorde; Schema (`concept`) is het standaardtabblad. */
 export const TAB_LABELS = {
+  concept: 'Schema',
   'koude-week': 'Koude week',
   jaar: 'Jaar',
   gevoeligheid: 'Gevoeligheid',
-  concept: 'Concept',
   uitleg: 'Uitleg',
 } as const;
 
-export const BLOCK_TITLES = ['Gebouw', 'Aansluiting', 'Warmtepomp & afgifte', 'Maatregelen'] as const;
-
 /** Toelichting per invoer (spec §3, kolom "Toelichting"). */
 export const HELP = {
-  use: 'Woning: één woning met een eigen warmtepomp. Meerdere woningen: een woongebouw met één collectieve warmtepomp op een eigen aansluiting. Kantoor: kantoorschema met nachtverlaging en opstoken. Wisselen zet alle invoer op de standaardwaarden.',
+  use: 'Woning: één woning met een eigen warmtepomp. Meerdere woningen: een woongebouw met één collectieve warmtepomp op een eigen aansluiting. Kantoor: kantoorschema met nachtverlaging en opstoken.',
   dwellings:
     'Aantal woningen op dezelfde warmtepomp. Wijzigen schaalt piekvermogen, tapwaterbehoefte, boilervat, buffer, batterij en een handmatig WP-vermogen mee, zodat de waarden per woning gelijk blijven; de aansluiting blijft. Het piekvermogen stopt bij 2.000 kW: daarboven groeien alleen tapwaterbehoefte en boilervat nog mee, dus daalt het vermogen per woning.',
   designLoad:
@@ -230,9 +254,13 @@ export const HELP = {
     'Aansluitwaarde van het gebouw: P = 0,230·I (1-fase) of 0,400·√3·I (3-fase), cos φ = 1. Bij meerdere woningen: de eigen aansluiting van de collectieve installatie; de woningen hebben elk een eigen aansluiting die hier niet meetelt.',
   contracted: 'Gecontracteerd vermogen bij een grootverbruikaansluiting.',
   share:
-    'Deel van de aansluiting voor warmtepomp + batterij. De rest is voor overig gebruik en wordt op het piekmoment volledig benut verondersteld. Bij meerdere woningen is dit de aansluiting van de collectieve installatie (de rest: pompen, ventilatie, algemene ruimten); de woningen hebben elk een eigen aansluiting.',
+    'Welk deel van de aansluiting de warmtepomp (met batterij) mag gebruiken. De rest is voor koken, wassen en laden en telt op het piekmoment volledig mee.',
+  /** aanvulling bij meerdere woningen */
+  shareMulti:
+    'Bij meerdere woningen is dit de aansluiting van de collectieve installatie (de rest: pompen, ventilatie, algemene ruimten); de woningen hebben elk een eigen aansluiting.',
+  nightSetback: 'Buiten gebruikstijd 2 K lager stoken; uit = altijd op het gebruikssetpoint.',
   allowedExceedance:
-    'Aantal uren per jaar dat de WP-groep boven het budget mag komen; gebruikt bij "kleinste passende aansluiting".',
+    'Aantal uren per jaar dat de WP-groep boven de limiet mag komen; gebruikt bij "kleinste passende aansluiting".',
   allowedComfort:
     'Aantal uren comfortverlies per jaar dat bij het dimensioneren van de warmtepomp is toegestaan.',
   emitter:
@@ -245,12 +273,13 @@ export const HELP = {
   sizing:
     'Automatisch: het kleinste vermogen (A7/W35) waarbij zonder elektrische begrenzing het comfort en het tapwater gehaald worden, in het gekozen klimaatjaar. Handmatig: zelf kiezen.',
   bufferVolume:
-    'Watervolume van het buffervat. Ernaast: nuttige inhoud en het aantal uren piekvermogen dat erin past.',
+    'Watervolume van het buffervat. Nuttig per m³ = ΔT × 1,163 × 0,9, met ΔT = laadtemperatuur − retour. Streepjes: opslag voor 2, 4 en 8 uur piekvermogen.',
   strategy:
     'Voorspellend: alleen laden als de warmtepomp binnen 24 uur tekortschiet (of als reserve voor tapwater). Altijd: laden zodra er restcapaciteit is.',
-  batteryCapacity: 'Bruto capaciteit; 90 % is bruikbaar. De batterij is alleen voor de WP-groep.',
+  batteryCapacity:
+    'Bruto capaciteit; 90 % is bruikbaar en het rendement is 90 % heen en terug. De batterij is alleen voor de WP-groep. Streepjes: 2, 4 en 8 uur piekvermogen, elektrisch bij COP 3.',
   batteryPower: 'Laad- en ontlaadvermogen als C-waarde (vermogen / capaciteit). Automatisch = 0,5 C.',
-  mode: 'Overschrijding tonen: de warmtepomp levert altijd en de uren boven het budget worden geteld. Aansluiting begrenst: het budget is hard; tekorten geven comfortverlies.',
+  mode: 'Zonder begrenzer levert de warmtepomp altijd en tellen de uren boven de limiet; met begrenzer is de limiet hard en wordt een tekort comfortverlies. Het oordeel bovenaan toont altijd beide; deze keuze geldt voor de grafieken en Alle kerngetallen.',
 } as const;
 
 export const MASS_PRESETS = [
@@ -274,9 +303,9 @@ export const EXPLAIN: ExplainSection[] = [
     title: '1. Wat de tool berekent',
     body: [
       'De tool simuleert uur voor uur een heel jaar (8760 uur, na een inregelweek): de warmtevraag van het gebouw, wat de lucht/water-warmtepomp daarvan direct kan leveren, wat het buffervat aanvult of opslaat, het tapwater in de boiler en wat de batterij aan de meterkant afschaaft.',
-      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven het WP-budget $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt. De tool telt dus de uren',
+      '**Overschrijding** is een uur waarin het netvermogen van de WP-groep (warmtepomp + bijstook + batterij) boven de WP-limiet $P_{limiet}$ komt. **Comfortverlies** is een uur in gebruikstijd waarin de binnentemperatuur meer dan 0,5 K onder het setpoint ligt. De tool telt dus de uren',
       '$$\\begin{aligned} h_{overschr} &= \\#\\{\\, t : P_{net} > P_{limiet} \\,\\} \\\\ h_{comfort} &= \\#\\{\\, t \\in \\text{gebruik} : T_i < T_{set} - 0{,}5\\,\\mathrm{K} \\,\\} \\end{aligned}$$',
-      'De modus *overschrijding tonen* laat de warmtepomp altijd leveren en telt de uren boven het budget; de modus *aansluiting begrenst* houdt het budget hard aan, zodat tekorten als comfortverlies zichtbaar worden. De KPI-kaarten tonen altijd beide gezichtspunten.',
+      '*Zonder begrenzer* levert de warmtepomp altijd en telt de tool de uren boven de limiet; *met begrenzer* (de aansluiting begrenst) is de limiet hard, zodat tekorten als comfortverlies zichtbaar worden. Het resultaat toont altijd beide gevolgen: uren boven de limiet zonder begrenzer en uren te koud met begrenzer. De schakelaar boven deze tabbladen geldt voor de grafieken en Alle kerngetallen.',
     ],
   },
   {
@@ -315,17 +344,17 @@ export const EXPLAIN: ExplainSection[] = [
     body: [
       'Van de bruto capaciteit is 90 % bruikbaar; het rendement is 90 % heen en terug ($\\sqrt{0{,}9} \\approx 0{,}949$ per richting). Het vermogen is standaard 0,5 C (een batterij van 10 kWh levert 5 kW).',
       '$$\\begin{aligned} P_{net} &= P_{el} - P_{bat} \\\\ P_{bat} &= \\min(P_{el} - P_{limiet},\\ P_{bat,max},\\ SoC \\cdot \\eta) \\end{aligned}$$',
-      'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de budgetlijn bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
+      'De batterij ontlaadt alleen om het netvermogen op $P_{limiet}$ te houden en laadt in elk uur onder de limiet bij. Ze schaaft dus de **elektrische** piek aan de meter, terwijl de buffer de **thermische** piek van de warmtepomp afschaaft.',
     ],
   },
   {
     id: 'aansluiting',
-    title: '6. Aansluiting en budget',
+    title: '6. Aansluiting en WP-limiet',
     body: [
       'De standaardaansluitwaarden zijn 1×25, 1×35 en 1×40 A en 3×25 tot 3×80 A; het vermogen is $P = U\\,I$ bij 1-fase (230 V) en',
       '$$P = \\sqrt{3}\\,U\\,I \\quad (U = 400\\ \\mathrm{V},\\ \\cos\\varphi = 1)$$',
-      'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. Het WP-budget is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
-      'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van het WP-budget is daarmee overschrijding van de aansluiting.',
+      'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. De WP-limiet is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
+      'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van de WP-limiet is daarmee overschrijding van de aansluiting.',
       'Bij **meerdere woningen** is de aansluiting die van de collectieve installatie (standaard 3×35 A, waarvan 80 % voor warmtepomp en batterij; de rest voor pompen, ventilatie en algemene ruimten). De woningen zelf hebben elk een eigen aansluiting die hier niet meetelt.',
     ],
   },
@@ -335,7 +364,7 @@ export const EXPLAIN: ExplainSection[] = [
     body: [
       'Het benodigde WP-vermogen is het kleinste vermogen (A7/W35) waarbij, zonder elektrische begrenzing en zonder batterij, het comfort in het gekozen klimaatjaar gehaald wordt en er geen tapwatertekort is. Dat wordt gevonden met bisectie tussen 0,1 en 3 × het piekvermogen (14 stappen).',
       '$$P_{th,min}(V) = \\min \\{ P : h_{comfort}(P, V) \\le h_{toegestaan} \\}$$',
-      'Hierin is $h_{comfort}$ het aantal uren comfortverlies (sectie 1) en $h_{toegestaan}$ het toegestane aantal (Aansluiting → Expert). De kleinste passende aansluiting is de eerste standaardaansluiting (zelfde aandeel) waarbij de uren overschrijding niet boven het toegestane aantal komen. De benodigde batterij is de kleinste capaciteit (0,5 C) die de overschrijding bij de huidige aansluiting op 0 uur brengt.',
+      'Hierin is $h_{comfort}$ het aantal uren comfortverlies (sectie 1) en $h_{toegestaan}$ het toegestane aantal (Meer instellingen → Beoordeling). De kleinste passende aansluiting is de eerste standaardaansluiting (zelfde aandeel) waarbij de uren overschrijding niet boven het toegestane aantal komen. De benodigde batterij is de kleinste capaciteit (0,5 C) die de overschrijding bij de huidige aansluiting op 0 uur brengt.',
       'De **gevoeligheidsgrafiek** zet beide samen uit tegen het buffervolume: de oranje lijn (benodigd WP-vermogen) daalt eerst snel en vlakt dan af; de lijnen per batterijgrootte tonen de piek aan de meter. Duikt een lijn onder de referentielijn van een aansluiting, dan is die aansluiting vanaf dat buffervolume toereikend.',
     ],
   },
@@ -361,3 +390,490 @@ export const EXPLAIN: ExplainSection[] = [
     ],
   },
 ];
+
+// ---------------------------------------------------------------------------------------------------------------
+// Werkbank: Basis → Resultaat → Wat als? (docs/UX-PLAN-peakshaving.md §7). Aanspreekvorm je/jouw, waar het kan
+// onpersoonlijk. Getallen via fmt() (nl-NL); kW-waarden krijgen hun aantal decimalen (`d`) mee van de aanroeper.
+
+/**
+ * Buffervolume zonder eenheid: twee decimalen, zoals het getalveld ("0,20", "20,00"). Een rasterpunt naast de
+ * schuifstap (het raster rekent met fracties van V_max: 0,05 × 2,5 m³ = 0,125 m³) krijgt zoveel decimalen als nodig
+ * (hoogstens 4), zodat een knop, melding of kop de waarde noemt die er echt staat ("0,125 m³", niet "0,13 m³").
+ */
+export function fmtVolume(volumeM3: number): string {
+  let d = 2;
+  while (d < 4 && Math.abs(Math.round(volumeM3 * 10 ** d) - volumeM3 * 10 ** d) > 1e-6) d++;
+  return fmt(volumeM3, d);
+}
+
+/** Tapwaterbehoefte zonder eenheid: hele getallen vanaf 10 zonder decimalen ("10", "12"), anders één ("6,0", "12,5"). */
+function fmtKwhPerDay(kwh: number): string {
+  return fmt(kwh, kwh >= 10 && Math.abs(kwh - Math.round(kwh)) < 1e-6 ? 0 : 1);
+}
+
+/** Stappen van de pagina (het stapnummer staat er in de UI aria-hidden voor). */
+export const STEP_TITLES = {
+  basis: 'Basis',
+  result: 'Resultaat',
+  whatIf: 'Wat als?',
+  depth: 'Verdieping',
+} as const;
+
+/** Badge achter "Meer instellingen" en "Verfijnen": standaard of het aantal aangepaste velden. */
+function changedBadge(n: number, none: string): string {
+  return n > 0 ? `${fmt(n, 0)} aangepast` : none;
+}
+
+/** Knoppen, koppen en korte labels van de werkbank. */
+export const UI_LABELS = {
+  showResult: 'Bekijk het resultaat',
+  edit: 'Wijzig',
+  moreSettings: 'Meer instellingen',
+  refine: 'Verfijnen',
+  defaults: 'standaardwaarden',
+  refineDefault: 'standaard',
+  changed: (n: number): string => `${fmt(n, 0)} aangepast`,
+  /** "Meer instellingen · standaardwaarden" of "Meer instellingen · 2 aangepast" */
+  moreSettingsSummary: (n: number): string => `Meer instellingen · ${changedBadge(n, 'standaardwaarden')}`,
+  /** "Verfijnen · standaard" of "Verfijnen · 1 aangepast" */
+  refineSummary: (n: number): string => `Verfijnen · ${changedBadge(n, 'standaard')}`,
+  skipToResult: 'Naar resultaat',
+  withoutMeasures: 'Zonder maatregelen',
+  undo: 'Ongedaan maken',
+  backToOwnInput: 'Terug naar je invoer',
+  showInCharts: 'toon in grafieken',
+  fullSensitivity: 'volledige gevoeligheid',
+  chooseOwnPower: 'eigen vermogen kiezen',
+  tour: 'Rondleiding',
+  nightSetback: 'Nachtverlaging',
+  computing: 'Rekent…',
+  calcError: (error: string): string => `Rekenfout: ${error}`,
+  retry: 'Opnieuw proberen',
+  stale: 'Verouderd',
+  close: 'Sluiten',
+  answerGroup: 'Antwoord',
+  allKpis: (limited: boolean): string => `Alle kerngetallen (8) · ${limited ? 'met' : 'zonder'} begrenzer`,
+  noteworthy: 'Opvallend',
+  modeField: 'Grafieken en kerngetallen',
+  modeOptions: { exceedance: 'Zonder begrenzer', limited: 'Met begrenzer' },
+  /** regio en tabrij van Verdieping */
+  detailView: 'Detailweergave',
+} as const;
+
+/** Groepen in Meer instellingen (H3). */
+export const MORE_SETTINGS_GROUPS = {
+  climate: 'Klimaat',
+  building: 'Gebouw',
+  dhw: 'Tapwater',
+  heatPump: 'Warmtepomp',
+  assessment: 'Beoordeling',
+} as const;
+
+/** Teksten van de Basis: regel boven de velden, hints, en het label en de chips van de ingeklapte strook. */
+export const BASIS_TEXTS = {
+  exampleLine: (shortTitle: string): string =>
+    `Ingevuld met voorbeeld „${shortTitle}”. Pas het aan naar je eigen gebouw.`,
+  ownInputLine: 'Eigen invoer.',
+  stripExample: (shortTitle: string): string => `Voorbeeld · ${shortTitle}`,
+  stripOwnInput: 'Eigen invoer',
+  /** toegankelijke naam van een chip in de strook */
+  chipName: (label: string, value: string): string => `${label}: ${value}, wijzigen`,
+  /** limietbalk bij het aandeel: "WP-limiet **3,22 kW** · overig gebruik 4,83 kW" */
+  budgetBar: (
+    budgetKw: number,
+    otherKw: number,
+    d: number,
+  ): { lead: string; budget: string; rest: string } => ({
+    lead: 'WP-limiet ',
+    budget: `${fmt(budgetKw, d)} kW`,
+    rest: ` · overig gebruik ${fmt(otherKw, d)} kW`,
+  }),
+  /**
+   * Samenvatting als hint onder het vinkje Warm tapwater: "10 kWh/dag · boiler 200 l"; bij meerdere woningen de
+   * behoefte per woning (zoals het veld Tapwaterbehoefte per woning) en het collectieve vat:
+   * "6,0 kWh/dag per woning · boiler 1.200 l".
+   */
+  dhwHint: (dailyKwh: number, tankL: number, perDwelling: boolean): string =>
+    `${fmtKwhPerDay(dailyKwh)} kWh/dag${perDwelling ? ' per woning' : ''} · boiler ${fmt(tankL, 0)} l`,
+  // Waarden van de chips in de ingeklapte strook (§2.3). Gebouw ("Woning", "10 woningen", "Kantoor"), piekvermogen
+  // ("8,0 kW", bij meerdere woningen "50,0 kW (5,0 kW/woning)"), aansluiting en klimaatjaar ("T5") hebben al een tekst
+  // in het model: buildingText, designLoadText en connectionText (model/kpis.ts) en climateShortName (model/climate.ts).
+  /** "tapwater 10 kWh/dag"; bij meerdere woningen per woning: "tapwater 6,0 kWh/dag per woning" */
+  chipDhw: (dailyKwh: number, perDwelling = false): string =>
+    `tapwater ${fmtKwhPerDay(dailyKwh)} kWh/dag${perDwelling ? ' per woning' : ''}`,
+  chipDhwOff: 'geen tapwater',
+  /** "limiet 3,22 kW · 40 %"; `d` = decimalen van de limiet (kwDigitsFor) */
+  chipBudget: (budgetKw: number, sharePct: number, d: number): string =>
+    `limiet ${fmt(budgetKw, d)} kW · ${fmt(sharePct, 0)} %`,
+  /** stooklijn als aanvoer/retour bij ontwerpcondities: "MT 45/35" */
+  chipEmitter: (preset: string, supplyC: number, returnC: number): string =>
+    `${preset} ${fmt(supplyC, 0)}/${fmt(returnC, 0)}`,
+  /** knop van de stooklijn in de open Basis: "MT 45" */
+  emitterOption: (preset: string, supplyC: number): string => `${preset} ${fmt(supplyC, 0)}`,
+  /** kantoor: "gebruik 8–18 uur" */
+  chipUseHours: (startH: number, endH: number): string => `gebruik ${fmt(startH, 0)}–${fmt(endH, 0)} uur`,
+  /** kantoor: het vinkje Nachtverlaging */
+  chipNightSetback: (on: boolean): string => (on ? 'nachtverlaging' : 'geen nachtverlaging'),
+  /** kantoor: label van de chip met de gebruikstijden */
+  useHoursLabel: 'Gebruikstijden',
+  budgetLegend: 'WP-limiet',
+  otherLegend: 'overig gebruik',
+} as const;
+
+/** Keuzelijst Voorbeelden in de kop. */
+export const EXAMPLES_TEXTS = {
+  label: 'Voorbeelden',
+  ownInput: 'Eigen invoer',
+  savedOwnInput: '↩ Je eigen invoer (bewaard)',
+  groups: { single: 'Woning', multi: 'Meerdere woningen', office: 'Kantoor' },
+} as const;
+
+/** Meldingenlijst: lege lijst, ernst als tekst (kleur is nooit de enige drager) en "Waarom?". */
+export const MESSAGE_UI = {
+  region: 'Meldingen',
+  empty: 'Geen bijzonderheden.',
+  why: 'Waarom?',
+  solutions: 'Wat helpt',
+  severity: {
+    error: { icon: '✕', text: 'Kritiek' },
+    warning: { icon: '!', text: 'Let op' },
+    info: { icon: 'i', text: 'Info' },
+  },
+} as const;
+
+/** Toelichting boven de robuustheidstabel. */
+export const ROBUSTNESS_NOTE = (heatPumpKw: number): string =>
+  `Zelfde warmtepomp (${fmt(heatPumpKw, 1)} kW), ander weer. Overschrijding: zonder begrenzer; comfortverlies: als de aansluiting begrenst.`;
+
+/**
+ * Percentage in hele procenten; een klein maar echt verschil dat op 0 zou afronden wordt "< 1" ("0,01 kW (< 1 %)"),
+ * zoals de tegel Boven de limiet "< 1 kWh/jaar" zegt.
+ */
+function fmtPct(pct: number): string {
+  return pct > 0 && pct < 0.5 ? '< 1' : fmt(pct, 0);
+}
+
+/** Steekwoorden van het oordeel in de vaste balk onderaan. */
+const VERDICT_WORDS = {
+  sizingFailed: 'Niet te dimensioneren',
+  nearlyFit: 'Past net niet',
+  notFit: 'Past niet',
+  withinAllowed: 'Past binnen toegestane uren',
+  fitAmple: 'Past ruim',
+  fit: 'Past',
+} as const;
+
+/** Oordeel, tegels, meterbalk en gevolgregels van het Resultaat (§4). */
+export const VERDICT_TEXTS = {
+  headline: {
+    sizingFailed: 'Warmtepomp niet te dimensioneren',
+    nearlyFit: (conn: string): string => `Past net niet op ${conn}`,
+    notFit: (conn: string): string => `Past niet op ${conn}`,
+    withinAllowed: (conn: string, allowedH: number): string =>
+      `Past op ${conn}, binnen de toegestane ${fmt(allowedH, 0)} uur`,
+    fitAmple: (conn: string, measures: string): string => `Past ruim op ${conn}${measures}`,
+    fit: (conn: string, measures: string): string => `Past op ${conn}${measures}`,
+  },
+  /** " met 0,50 m³ buffer", " met 5,0 kWh batterij", " met 1,00 m³ buffer en 5,0 kWh batterij" of leeg */
+  measures: (volumeM3: number, batteryKwh: number): string => {
+    const parts: string[] = [];
+    if (volumeM3 > 0) parts.push(`${fmtVolume(volumeM3)} m³ buffer`);
+    if (batteryKwh > 0) parts.push(`${fmt(batteryKwh, 1)} kWh batterij`);
+    return parts.length > 0 ? ` met ${parts.join(' en ')}` : '';
+  },
+  /**
+   * Niet te dimensioneren: wat er bij de terugvalwaarde (3 × het piekvermogen) misgaat, gevolgd door de eerste
+   * oplossing die bij de invoer past (view/verdict.ts kiest die). Zonder bekende oorzaak de algemene samenvatting.
+   */
+  sizingFailedCause: {
+    comfort: 'Ook met 3 × het piekvermogen wordt het comfort niet gehaald.',
+    dhw: 'Ook met 3 × het piekvermogen wordt het tapwater niet gehaald.',
+    both: 'Ook met 3 × het piekvermogen worden het comfort en het tapwater niet gehaald.',
+    unknown: MESSAGE_TEXTS.sizingFailed.summary,
+  },
+  sizingFailedDetail: (cause: string, solution: string | null): string =>
+    solution ? `${cause} ${solution}` : cause,
+  /** boven het toegestane aantal uren */
+  over: (hours: number, budgetKw: number, overKw: number, pct: number, d: number): string =>
+    `${fmt(hours, 0)} uur per jaar boven de WP-limiet van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW (${fmtPct(pct)} %) erboven.`,
+  /** boven de limiet, maar binnen het toegestane aantal uren */
+  within: (hours: number, budgetKw: number, overKw: number, d: number): string =>
+    `${fmt(hours, 0)} uur per jaar boven de WP-limiet van ${fmt(budgetKw, d)} kW, tot ${fmt(overKw, d)} kW erboven.`,
+  margin: (peakKw: number, marginKw: number, pct: number, budgetKw: number, d: number): string =>
+    `Piek aan de meter ${fmt(peakKw, d)} kW, ${fmt(marginKw, d)} kW (${fmtPct(pct)} %) onder de limiet van ${fmt(budgetKw, d)} kW.`,
+  /** zonder afschaving, met een marge die afgerond 0 is (bijv. een buffer die precies tot de limiet laadt) */
+  atBudget: (peakKw: number, d: number): string => `Piek aan de meter ${fmt(peakKw, d)} kW = limiet.`,
+  shaved: (peakKw: number, shavedKw: number, d: number): string =>
+    `Piek aan de meter ${fmt(peakKw, d)} kW = limiet; de batterij schaaft ${fmt(shavedKw, d)} kW af.`,
+  /** modus "met begrenzer": de piek zonder batterij is daar niet bekend */
+  shavedLimited: (peakKw: number, d: number): string =>
+    `Piek aan de meter ${fmt(peakKw, d)} kW = limiet; de batterij schaaft de piek af.`,
+  /** visueel verborgen statusregel */
+  live: (headline: string, hours: number): string =>
+    `${headline}: ${fmt(hours, 0)} uur per jaar boven de limiet.`,
+  words: VERDICT_WORDS,
+  /** vaste balk onderaan: "Past niet · 101 uur · WP 10,6 kW"; zonder WP-vermogen (null) zonder het laatste deel */
+  mini: (status: keyof typeof VERDICT_WORDS, hours: number, heatPumpKw: number | null): string =>
+    `${VERDICT_WORDS[status]} · ${fmt(hours, 0)} uur` +
+    (heatPumpKw !== null ? ` · WP ${fmt(heatPumpKw, 1)} kW` : ''),
+  fixesLabel: { help: 'Wat helpt', smaller: 'Kleinere aansluiting volstaat ook' },
+  fix: {
+    buffer: (volumeM3: number, withoutBattery: boolean): string =>
+      `${fmtVolume(volumeM3)} m³ buffer${withoutBattery ? ' (zonder batterij)' : ''}`,
+    battery: (kwh: number): string => `${fmt(kwh, 1)} kWh batterij`,
+    share: (pct: number): string => `of ${fmt(pct, 0)} % voor de warmtepomp`,
+    trySmaller: (conn: string): string => `Probeer ${conn}`,
+    /** kleinere aansluiting die een batterij nodig heeft: alleen de aansluiting, het oordeel noemt dan de batterij */
+    trySmallerBattery: (conn: string): string => `Probeer ${conn} (met batterij)`,
+    trySmallerWith: (conn: string, volumeM3: number, kwh: number): string => {
+      const parts: string[] = [];
+      if (volumeM3 > 0) parts.push(`${fmtVolume(volumeM3)} m³ buffer`);
+      if (kwh > 0) parts.push(`${fmt(kwh, 1)} kWh batterij`);
+      return parts.length > 0 ? `Probeer ${conn} met ${parts.join(' en ')}` : `Probeer ${conn}`;
+    },
+    /** grijze plaatshouder zolang het gevoeligheidsraster rekent */
+    pending: 'wordt berekend…',
+  },
+  /** tekst in de melding "… · Ongedaan maken" na een knop */
+  undo: {
+    buffer: (volumeM3: number): string => `Buffer op ${fmtVolume(volumeM3)} m³`,
+    battery: (kwh: number): string => `Batterij op ${fmt(kwh, 1)} kWh`,
+    connection: (conn: string): string => `Aansluiting ${conn}`,
+    share: (pct: number): string => `Aandeel voor warmtepomp ${fmt(pct, 0)} %`,
+    smaller: (conn: string, volumeM3: number, kwh: number): string => {
+      const parts: string[] = [];
+      if (volumeM3 > 0) parts.push(`${fmtVolume(volumeM3)} m³ buffer`);
+      if (kwh > 0) parts.push(`${fmt(kwh, 1)} kWh batterij`);
+      return parts.length > 0 ? `${conn} met ${parts.join(' en ')}` : `Aansluiting ${conn}`;
+    },
+    withoutMeasures: 'Zonder maatregelen',
+    /** achter "Batterij op 1,0 kWh" als een knop een handmatig batterijvermogen op automatisch zet */
+    powerAuto: ' · vermogen automatisch (0,5 C)',
+  },
+  tiles: {
+    heatPump: 'Warmtepomp',
+    heatPumpManual: 'Warmtepomp (handmatig)',
+    /** thermisch vermogen, zoals op de KPI-kaart en in Verfijnen */
+    heatPumpUnit: 'kW th',
+    heatPumpLine: (kwAtMinus10: number, kwPerDwelling: number | null): string =>
+      `A7/W35 · ${fmt(kwAtMinus10, 1)} kW bij −10 °C` +
+      (kwPerDwelling !== null ? ` · ${fmt(kwPerDwelling, 1)} kW/woning` : ''),
+    heatPumpNeeded: (kw: number): string =>
+      Number.isFinite(kw) ? `benodigd ${fmt(kw, 1)} kW` : 'benodigd: niet te bepalen',
+    /**
+     * "zonder maatregelen 10,6 kW (−1,2)" bij een warmtepomp van `withKw` kW. Het verschil komt uit de getoonde
+     * (afgeronde) waarden, zodat de rekensom op het scherm klopt (9,4 − 10,6 = −1,2); alleen als het niet 0 is.
+     */
+    heatPumpRef: (kw: number, withKw: number): string => {
+      const delta = Math.round(withKw * 10) / 10 - Math.round(kw * 10) / 10;
+      return (
+        `zonder maatregelen ${fmt(kw, 1)} kW` +
+        (Math.abs(delta) >= 0.05 ? ` (${delta > 0 ? '+' : ''}${fmt(delta, 1)})` : '')
+      );
+    },
+    exceedance: 'Boven de limiet',
+    /**
+     * "12 kWh/jaar"; hoe ver de piek boven de limiet komt, staat al in de detailzin. Een kleine hoeveelheid die op 0
+     * zou afronden wordt "< 1 kWh/jaar": er zijn immers uren boven de limiet.
+     */
+    exceedanceLine: (kwh: number): string => (kwh > 0 && kwh < 0.5 ? '< 1' : fmt(kwh, 0)) + ' kWh/jaar',
+    exceedanceNone: 'geen enkel uur',
+    exceedanceRef: (hours: number): string => `zonder maatregelen ${fmt(hours, 0)} uur`,
+    smallest: 'Kleinste aansluiting',
+    // de huidige aansluiting staat al in de kop ("Past niet op 1×35 A"), in de stapper en in de strook
+    smallestEqual: 'gelijk aan de huidige',
+    smallestSteps: (steps: number): string => {
+      const n = Math.abs(steps);
+      return `${fmt(n, 0)} ${n === 1 ? 'stap' : 'stappen'} ${steps > 0 ? 'groter' : 'kleiner'} dan de huidige`;
+    },
+    /** grootverbruik: geen aantal stappen */
+    smallestLarger: 'groter dan de huidige',
+    smallestSmaller: 'kleiner dan de huidige',
+    smallestRef: (conn: string): string => `zonder maatregelen ${conn}`,
+    hoursUnit: 'uur/jaar',
+  },
+  meter: {
+    peak: (peakKw: number, d: number): string => `Piek aan de meter ${fmt(peakKw, d)} kW`,
+    /** label van de limietstreep: "limiet 3,22 kW" (aandeel en aansluiting staan in de stapper en de strook) */
+    budget: (budgetKw: number, d: number): string => `limiet ${fmt(budgetKw, d)} kW`,
+    without: (kw: number, d: number): string => `zonder maatregelen ${fmt(kw, d)} kW`,
+    aria: (peakKw: number, budgetKw: number, d: number): string =>
+      `Piek aan de meter ${fmt(peakKw, d)} kW tegen de WP-limiet van ${fmt(budgetKw, d)} kW`,
+  },
+  /** gevolg met begrenzer (modus "aansluiting begrenst") */
+  limiter: (hours: number, minIndoorC: number, dhwShortfallH: number): string =>
+    `Met begrenzer: ${hours === 0 ? 'geen uur' : `${fmt(hours, 0)} uur`} te koud (laagste ${fmt(minIndoorC, 1)} °C)` +
+    (dhwShortfallH > 0 ? ` · ${fmt(dhwShortfallH, 0)} uur tapwatertekort` : '') +
+    '.',
+  stress: (exceedanceH: number, comfortLossH: number): string =>
+    `Strenge winter (T1): ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
+  /**
+   * T1 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op T1 gedimensioneerd: dat zeggen, want de regel
+   * "Strenge winter (T1): … uur te koud" bij T5 gold voor de (kleinere) warmtepomp van T5.
+   */
+  stressSelf: (autoSized: boolean): string =>
+    autoSized
+      ? 'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.'
+      : 'Dit is al de stresstest (T1).',
+} as const;
+
+/** Hendels in Wat als? (§5): effectregels, stapper, mini-grafiek en Verfijnen. */
+export const WHATIF_TEXTS = {
+  bufferNone: (kwhPerM3: number): string => `Geen buffer · ${fmt(kwhPerM3, 1)} kWh per m³`,
+  /** opslagdeel van de bufferregel, alleen uit de invoer: "12,0 kWh opslag ≈ 1,5 uur piekvermogen" */
+  bufferStorage: (kwh: number, hours: number): string =>
+    `${fmt(kwh, 1)} kWh opslag ≈ ${fmt(hours, 1)} uur piekvermogen`,
+  /**
+   * warmtepompdeel van de bufferregel, uit de doorrekening: "warmtepomp 10,6 → 9,4 kW". Niet te dimensioneren (NaN):
+   * geen "– → – kW" maar "warmtepomp niet te dimensioneren"; lukt het alleen zonder buffer niet, dan alleen de waarde
+   * met buffer.
+   */
+  bufferSizing: (withoutKw: number, withKw: number, manual: boolean): string => {
+    const hp = manual ? 'benodigde warmtepomp' : 'warmtepomp';
+    return !Number.isFinite(withKw)
+      ? `${hp} niet te dimensioneren`
+      : Number.isFinite(withoutKw)
+        ? `${hp} ${fmt(withoutKw, 1)} → ${fmt(withKw, 1)} kW`
+        : `${hp} ${fmt(withKw, 1)} kW (zonder buffer niet te dimensioneren)`;
+  },
+  bufferPlateau: 'Meer buffer maakt de warmtepomp niet kleiner: een buffer overbrugt uren, geen dagen.',
+  batteryNeeded: (kwh: number): string => `Kleinste batterij voor 0 uur: ${fmt(kwh, 1)} kWh`,
+  batteryInfeasible: 'Geen batterij binnen bereik haalt 0 uur boven de limiet.',
+  batteryNotNeeded: (conn: string): string => `Niet nodig op ${conn}.`,
+  batteryHelpsSmaller: 'Een batterij helpt pas bij een kleinere aansluiting.',
+  /**
+   * Warmtepomp niet te dimensioneren: geen advies, want dat zou rekenen met de terugvalwaarde (3 × het piekvermogen)
+   * die het oordeel en de tegel juist niet tonen.
+   */
+  batterySizingFailed: 'Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
+  /** afgerond gelijk aan de limiet (bijv. een buffer die precies tot de limiet laadt): niet "onder" */
+  batteryIdle: (peakKw: number, budgetKw: number, d: number): string =>
+    fmt(peakKw, d) === fmt(budgetKw, d)
+      ? `Doet nu niets: de piek (${fmt(peakKw, d)} kW) komt al niet boven de limiet.`
+      : `Doet nu niets: de piek (${fmt(peakKw, d)} kW) blijft al onder de limiet (${fmt(budgetKw, d)} kW).`,
+  batteryEffect: (
+    usableKwh: number,
+    powerKw: number,
+    noBatteryKw: number,
+    peakKw: number,
+    d: number,
+  ): string =>
+    `${fmt(usableKwh, 1)} kWh bruikbaar · ${fmt(powerKw, 1)} kW · meterpiek ${fmt(noBatteryKw, d)} → ${fmt(peakKw, d)} kW`,
+  batteryEffectLimited: (usableKwh: number, powerKw: number): string =>
+    `${fmt(usableKwh, 1)} kWh bruikbaar · ${fmt(powerKw, 1)} kW`,
+  batteryMore: (kwh: number): string => ` · voor 0 uur: ${fmt(kwh, 1)} kWh`,
+  /** de batterij is ruim groter dan nodig: de kleinste batterij voor 0 uur (met de knop "Zet") */
+  batteryEnough: (kwh: number): string => ` · ${fmt(kwh, 1)} kWh is al genoeg`,
+  setTo: (kwh: number): string => `Zet op ${fmt(kwh, 1)} kWh`,
+  set: 'Zet',
+  /** knop bij de batterij; de UI zet er een ◀ (aria-hidden) voor */
+  trySmaller: (conn: string): string => `Probeer ${conn}`,
+  connectionLabel: 'Aansluiting',
+  /** "1×35 A · 8,05 kW · limiet 3,22 kW (40 %)" */
+  stepper: (label: string, kw: string, budget: string, pct: number): string =>
+    `${label} · ${kw} kW · limiet ${budget} kW (${fmt(pct, 0)} %)`,
+  smallerConnection: 'Kleinere aansluiting',
+  largerConnection: 'Grotere aansluiting',
+  miniTitle: 'Benodigde warmtepomp [kW]',
+  miniPending: 'Grafiek wordt berekend…',
+  miniError: 'Grafiek niet beschikbaar.',
+  /** het raster is klaar, maar bij geen enkel buffervolume is de warmtepomp te dimensioneren */
+  miniUnsizable: 'Grafiek niet beschikbaar: warmtepomp niet te dimensioneren.',
+  miniManual: 'Suggesties gelden voor een automatisch gedimensioneerde warmtepomp.',
+  miniPlateau: (minKw: number, kneeM3: number): string =>
+    `${fmt(minKw, 1)} kW vanaf ${fmtVolume(kneeM3)} m³: meer helpt niet`,
+  miniPlateauAtZero: (minKw: number): string =>
+    `${fmt(minKw, 1)} kW: een buffer maakt de warmtepomp niet kleiner`,
+  /** de lijn daalt tot het einde van de schuif: geen plateau, wel het laagste punt */
+  miniEndOfRange: (minKw: number, maxM3: number): string =>
+    `${fmt(minKw, 1)} kW bij ${fmtVolume(maxM3)} m³ (einde bereik)`,
+  miniAriaPending: 'Benodigde warmtepomp per buffervolume',
+  miniAriaEnd: (firstKw: number, minKw: number, maxM3: number): string =>
+    `Benodigde warmtepomp per buffervolume: ${fmt(firstKw, 1)} kW zonder buffer, ${fmt(minKw, 1)} kW bij ${fmtVolume(maxM3)} m³`,
+  miniAria: (firstKw: number, minKw: number, kneeM3: number): string =>
+    `Benodigde warmtepomp per buffervolume: ${fmt(firstKw, 1)} kW zonder buffer, ${fmt(minKw, 1)} kW vanaf ${fmtVolume(kneeM3)} m³`,
+  /** naam van een stip: "1×35 A" (stip (a), zonder batterij) of "1×25 A + 7,5 kWh" (stip (b)) */
+  dotName: (conn: string, kwh: number): string => (kwh > 0 ? `${conn} + ${fmt(kwh, 1)} kWh` : conn),
+  /** zichtbaar label van een stip, met het buffervolume (de x-as heeft geen m³): "1×35 A · 0,20 m³" */
+  dotLabel: (name: string, volumeM3: number): string => `${name} · ${fmtVolume(volumeM3)} m³`,
+  /** naam en tooltip van een stip: "1×25 A + 7,5 kWh past vanaf 0,60 m³: zet buffer, batterij en aansluiting" */
+  dotAria: (label: string, volumeM3: number, alsoConnection: boolean, alsoBattery = alsoConnection): string =>
+    `${label} past vanaf ${fmtVolume(volumeM3)} m³: zet buffer` +
+    (alsoConnection ? (alsoBattery ? ', batterij en aansluiting' : ' en aansluiting') : ''),
+  refineSizingHint: (factor: number, neededKw: number): string =>
+    `${fmt(factor, 2)} × piekvermogen · benodigd ${Number.isFinite(neededKw) ? `${fmt(neededKw, 1)} kW` : 'niet te bepalen'}`,
+  /** markering onder de schuiven van buffer en batterij: uren piekvermogen ("2 h") */
+  markerHours: (hours: number): string => `${fmt(hours, 0)} h`,
+} as const;
+
+/** Wat als? › Verfijnen: labels en opties, ongewijzigd uit de oude panelen Warmtepomp & afgifte en Maatregelen. */
+export const REFINE_TEXTS = {
+  sizing: 'WP-vermogen',
+  sizingOptions: { auto: 'Automatisch', manual: 'Handmatig' },
+  nominal: 'WP-vermogen (A7/W35)',
+  nominalUnit: 'kW th',
+  strategy: 'Laadstrategie buffer',
+  strategyOptions: { predictive: 'Voorspellend', always: 'Altijd' },
+  batteryAuto: 'Batterijvermogen automatisch (0,5 C)',
+  batteryCRate: 'Batterijvermogen (C-waarde)',
+  batteryPowerHint: (kw: number): string => `= ${fmt(kw, 1)} kW laden/ontladen`,
+} as const;
+
+/** Meldingen onderaan (niet modaal, met één actie). */
+export const TOAST_TEXTS = {
+  exampleLoaded: (shortTitle: string): string => `Voorbeeld „${shortTitle}” geladen`,
+  kindLoaded: (kind: 'single' | 'multi' | 'office'): string =>
+    `Standaardwaarden voor ${{ single: 'woning', multi: 'meerdere woningen', office: 'kantoor' }[kind]} geladen`,
+  /** terug naar de gebouwfunctie van de bewaarde eigen invoer: die komt terug in plaats van de standaardwaarden */
+  ownInputRestored: 'Je eigen invoer teruggezet',
+  undo: 'Ongedaan maken',
+  backToOwnInput: 'Terug naar je invoer',
+  close: 'Melding sluiten',
+} as const;
+
+export interface TourStep {
+  /** data-tour-anker (ui/tour/anchors.ts) */
+  anchor: 'basis' | 'budget' | 'verdict' | 'buffer' | 'battery-connection';
+  title: string;
+  text: string;
+}
+
+/**
+ * Rondleiding (§8): één zin per stap, zonder getallen, zodat de tekst bij elke invoer klopt. De titels zonder het
+ * stapnummer van de pagina: naast de teller "n van 5" zou dat een tweede, ander nummer zijn.
+ */
+export const TOUR_STEPS: readonly TourStep[] = [
+  {
+    anchor: 'basis',
+    title: STEP_TITLES.basis,
+    text: 'Begin hier met je gebouw en aansluiting; de rest staat op gangbare standaardwaarden onder Meer instellingen.',
+  },
+  {
+    anchor: 'budget',
+    title: 'WP-limiet',
+    text: 'Hier kies je welk deel van de aansluiting de warmtepomp mag gebruiken: tegen die WP-limiet wordt alles getoetst.',
+  },
+  {
+    anchor: 'verdict',
+    title: STEP_TITLES.result,
+    text: 'Hier staat het antwoord: past de warmtepomp binnen de limiet, hoeveel uur per jaar niet, en wat zou helpen.',
+  },
+  {
+    anchor: 'buffer',
+    title: STEP_TITLES.whatIf,
+    text: 'Schuif met de buffer: de benodigde warmtepomp daalt tot de lijn vlak wordt; meer buffer helpt daarna niet, want een buffer overbrugt uren, geen dagen.',
+  },
+  {
+    anchor: 'battery-connection',
+    title: 'Batterij en aansluiting',
+    text: 'Een batterij schaaft de piek aan de meter af: probeer met ◀ ▶ een andere aansluiting en kijk welke batterij dan nodig is.',
+  },
+];
+
+export const TOUR_TEXTS = {
+  counter: (n: number, total: number): string => `${fmt(n, 0)} van ${fmt(total, 0)}`,
+  previous: 'Vorige',
+  next: 'Volgende',
+  skip: 'Overslaan',
+  done: 'Klaar',
+} as const;

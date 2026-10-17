@@ -1,25 +1,25 @@
-// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3).
+// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3). Ingeklapt in ResultMore, direct
+// onder de oordeelkaart (die de T1-regel toont); op papier open (data-print-open).
 import { fmt } from '../../../../core/format';
 import { climateShortName } from '../../model/climate';
 import { useStore } from '../../store';
-import { MODE_LABELS } from '../../texts';
+import { ROBUSTNESS_NOTE } from '../../texts';
 import { ScrollRegion } from '../../../../ui/ScrollRegion';
 import u from '../../../../ui/ui.module.css';
 import p from '../peakshaving.module.css';
 
 export function RobustnessTable({ open = false }: { open?: boolean }) {
   const analysis = useStore((st) => st.analysis);
+
   if (!analysis) return null;
   const rows = analysis.robustness;
   return (
-    <details className={u.acc} open={open} data-print-open="">
+    // `open` alleen als begintoestand; daarna beslist de gebruiker
+    <details className={u.acc} open={open || undefined} data-print-open="">
       <summary>Robuustheid: zelfde configuratie in andere klimaatjaren</summary>
       <div className={u.accBody}>
         <p className={u.hint} style={{ margin: 0 }}>
-          WP-vermogen vast op {fmt(analysis.nominalKw, 1)} kW (A7/W35). Piek aan de meter, SCOP en
-          elektriciteit in de gekozen modus ({MODE_LABELS[analysis.main.mode]}). <em>Overschrijding</em>: uren
-          boven het WP-budget zonder begrenzer. <em>Comfortverlies</em>: uren meer dan 0,5 K onder het
-          setpoint als de aansluiting begrenst.
+          {ROBUSTNESS_NOTE(analysis.nominalKw)}
         </p>
         <ScrollRegion className={`${u.tableWrap} ${p.robustWrap}`} label="Robuustheid per klimaatjaar">
           {/* koppen met zachte afbreekstreepjes (\u00ad): ze breken af in plaats van de tabel te verbreden */}

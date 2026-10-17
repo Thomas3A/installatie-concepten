@@ -255,12 +255,12 @@ export function simulate(
     const copTap = prep.copDhw[t];
     const copBuf = prep.copBuffer[t];
 
-    // elektrisch budget van de begrenzer = limiet + wat de batterij dit uur kan ontladen (netzijde)
+    // elektrische ruimte van de begrenzer = limiet + wat de batterij dit uur kan ontladen (netzijde)
     const batDisMax = Math.min(pBatMax, socBat * eta);
     const budget = pLim + batDisMax; // Infinity zonder limiet
     let pEl = 0;
 
-    // 1) tapwater (prioriteit): WP in boilerbedrijf, begrensd door capaciteit en budget
+    // 1) tapwater (prioriteit): WP in boilerbedrijf, begrensd door capaciteit en die ruimte
     let qTap = 0;
     if (dhwMode && eTank > 0) {
       qTap = Math.min(capT, eTank - socTank, Math.max(0, (budget - pEl) * copTap));
@@ -270,7 +270,7 @@ export function simulate(
     }
     let capRest = capT - qTap;
 
-    // 2) ruimteverwarming direct door de WP, binnen het budget van de begrenzer
+    // 2) ruimteverwarming direct door de WP, binnen de ruimte van de begrenzer
     let qCv = Math.min(qReq, capRest, Math.max(0, (budget - pEl) * copCv));
     pEl += qCv / copCv;
     capRest -= qCv;
@@ -290,7 +290,7 @@ export function simulate(
       shortfall -= qExtra;
     }
 
-    // 4) bijstook (COP 1): 'limited' binnen het budget, 'exceedance' onbegrensd
+    // 4) bijstook (COP 1): 'limited' binnen de ruimte van de begrenzer, 'exceedance' onbegrensd
     let qBackup = 0;
     if (backupKw > 0 && shortfall > 0) {
       qBackup = Math.min(shortfall, backupKw, hard ? Math.max(0, budget - pEl) : backupKw);

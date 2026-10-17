@@ -1,0 +1,586 @@
+/* Stap 2 · Resultaat (UX-plan §4): oordeelkaart, meterbalk, tegels, knoppen, gevolgregels, de vaste balk onderaan en
+   "ResultMore" (advies, Opvallend, Alle kerngetallen, Robuustheid). Alleen de kaart draagt kleur (linkerrand en icoon);
+   tegels zijn neutraal. */
+
+/* ---- oordeelkaart */
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px 14px;
+  margin-bottom: 12px;
+  /* "Bekijk het resultaat" scrolt de kaart zo weinig mogelijk in beeld (block 'nearest'): wat ruimte erboven */
+  scroll-margin-top: 12px;
+  min-width: 0;
+}
+.card[data-tone='ok'] {
+  border-left-color: var(--ok);
+}
+.card[data-tone='warn'] {
+  border-left-color: var(--warn);
+}
+.card[data-tone='err'] {
+  border-left-color: var(--err);
+}
+
+/* dunne voortgangsbalk bovenin de kaart tijdens het rekenen */
+.progress {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+  border-top-right-radius: var(--radius);
+}
+.progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: var(--text-2);
+  opacity: 0.7;
+  animation: progress 1.1s ease-in-out infinite;
+}
+@keyframes progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 28px;
+  margin-bottom: 8px;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  /* doel van de skip-link en de balk onderaan (block 'start'): de kaartrand (12 px padding) en wat ruimte erboven */
+  scroll-margin-top: 24px;
+}
+.stale {
+  margin-left: auto;
+}
+
+/* rekenfout: een balk in de kaart met de knop "Opnieuw proberen" */
+.errorBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  background: var(--err-soft);
+  border: 1px solid var(--err);
+  font-size: 0.875rem;
+}
+.errorText {
+  font-weight: 600;
+}
+.retry {
+  min-height: 28px;
+}
+
+/* waarden: na 150 ms rekenen gedimd (een korte doorrekening knippert dus niet), bij een fout gedimd met "Verouderd" */
+.values {
+  transition: opacity 120ms ease;
+}
+.values[data-dim] {
+  opacity: 0.55;
+  transition: opacity 200ms ease 150ms;
+}
+
+/* ---- kop en detailzin */
+.verdictHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1;
+  background: var(--surface-2);
+  color: var(--text-2);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.icon[data-tone='ok'] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.icon[data-tone='warn'] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.icon[data-tone='err'] {
+  background: var(--err-soft);
+  color: var(--err);
+}
+.headText {
+  min-width: 0;
+}
+.headline {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* een zin: geen tabular-nums (die maken in sommige lettertypen ook het streepje in "WP-limiet" breed) */
+.detail {
+  margin: 2px 0 0;
+}
+
+/* "Waarom?" bij niet te dimensioneren: klein, onder de detailzin */
+.why {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+.why > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+  width: fit-content;
+}
+.why > summary::-webkit-details-marker {
+  display: none;
+}
+.why > summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--text-2);
+}
+.why[open] > summary::before {
+  content: '▾';
+}
+.why p {
+  margin: 4px 0;
+}
+.why ul {
+  margin: 2px 0 0;
+  padding-left: 1.2em;
+}
+
+/* ---- knoppen "Wat helpt" / "Kleinere aansluiting volstaat ook": het label links, de knoppen ernaast; een tweede rij
+   knoppen begint onder de eerste knop, niet onder het label */
+.fixes {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.fixesLabel {
+  flex: none;
+  /* even hoog als een knop, zodat het label op de eerste rij staat */
+  line-height: 32px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.fixList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  text-align: left;
+}
+.chip:hover {
+  border-color: var(--text-2);
+  background: var(--surface-2);
+}
+/* plaatshouder met vaste breedte zolang het gevoeligheidsraster rekent: de knoppen ernaast verspringen niet */
+.chipPending {
+  width: 10.5em;
+  white-space: nowrap;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-style: dashed;
+  cursor: default;
+}
+.chipPending:hover {
+  border-color: var(--border);
+}
+
+/* ---- meterbalk: piek aan de meter tegen de limiet */
+.meter {
+  margin: 0 0 12px;
+}
+.meterHead {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+.track {
+  position: relative;
+  height: 16px;
+  margin: 6px 0;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.base {
+  background: var(--cold);
+}
+.over {
+  background: var(--err);
+}
+/* wat de batterij afschaaft: groen gearceerd */
+.shaved {
+  background: repeating-linear-gradient(135deg, var(--ok) 0 2px, transparent 2px 6px);
+  box-shadow: inset 0 0 0 1px var(--ok);
+}
+/* zwarte streep op de limiet */
+.budgetMark {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+}
+/* grijze schaduwstreep: piek zonder maatregelen */
+.shadowMark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  margin-left: -1px;
+  border-left: 2px dashed var(--text-2);
+}
+.meterFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  font-size: 0.8rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendBudget,
+.legendShadow {
+  display: inline-block;
+  width: 0;
+  height: 12px;
+  flex: none;
+}
+.legendBudget {
+  border-left: 2px solid var(--text);
+}
+.legendShadow {
+  border-left: 2px dashed var(--text-2);
+}
+
+/* ---- drie tegels (role=group "Antwoord"), naast elkaar: de oordeelkolom is op een pc of laptop breed genoeg */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.tile {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.tileTitle {
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.tileValue {
+  margin: 2px 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+/* lange tekstwaarde ("Grootverbruik 95 kW") kleiner, met dezelfde regelhoogte als een getal (1,35rem × 1,2) */
+.tileValue[data-long] {
+  font-size: 1.1rem;
+  line-height: calc(1.62rem / 1.1);
+}
+.tileValue[data-long='xl'] {
+  font-size: 0.98rem;
+  line-height: calc(1.62rem / 0.98);
+}
+.tileUnit {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 3px;
+}
+.tileLine,
+.tileRef {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tileRef {
+  font-style: italic;
+}
+.tile[data-tone='warn'] .tileLine {
+  color: var(--warn);
+  font-weight: 600;
+}
+.tileLink {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
+/* ---- gevolgregels: met begrenzer en strenge winter (T1) */
+.lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+.line[data-tone='warn'] .lineText {
+  color: var(--warn);
+  font-weight: 600;
+}
+.lineIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 0.72rem;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+.lineLink {
+  margin-left: 6px;
+  font-size: inherit;
+  white-space: nowrap;
+}
+/* ---- skelet vóór de eerste doorrekening: vaste hoogte, zodat er niets verspringt */
+.skeleton {
+  min-height: 340px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.skBlock {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skHeadline {
+  height: 26px;
+  width: 62%;
+}
+.skDetail {
+  width: 88%;
+}
+.skChips {
+  height: 30px;
+  width: 75%;
+}
+.skMeter {
+  height: 16px;
+  margin-top: 14px;
+}
+.skTiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.skTile {
+  height: 76px;
+}
+.skLine {
+  width: 70%;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---- vaste balk onderaan (alleen als het oordeel uit beeld is) */
+.miniBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px rgba(20, 30, 40, 0.1);
+  padding: 0 var(--gutter);
+  animation: slideUp 160ms ease-out;
+}
+.miniButton {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 1800px;
+  height: 52px;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.miniText {
+  /* de pijl direct achter de tekst, ook op een breed scherm */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.miniArrow {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-2);
+}
+.miniButton:hover .miniArrow {
+  background: var(--surface-2);
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+/* zolang de balk staat: ruimte onderaan de pagina (de footer valt er niet onder); de melding (toast) staat erboven
+   via --ps-bottom-bar */
+:global(body.ps-mini-verdict) {
+  --ps-bottom-bar: 52px;
+  padding-bottom: var(--ps-bottom-bar);
+}
+
+/* ---- ResultMore: advies (print), Opvallend, Alle kerngetallen, Robuustheid */
+.more {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.noteworthy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.moreLabel {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-2);
+}
+.allKpis {
+  margin-bottom: 0;
+}
+/* robuustheidstabel in de smallere kolom: de koppen breken af (op de zachte afbreekstreepjes) in plaats van de tabel
+   te verbreden. Hoger dan .table th (nowrap) in ui.module.css, zodat de volgorde van de stylesheets niet uitmaakt. */
+.more thead th {
+  white-space: normal;
+}
+/* de acht kaarten ongewijzigd, in de smallere kolom zoveel naast elkaar als past */
+.allKpisBody > section {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress::before {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+  .skBlock,
+  .miniBar {
+    animation: none;
+  }
+  /* dimmen zonder overgang, wel met dezelfde wachttijd */
+  .values,
+  .values[data-dim] {
+    transition-duration: 0s;
+  }
+}
+
+@media print {
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .values[data-dim] {
+    opacity: 1;
+  }
+  .tile {
+    break-inside: avoid;
+  }
+}

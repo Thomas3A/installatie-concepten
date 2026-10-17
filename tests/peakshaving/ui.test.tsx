@@ -106,7 +106,11 @@ describe('peakshaving-pagina', () => {
     await waitFor(() => expect(useStore.getState().analysis?.input.buffer.volumeM3).toBe(1), {
       timeout: 20000,
     });
-    // koude week (standaardtabblad) met scrubber
+    // Schema is het standaardtabblad; eerst naar de koude week met scrubber
+    expect(screen.getByRole('tab', { name: 'Schema', selected: true })).toBeTruthy();
+    act(() => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Koude week' }));
+    });
     await waitFor(() => expect(screen.getByLabelText('Uur in de koude week')).toBeTruthy());
     expect(screen.getByText(/Koudste week \(hoogste warmtevraag\)/)).toBeTruthy();
     act(() => {

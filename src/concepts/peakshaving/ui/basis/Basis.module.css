@@ -1,0 +1,297 @@
+/* Stap 1 · Basis (UX-plan §2.2–§2.5, §3): open paneel, ingeklapte strook, Meer instellingen en limietbalk.
+   Alleen pc/laptop: ≥ 1280 px 4 kolommen, 1024–1279 px 3. Smaller (tablet, telefoon) toont de schil een melding;
+   de Basis valt dan terug op 2 kolommen zonder verdere afstemming. */
+.basis {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 14px 12px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+/* ---- kopregel: H2, voorbeeldregel; ingeklapt ook de chips en "Wijzig" */
+.top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title line line'
+    'chips chips edit';
+  align-items: center;
+  gap: 6px 12px;
+}
+.isOpen .top {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'title line';
+}
+.title {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.05rem;
+}
+/* vaste hoogte: één regel met ellips, zodat de pagina niet verspringt bij een ander voorbeeld */
+.line {
+  grid-area: line;
+  margin: 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* ---- strook (ingeklapt) */
+.chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 3px 11px;
+  min-height: 28px;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.chip:hover {
+  border-color: var(--accent);
+}
+.edit {
+  grid-area: edit;
+  align-self: start;
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 4px 12px;
+  min-height: 28px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.edit:hover {
+  background: var(--accent-soft);
+}
+
+/* ---- open paneel. Let op: `hidden` moet winnen van display: block/grid */
+.panel {
+  display: block;
+  margin-top: 10px;
+}
+.panel[hidden] {
+  display: none;
+}
+.form {
+  display: grid;
+  /* de eerste kolom is breed genoeg voor de drie knoppen van Gebouwfunctie op één regel */
+  grid-template-columns: minmax(340px, 1.15fr) repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
+  align-items: start;
+}
+.cell {
+  min-width: 0;
+}
+.stack {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.form select,
+.more select {
+  width: 100%;
+  max-width: 100%;
+}
+/* knoppengroepen (gebouwfunctie, stooklijn, gebouwmassa) vullen de cel en mogen afbreken in een smalle kolom. De
+   scheidingslijnen liggen links en boven elke knop (aan de buitenrand weggeknipt door de groep), zodat ze ook na het
+   afbreken kloppen */
+.form [role='group'],
+.more [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.form [role='group'] > button,
+.more [role='group'] > button {
+  flex: 1 1 auto;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  margin: -1px 0 0 -1px;
+}
+.check {
+  flex-wrap: wrap;
+  /* zelfde hoogte als een veldlabel, zodat het vinkje op één lijn staat met de labels ernaast */
+  min-height: 24px;
+}
+.checkHint {
+  padding-left: 22px;
+}
+
+/* ---- voetregel: links Meer instellingen, rechts "Bekijk het resultaat" */
+.footer {
+  position: relative;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.more {
+  min-width: 0;
+}
+.moreSummary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  /* ruimte voor de knop ernaast */
+  padding-right: 230px;
+  font-weight: 600;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}
+.moreSummary::-webkit-details-marker {
+  display: none;
+}
+.moreSummary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1em;
+  color: var(--text-2);
+}
+.more[open] > .moreSummary::before {
+  content: '▾';
+}
+.moreSummary:hover {
+  color: var(--text);
+}
+/* vanaf 1280 px 3 kolommen, daaronder 2 (zie de breekpunten), zodat de velden die twee aan twee staan niet te smal
+   worden */
+.moreBody {
+  columns: 3;
+  column-gap: 24px;
+  padding-top: 8px;
+}
+.group {
+  break-inside: avoid;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.groupTitle {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+.showResult {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: 6px;
+  padding: 6px 14px;
+  min-height: 32px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.showResult:hover {
+  filter: brightness(1.08);
+}
+/* Meer instellingen open: de knop onder de groepen, zodat beeld- en tabvolgorde gelijk blijven */
+.more[open] + .showResult {
+  position: static;
+  display: block;
+  margin: 4px 0 0 auto;
+}
+.more[open] > .moreSummary {
+  padding-right: 0;
+}
+.arrow {
+  margin-left: 2px;
+}
+
+/* ---- klimaat */
+.climateSelect {
+  width: 100%;
+  max-width: 100%;
+}
+.climateStats {
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.climateStats p {
+  margin: 0 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+.climateStats strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---- limietbalk onder het aandeel: de aansluiting verdeeld in WP-limiet en overig gebruik */
+.budget {
+  display: block;
+  margin-top: 4px;
+}
+.budgetBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.budgetPart {
+  display: block;
+  background: var(--cold);
+  flex: none;
+}
+.otherPart {
+  display: block;
+  flex: 1;
+  background: repeating-linear-gradient(-45deg, var(--surface-2) 0 4px, var(--border) 4px 6px);
+}
+.budgetText {
+  display: block;
+  margin-top: 3px;
+}
+
+/* ---- breekpunten */
+@media (max-width: 1279px) {
+  .form {
+    grid-template-columns: minmax(340px, 1.1fr) repeat(2, minmax(0, 1fr));
+  }
+  .moreBody {
+    columns: 2;
+  }
+}
+@media (max-width: 1023px) {
+  .form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

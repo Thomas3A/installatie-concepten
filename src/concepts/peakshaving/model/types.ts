@@ -120,7 +120,7 @@ export interface SimulationSetup {
   heatPump: HeatPump;
   buffer: ThermalBuffer;
   battery: Battery;
-  /** elektrisch budget voor WP + batterij [kW]; Infinity = geen limiet */
+  /** WP-limiet: elektrisch vermogen voor WP + batterij [kW]; Infinity = geen limiet */
   pLimitKw: number;
 }
 
@@ -132,7 +132,7 @@ export interface SimulationSeries {
   setpointC: Float64Array;
   /** gevraagd vermogen ruimteverwarming (regelaar, incl. opwarmen) */
   qRequested: Float64Array;
-  /** WP direct naar ruimteverwarming (incl. extra boven het budget in modus 'exceedance') */
+  /** WP direct naar ruimteverwarming (incl. extra boven de limiet in modus 'exceedance') */
   qSpaceHeating: Float64Array;
   qDhw: Float64Array;
   qBufferCharge: Float64Array;

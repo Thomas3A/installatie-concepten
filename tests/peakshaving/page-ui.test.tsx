@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // Pagina peakshaving: landmarks, deellink uit de adresbalk, invoervelden (leeg, minteken, eenheid),
-// klimaatstatistiek, robuustheidstabel, uitleg (formules, inhoudsopgave) en scrollgebieden.
+// klimaatstatistiek, robuustheidstabel, uitleg (formules, inhoudsopgave) en scrollgebieden. De opbouw van de werkbank
+// (volgorde, Basis open/dicht, print) staat in workbench-ui.test.tsx.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -49,8 +50,11 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // eerste bezoek: de Basis open (een deellink in een vorige test klapt hem dicht, zonder te bewaren)
+  localStorage.clear();
   act(() => {
     useStore.getState().loadInput(defaultInput('residential'), null);
+    useStore.getState().setBasisOpen(true, false);
     useStore.getState().setTab('koude-week');
   });
 });
@@ -164,7 +168,7 @@ describe('peakshaving-pagina: invoervelden', () => {
 });
 
 describe('peakshaving-pagina: klimaatjaar en robuustheid', () => {
-  it('de statistiek van het gekozen klimaatjaar staat onder de kop en op de keuzelijst', async () => {
+  it('de statistiek van het gekozen klimaatjaar staat onder het veld (Meer instellingen › Klimaat) en op de keuzelijst', async () => {
     renderPage();
     const select = screen.getByLabelText('Klimaatjaar') as HTMLSelectElement;
     const statsId = select.getAttribute('aria-describedby')!;

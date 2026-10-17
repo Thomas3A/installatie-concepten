@@ -1,0 +1,37 @@
+/* Verdieping: kop met de keuze "Grafieken en kerngetallen", daaronder de tabbladen (u.tabList en u.tab). */
+.depth {
+  min-width: 0;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 8px;
+}
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+  /* doel van "toon in grafieken" en "volledige gevoeligheid →": de rand van de kaart blijft in beeld */
+  scroll-margin-top: 16px;
+}
+.title:focus {
+  outline: none;
+}
+.title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* label, (i) en knoppen op één regel; met de toelichting open loopt die door op de volgende regel */
+.mode {
+  min-width: 0;
+}
+.mode > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}

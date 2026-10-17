@@ -24,7 +24,7 @@ const MONTH_X = Array.from({ length: 12 }, (_, i) => i);
 /** onder deze grafiekbreedte smalle y-assen zonder gedraaide astitels [px] */
 const COMPACT_BELOW_PX = 560;
 /**
- * Een budgetlijn hoger dan deze factor × de hoogste kromme rekt de as niet op (bijv. grootverbruik): de krommen
+ * Een limietlijn hoger dan deze factor × de hoogste kromme rekt de as niet op (bijv. grootverbruik): de krommen
  * blijven leesbaar en de lijn verschijnt als label "↑ …" aan de bovenrand.
  */
 const OFF_SCALE_FACTOR = 2;
@@ -33,6 +33,16 @@ const OFF_SCALE_FACTOR = 2;
 const BUFFER_COLOR = '#e8892b';
 const DHW_COLOR = '#8b5cf6';
 const REFERENCE_GREY = '#9ca3af';
+
+/** Korte uitleg per grafiek (UX-plan §7 #18). */
+const LEAD = {
+  electric:
+    'Alle uren van het jaar, van hoog naar laag; boven een lijn is die aansluiting te klein (uren in de legenda).',
+  thermal: 'Warmtevraag per uur, van hoog naar laag, met wat de warmtepomp bij −10 °C levert.',
+  monthly: 'Warmte per bron en elektriciteit per maand; de lijn is de SCOP.',
+} as const;
+/** Bediening met de muis (de tool is voor een pc of laptop). */
+const HINT = 'Sleep om in te zoomen, dubbelklik om terug te gaan.';
 
 // ---------------------------------------------------------------- thema
 
@@ -316,10 +326,13 @@ function electricChart(a: Analysis, pal: Palette) {
   const limits = connectionLimits(a, pal);
   const extras: LegendExtra[] = limits.map((l) => {
     const [net, noBat, bare] = curves.map((c) => hoursAbove(c, l.limitKw));
+    // bij een andere aansluiting geteld in deze doorrekening (buffer, batterij en boiler laden tegen de huidige
+    // limiet); het oordeel rekent die aansluiting opnieuw door en kan een uur verschillen: "≈"
+    const approx = l.current ? '' : '≈ ';
     const counts =
       net === noBat && noBat === bare
-        ? `${fmt(net, 0)} uur erboven (alle drie de krommen)`
-        : `uur erboven: ${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
+        ? `${approx}${fmt(net, 0)} uur erboven (alle drie de krommen)`
+        : `uur erboven: ${approx}${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
     return {
       label: `${l.current ? 'Huidige aansluiting ' : ''}${l.name} — ${counts}`,
       color: l.color,
@@ -334,7 +347,7 @@ function electricChart(a: Analysis, pal: Palette) {
     width: l.current ? 2 : 1.5,
     text: `${l.current ? 'huidig: ' : ''}${l.name}`,
   }));
-  // budgetten ver boven de krommen rekken de as niet op (ze komen als label aan de bovenrand)
+  // limieten ver boven de krommen rekken de as niet op (ze komen als label aan de bovenrand)
   const onScale = limits.filter((l) => l.limitKw <= OFF_SCALE_FACTOR * peak).map((l) => l.limitKw);
   const yMax = niceCeil(Math.max(peak, ...onScale) * 1.06);
   const data: uPlot.AlignedData = [RANK, d.pElectricWithoutBuffer, d.pGrid, d.pElectricNoBattery];
@@ -356,14 +369,22 @@ function thermalChart(a: Analysis, pal: Palette) {
     lines.push({ value, color, dash, width: 1.8, text: `${short}: ${kw}`, textColor });
     extras.push({ label: `${legend} bij −10 °C: ${kw}`, color, dash, kind: 'line' });
   };
+  // het korte label noemt "bij −10 °C" waar het de WP noemt: anders lijkt "WP: 7,39 kW" het nominale vermogen
+  // (de tegel Warmtepomp toont 10,6 kW A7/W35)
   if (auto && volume <= 0) {
-    add(withoutBuffer, 'Benodigde WP (geen buffer)', 'WP zonder buffer', REFERENCE_GREY, [3, 3]);
+    add(withoutBuffer, 'Benodigde WP (geen buffer)', 'WP bij −10 °C', REFERENCE_GREY, [3, 3]);
   } else {
     add(withoutBuffer, 'Benodigde WP zonder buffer', 'zonder buffer', REFERENCE_GREY, [3, 3]);
     if (auto) {
       add(withBuffer, `Benodigde WP met buffer (${m3Text(volume)} m³)`, 'met buffer', pal.cold, [7, 4]);
     } else {
-      add(withBuffer, `Gekozen WP (${fmt(a.nominalKw, 1)} kW nominaal)`, 'gekozen WP', pal.cold, [7, 4]);
+      add(
+        withBuffer,
+        `Gekozen WP (${fmt(a.nominalKw, 1)} kW nominaal)`,
+        'gekozen WP bij −10 °C',
+        pal.cold,
+        [7, 4],
+      );
     }
   }
   const peak = q[0] ?? 0;
@@ -488,19 +509,14 @@ function YearChartsView({ a }: { a: Analysis }) {
           </button>
         </div>
         <span className={ui.hint}>
-          Klimaatjaar {a.climateShort}. Logaritmisch toont de eerste paar honderd piekuren groot; sleep in een
-          grafiek om in te zoomen, dubbelklik om terug te gaan.
+          Klimaatjaar {a.climateShort}. Logaritmisch: de piekuren groot. {HINT}
         </span>
       </div>
 
       <div className={ui.chartGrid}>
         <div className={`${ui.chartBox} ${css.wide} ${css.wrapLegend}`}>
           <h3>Jaarbelastingduurkromme elektrisch (warmtepompgroep)</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Elk punt is één uur van het jaar, gesorteerd van hoog naar laag; waar een kromme boven een
-            horizontale lijn ligt, is die aansluiting in die uren te klein — het aantal uren staat in de
-            legenda.
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.electric}</p>
           <UPlotChart
             data={elec.data}
             series={elec.series}
@@ -514,7 +530,7 @@ function YearChartsView({ a }: { a: Analysis }) {
             hooks={hLinesHook(elec.lines, pal.surface)}
             legendExtras={elec.extras}
             height={300}
-            ariaLabel="Jaarbelastingduurkromme elektrisch: vermogen aan de meter per uur, aflopend gesorteerd, met en zonder maatregelen en de budgetten van drie aansluitingen"
+            ariaLabel="Jaarbelastingduurkromme elektrisch: vermogen aan de meter per uur, aflopend gesorteerd, met en zonder maatregelen en de WP-limieten van drie aansluitingen"
             exportName="peakshaving-duurkromme-elektrisch"
             exportTitle={`Jaarbelastingduurkromme elektrisch (warmtepompgroep) — ${climate}`}
             exportLabel="Duurkromme elektrisch"
@@ -524,11 +540,7 @@ function YearChartsView({ a }: { a: Analysis }) {
 
         <div className={`${ui.chartBox} ${css.wrapLegend}`}>
           <h3>Jaarbelastingduurkromme thermisch</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Ideale warmtevraag van het gebouw per uur, gesorteerd van hoog naar laag; de lijnen tonen wat de
-            benodigde warmtepomp bij −10 °C levert — met buffer mag die lager liggen, omdat de buffer de
-            piekuren opvangt.
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.thermal}</p>
           <UPlotChart
             data={therm.data}
             series={therm.series}
@@ -552,10 +564,7 @@ function YearChartsView({ a }: { a: Analysis }) {
 
         <div className={`${ui.chartBox} ${css.noCursorPoints}`}>
           <h3>Maandbalans</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Per maand links de geleverde warmte, gestapeld naar bron, en rechts de elektriciteit van de
-            warmtepomp; de lijn is de SCOP van die maand (rechter as).
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.monthly}</p>
           <UPlotChart
             data={month.data}
             series={month.series}

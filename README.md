@@ -70,7 +70,8 @@ src/concepts/klimaatplafond/
 src/concepts/peakshaving/
   data/                   klimaatjaren (JSON), aansluitingen, WP-curven, tapwaterprofiel, standaardwaarden
   model/                  gebouw, warmtepomp, buffer, batterij, simulatie, dimensionering, KPI's, meldingen, Web Worker
-  ui/                     invoerblokken, KPI's, grafieken (koude week, jaar, gevoeligheid), conceptschema, uitleg, print
+  view/                   pure weergavelogica: oordeel, knoppen, effectregels, mini-grafiek
+  ui/                     Basis, Resultaat, Wat als?, Verdieping (grafieken, schema, uitleg), print
   scenarios.ts texts.ts share.ts store.ts
 docs/SPEC.md              specificatie concept 1
 docs/SPEC-peakshaving.md  specificatie concept 2
@@ -85,34 +86,47 @@ tests/                    Vitest (tests/peakshaving/ voor concept 2)
 
 **Route:** `#/peakshaving` · **Specificatie:** [`docs/SPEC-peakshaving.md`](docs/SPEC-peakshaving.md)
 
-![Peakshaving: woning met 1 m³ buffer en 5 kWh batterij, tabblad Gevoeligheid](docs/img/peakshaving.png)
+![Peakshaving op 1440×900: ingeklapte Basis, het Resultaat met oordeel, meterbalk en tegels, en Wat als? ernaast](docs/img/peakshaving.png)
 
 Hoe groot moet een lucht/water-warmtepomp zijn, en past die binnen de bestaande (of een kleinere) elektrische
 aansluiting als je een warmtebuffer en/of een batterij toevoegt? De tool simuleert een heel jaar per uur en maakt zichtbaar
 dat een buffervat de **thermische** piek van de warmtepomp afschaaft (kleinere machine), een batterij de **elektrische**
 piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen koudegolf van dagen.
 
-- **Invoer in vier stappen:** gebouw (piekvermogen, gebouwmassa, tapwater), aansluiting (standaardwaarde of
-  grootverbruik, aandeel voor de WP), warmtepomp en afgifte (stooklijn LT/MT/HT, maximale aanvoer, automatisch
-  gedimensioneerd of handmatig, bijstook) en maatregelen (buffervolume, laadstrategie, batterij, bedrijfsmodus).
-  De bereiken van buffer en batterij volgen uit het piekvermogen.
-- **Drie gebouwkeuzes:** _één woning_, _meerdere woningen op één warmtepomp_ (een woongebouw met een collectieve
-  warmtepomp en boilervat op een eigen aansluiting; standaard 10 woningen × 5 kW op 3×35 A) en _kantoor_. Bij meerdere
-  woningen kies je het aantal woningen; piekvermogen, tapwater, buffer en batterij schalen mee en de tool toont de waarden
-  per woning. Het rekenmodel rekent met de totalen van het gebouw (zie [`docs/AANNAMES.md`](docs/AANNAMES.md)).
-- **Resultaat:** acht KPI-kaarten (piek warmtevraag, benodigd WP-vermogen, piek aan de meter, uren overschrijding,
-  kleinste passende aansluiting, comfort bij begrenzen, buffer, energie), een gegenereerd advies, een robuustheidstabel
-  (energiejaar, T5, T1) en meldingen met "Waarom?".
-- **Tabbladen:** _Koude week_ (drie gekoppelde grafieken met scrubber en afspelen), _Jaar_ (belastingduurkrommen en
-  maandbalans), _Gevoeligheid_ (de kerngrafiek: WP-vermogen en meterpiek tegen buffervolume, met de aansluitlijnen),
-  _Concept_ (live schema van warmtepomp, buffer, boiler, gebouw, meterkast en batterij voor het gekozen uur) en _Uitleg_.
+- **Eén pagina, alleen voor een pc of laptop** (vanaf 1024 px breed). Op een telefoon of tablet staat bovenaan een korte
+  melding dat de tool beter op een pc of laptop werkt; de pagina eronder blijft gewoon te gebruiken. Vuistregel:
+  **Basis = wat er is, Wat als? = wat je kiest.**
+- **Basis:** gebouwfunctie (_één woning_, _meerdere woningen op één warmtepomp_ of _kantoor_), piekvermogen, stooklijn
+  (LT/MT/HT), tapwater, aansluitwaarde (of grootverbruik) en het aandeel voor de warmtepomp. Onder **Meer instellingen**
+  staan klimaatjaar, gebouw, tapwater, warmtepomp en beoordeling. Bij een eerste bezoek staat de Basis open; **Bekijk het
+  resultaat** klapt hem in tot een strook met chips (bewaard in de browser, een deellink opent ingeklapt).
+- **Meerdere woningen** is een woongebouw met een collectieve warmtepomp en boilervat op een eigen aansluiting
+  (standaard 10 woningen × 5 kW op 3×35 A). Piekvermogen, tapwater, buffer en batterij schalen mee met het aantal
+  woningen en de tool toont de waarden per woning. Het rekenmodel rekent met de totalen van het gebouw (zie
+  [`docs/AANNAMES.md`](docs/AANNAMES.md)).
+- **Resultaat:** een oordeel in één zin ("Past op 1×35 A met 0,50 m³ buffer"), een meterbalk (piek aan de meter tegen
+  de WP-limiet, met het deel dat de batterij afschaaft) en drie tegels: Warmtepomp, Boven de limiet en Kleinste
+  aansluiting. Daaronder de gevolgen met begrenzer en in een strenge winter (T1), en knoppen "Wat helpt" of "Kleinere
+  aansluiting volstaat ook" die een buffer, batterij, aandeel of aansluiting zetten, elk met ongedaan maken. Onder de
+  kaart staan Opvallend, **Alle kerngetallen** (de acht KPI-kaarten) en **Robuustheid** (energiejaar, T5, T1).
+- **Wat als?:** de bufferschuif met een mini-grafiek van het benodigde WP-vermogen per buffervolume (met klikbare punten
+  "past vanaf"), de batterij, een stapper voor de aansluiting en **Verfijnen** (WP-vermogen automatisch of handmatig,
+  laadstrategie, batterijvermogen). **↺ Zonder maatregelen** zet buffer en batterij terug op 0.
+- **Rondleiding:** bij een eerste bezoek (niet via een deellink) loopt een korte rondleiding in vijf stappen langs Basis,
+  WP-limiet, Resultaat, buffer en batterij met aansluiting; de knop **Rondleiding** in de kop start hem opnieuw.
+- **Verdieping:** de schakelaar _Zonder begrenzer_ / _Met begrenzer_ voor grafieken en kerngetallen, en de tabbladen
+  _Schema_ (live schema van warmtepomp, buffer, boiler, gebouw, meterkast en batterij voor het gekozen uur), _Koude week_
+  (drie gekoppelde grafieken met scrubber en afspelen), _Jaar_ (belastingduurkrommen en maandbalans), _Gevoeligheid_
+  (WP-vermogen en meterpiek tegen buffervolume, met de aansluitlijnen) en _Uitleg_.
 - **Klimaatjaren:** reconstructie van de NEN 5060:2018-referentiejaren (T5, T1, energiejaar) uit open KNMI-uurdata van
   De Bilt, plus de werkelijke jaren 1991–2025 als stresstest. Herkomst en methode: [`docs/klimaat/README.md`](docs/klimaat/README.md).
   Het is een reconstructie, geen officiële NEN 5060-data.
 - **Rekenmodel:** de Python-referentie `tools/peakshaving_ref/peakshaving_ref.py` is normatief; de TypeScript-port in
   `src/concepts/peakshaving/model/` reproduceert de referentiewaarden (`tests/peakshaving/fixtures/referentiewaarden.json`)
   binnen de toleranties van spec §9. De simulaties draaien in een Web Worker; één jaarsimulatie duurt enkele milliseconden.
-- Tien scenario's (de acht van de specificatie plus twee met meerdere woningen), een deelbare link
-  (`#/peakshaving?c=…`, met versienummer) en een printweergave (A4 staand, twee pagina's).
+- Tien **Voorbeelden** in een keuzelijst bovenaan (de acht scenario's van de specificatie plus twee met meerdere
+  woningen); je eigen invoer blijft bewaard tot je hem terugzet. Verder een deelbare link (`#/peakshaving?c=…`, met
+  versienummer) en een printweergave (A4 staand, twee pagina's: oordeel, kerngetallen, robuustheid, koude week en
+  gevoeligheid).
 
 Aannames: [`docs/AANNAMES.md`](docs/AANNAMES.md) (sectie "Concept 2: peakshaving").
