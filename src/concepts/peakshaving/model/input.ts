@@ -1,15 +1,22 @@
 // Invoer normaliseren (begrenzen, niet weigeren), gebouwfunctie wisselen en het piekvermogen schalen (spec §3).
 import { CONNECTIONS, LARGE_CONNECTION_ID, type ConnectionId } from '../data/connections';
-import { defaultInput } from '../data/defaults';
+import {
+  DEFAULT_MULTI_DHW_KWH_PER_DWELLING,
+  DEFAULT_MULTI_TANK_L_PER_DWELLING,
+  defaultInput,
+  defaultInputOfKind,
+} from '../data/defaults';
 import { EMITTER_PRESETS, MAX_SUPPLY_OPTIONS, type EmitterPreset } from '../data/heatPumpCurves';
 import { clamp } from '../../../core/interp';
 import { BATTERY_C_RATE_MAX, BATTERY_C_RATE_MIN } from './battery';
 import { DEFAULT_CLIMATE_YEAR, isValidClimateYearId } from './climate';
 import { deriveRanges, type Ranges } from './ranges';
-import type { BuildingUse, PeakshavingInput } from './types';
+import type { Building, BuildingKind, BuildingUse, PeakshavingInput } from './types';
 
 /** Geldige bereiken van de invoer (spec §3.1–§3.4). */
 export const LIMITS = {
+  /** aantal woningen op één warmtepomp (buiten de spec) */
+  dwellings: [1, 500],
   designLoadKw: [1, 2000],
   designOutdoorC: [-15, -5],
   designIndoorC: [18, 24],
@@ -22,6 +29,7 @@ export const LIMITS = {
   useStartH: [0, 23],
   useEndH: [1, 24],
   preheatH: [0, 8],
+  /** per woning (bij meerdere woningen geldt het bereik × aantal woningen) */
   dhwDailyKwh: [0, 50],
   tankLitre: [0, 2000],
   tankTempC: [45, 65],
@@ -90,10 +98,14 @@ export function normalizeInput(raw: unknown): PeakshavingInput {
   };
 
   const designLoadKw = num(rb.designLoadKw, d.building.designLoadKw, LIMITS.designLoadKw);
+  // kantoor is altijd één gebouw; bij woningen schalen de tapwatergrenzen met het aantal
+  const dwellings = use === 'office' ? 1 : int(rb.dwellings, d.building.dwellings, LIMITS.dwellings);
+  const perDwelling = ([lo, hi]: readonly [number, number]): [number, number] => [lo, hi * dwellings];
   const useStartH = int(rb.useStartH, d.building.useStartH, LIMITS.useStartH);
   const setpointUseC = num(rb.setpointUseC, d.building.setpointUseC, LIMITS.setpointUseC);
   const building = {
     use,
+    dwellings,
     designLoadKw,
     designOutdoorC: num(rb.designOutdoorC, d.building.designOutdoorC, LIMITS.designOutdoorC),
     designIndoorC: num(rb.designIndoorC, d.building.designIndoorC, LIMITS.designIndoorC),
@@ -113,8 +125,17 @@ export function normalizeInput(raw: unknown): PeakshavingInput {
     preheatH: int(rb.preheatH, d.building.preheatH, LIMITS.preheatH),
     dhw: {
       enabled: bool(rdhw.enabled, d.building.dhw.enabled),
-      dailyKwh: num(rdhw.dailyKwh, d.building.dhw.dailyKwh, LIMITS.dhwDailyKwh),
-      tankLitre: num(rdhw.tankLitre, d.building.dhw.tankLitre, LIMITS.tankLitre),
+      // ontbrekend: de standaard per woning (bij meerdere woningen die van een appartement) × aantal
+      dailyKwh: num(
+        rdhw.dailyKwh,
+        (dwellings > 1 ? DEFAULT_MULTI_DHW_KWH_PER_DWELLING : d.building.dhw.dailyKwh) * dwellings,
+        perDwelling(LIMITS.dhwDailyKwh),
+      ),
+      tankLitre: num(
+        rdhw.tankLitre,
+        (dwellings > 1 ? DEFAULT_MULTI_TANK_L_PER_DWELLING : d.building.dhw.tankLitre) * dwellings,
+        perDwelling(LIMITS.tankLitre),
+      ),
       // boilertemperatuur begrensd op de maximale WP-aanvoer
       tankTempC: Math.min(
         num(rdhw.tankTempC, d.building.dhw.tankTempC, LIMITS.tankTempC),
@@ -164,10 +185,44 @@ export function rangesOf(input: PeakshavingInput): Ranges {
   return deriveRanges(input.building.use, input.building.designLoadKw, input.heatPump);
 }
 
+/** Keuze in de UI bij een gebouw: één woning, meerdere woningen of kantoor. */
+export function buildingKind(b: Pick<Building, 'use' | 'dwellings'>): BuildingKind {
+  return b.use === 'office' ? 'office' : b.dwellings > 1 ? 'multi' : 'single';
+}
+
+/** Andere keuze (één woning, meerdere woningen, kantoor): standaardinvoer van die keuze, klimaatjaar blijft. */
+export function switchKind(input: PeakshavingInput, kind: BuildingKind): PeakshavingInput {
+  if (buildingKind(input.building) === kind) return input;
+  return normalizeInput({ ...defaultInputOfKind(kind), climateYear: input.climateYear });
+}
+
 /** Andere gebouwfunctie: standaardinvoer van die functie, klimaatjaar blijft. */
 export function switchUse(input: PeakshavingInput, use: BuildingUse): PeakshavingInput {
   if (input.building.use === use) return input;
   return normalizeInput({ ...defaultInput(use), climateYear: input.climateYear });
+}
+
+/**
+ * Ander aantal woningen: het gebouw groeit met dezelfde woningen mee. Piekvermogen (met buffer, batterij en een
+ * handmatig WP-vermogen, zie withDesignLoad), tapwaterbehoefte en boilervat schalen proportioneel, zodat de waarden
+ * per woning gelijk blijven; de aansluiting blijft.
+ */
+export function withDwellings(input: PeakshavingInput, requested: number): PeakshavingInput {
+  if (input.building.use === 'office' || !Number.isFinite(requested)) return input;
+  const dwellings = Math.round(clamp(requested, LIMITS.dwellings[0], LIMITS.dwellings[1]));
+  const old = input.building.dwellings;
+  if (dwellings === old) return input;
+  const scaled = withDesignLoad(input, (input.building.designLoadKw * dwellings) / old);
+  const f = dwellings / old;
+  const { dhw } = input.building;
+  return normalizeInput({
+    ...scaled,
+    building: {
+      ...scaled.building,
+      dwellings,
+      dhw: { ...dhw, dailyKwh: dhw.dailyKwh * f, tankLitre: dhw.tankLitre * f },
+    },
+  });
 }
 
 /**

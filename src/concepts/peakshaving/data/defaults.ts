@@ -1,7 +1,10 @@
 // Standaardwaarden woning en kantoor (spec §3; gelijk aan woning_defaults(8) en kantoor_defaults(100) in de referentie).
+// Meerdere woningen (buiten de spec, zie docs/AANNAMES.md): woningstandaard met appartementwaarden (piekvermogen en
+// tapwater per woning) × n woningen en een eigen aansluiting.
 import type {
   Battery,
   Building,
+  BuildingKind,
   BuildingUse,
   GridConnection,
   HeatPump,
@@ -14,6 +17,7 @@ export const DEFAULT_DESIGN_LOAD_KW: Record<BuildingUse, number> = { residential
 export function residentialBuilding(designLoadKw = DEFAULT_DESIGN_LOAD_KW.residential): Building {
   return {
     use: 'residential',
+    dwellings: 1,
     designLoadKw,
     designOutdoorC: -10,
     designIndoorC: 20,
@@ -33,6 +37,7 @@ export function residentialBuilding(designLoadKw = DEFAULT_DESIGN_LOAD_KW.reside
 export function officeBuilding(designLoadKw = DEFAULT_DESIGN_LOAD_KW.office): Building {
   return {
     use: 'office',
+    dwellings: 1,
     designLoadKw,
     designOutdoorC: -10,
     designIndoorC: 21,
@@ -90,6 +95,55 @@ export function defaultBuffer(): ThermalBuffer {
 
 export function defaultBattery(): Battery {
   return { capacityKwh: 0, powerKw: null };
+}
+
+/** Meerdere woningen: standaardaantal en piekvermogen per woning [kW] (appartement na isolatie). */
+export const DEFAULT_DWELLINGS = 10;
+export const DEFAULT_MULTI_LOAD_PER_DWELLING_KW = 5;
+/** Tapwater per appartement: nuttige behoefte [kWh/dag] en boilerinhoud [l] (zelfde voorraad als de woning: ≈ 0,9 dag). */
+export const DEFAULT_MULTI_DHW_KWH_PER_DWELLING = 6;
+export const DEFAULT_MULTI_TANK_L_PER_DWELLING = 120;
+
+/** Eigen aansluiting van de collectieve warmtepomp (zie docs/AANNAMES.md). */
+export const MULTI_DEFAULT_CONNECTION = '3x35' as const;
+/** Deel van die aansluiting voor WP + batterij; de rest is voor pompen, ventilatie en algemene ruimten. */
+export const MULTI_DEFAULT_SHARE = 0.8;
+
+/** Woningen op één warmtepomp: piekvermogen en tapwater (dagbehoefte en boilervat) per woning × aantal, eigen aansluiting. */
+export function multiDwellingInput(dwellings = DEFAULT_DWELLINGS): PeakshavingInput {
+  const one = residentialBuilding();
+  return {
+    climateYear: 'T5',
+    building: {
+      ...one,
+      dwellings,
+      designLoadKw: DEFAULT_MULTI_LOAD_PER_DWELLING_KW * dwellings,
+      dhw: {
+        ...one.dhw,
+        dailyKwh: DEFAULT_MULTI_DHW_KWH_PER_DWELLING * dwellings,
+        tankLitre: DEFAULT_MULTI_TANK_L_PER_DWELLING * dwellings,
+      },
+    },
+    grid: {
+      connection: MULTI_DEFAULT_CONNECTION,
+      contractedKw: 100,
+      heatPumpShare: MULTI_DEFAULT_SHARE,
+      allowedExceedanceH: 0,
+      allowedComfortLossH: 0,
+      mode: 'exceedance',
+    },
+    heatPump: {
+      ...defaultHeatPump('residential'),
+      nominalKw: DEFAULT_MULTI_LOAD_PER_DWELLING_KW * dwellings,
+    },
+    buffer: defaultBuffer(),
+    battery: defaultBattery(),
+  };
+}
+
+/** Standaardinvoer per keuze in de UI. */
+export function defaultInputOfKind(kind: BuildingKind): PeakshavingInput {
+  return kind === 'multi' ? multiDwellingInput() : defaultInput(kind === 'office' ? 'office' : 'residential');
 }
 
 /** Volledige standaardinvoer voor een gebouwfunctie (klimaatjaar T5). */

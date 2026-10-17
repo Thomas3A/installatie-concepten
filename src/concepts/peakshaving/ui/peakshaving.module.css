@@ -173,6 +173,40 @@
   background: var(--text-2);
 }
 
+/* keuze gebouwfunctie (drie knoppen) over de volle breedte van de invoerkolom. Op een heel smal scherm breken de
+   knoppen af; de scheidingslijnen liggen dan links en boven elke knop (aan de buitenrand weggeknipt door de groep) */
+.kindSeg [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+}
+.kindSeg [role='group'][aria-label] > button {
+  flex: 1 1 auto;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  margin: -1px 0 0 -1px;
+}
+/* twee velden naast elkaar (tapwater, boilervat): label, getalveld en regel eronder lijnen uit, ook als één label
+   over twee regels loopt */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto auto;
+  gap: 3px 8px;
+}
+.pair > * {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+}
+.pair > * > :first-child {
+  align-self: end;
+}
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
 /* ---- KPI-kaarten */
 .kpiRow {
   display: grid;

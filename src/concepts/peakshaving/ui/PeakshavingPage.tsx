@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { fmt } from '../../../core/format';
 import u from '../../../ui/ui.module.css';
 import { connectionLabel, gridLimitKw } from '../model/grid';
+import { buildingText } from '../model/kpis';
 import { SCENARIOS } from '../scenarios';
 import { shareUrl } from '../share';
 import { startEngine, useStore, type TabId } from '../store';
@@ -32,12 +33,16 @@ function PrintSummary() {
   const input = useStore((st) => st.input);
   const a = useStore((st) => st.analysis);
   const b = input.building;
+  // meerdere woningen: totalen van het gebouw, met de waarde per woning erbij
+  const n = b.use === 'office' ? 1 : b.dwellings;
+  const perDwelling = (x: number, digits: number, unit: string): string =>
+    n > 1 ? ` (${fmt(x / n, digits)} ${unit} per woning)` : '';
   return (
     <section className={u.printOnly} aria-hidden="true">
       <h1>Installatieconcepten — {PAGE_TITLE}</h1>
       <p>
-        {b.use === 'office' ? 'Kantoor' : 'Woning'} · piekvermogen {fmt(b.designLoadKw, 1)} kW · klimaatjaar{' '}
-        {a?.climateName ?? input.climateYear} · aansluiting {connectionLabel(input.grid)} (
+        {buildingText(b)} · piekvermogen {fmt(b.designLoadKw, 1)} kW{perDwelling(b.designLoadKw, 1, 'kW')} ·
+        klimaatjaar {a?.climateName ?? input.climateYear} · aansluiting {connectionLabel(input.grid)} (
         {fmt(input.grid.heatPumpShare * 100, 0)} % voor de WP, budget {fmt(gridLimitKw(input.grid), 2)} kW) ·
         stooklijn {EMITTER_PRESETS[input.heatPump.emitterPreset].label} · max. aanvoer{' '}
         {fmt(input.heatPump.maxSupplyC, 0)} °C · WP{' '}
@@ -47,7 +52,9 @@ function PrintSummary() {
         {fmt(input.battery.capacityKwh, 1)} kWh · modus{' '}
         {input.grid.mode === 'exceedance' ? 'overschrijding tonen' : 'aansluiting begrenst'}
         {b.dhw.enabled
-          ? ` · tapwater ${fmt(b.dhw.dailyKwh, 1)} kWh/dag, boiler ${fmt(b.dhw.tankLitre, 0)} l`
+          ? ` · tapwater ${fmt(b.dhw.dailyKwh, 1)} kWh/dag${perDwelling(b.dhw.dailyKwh, 1, 'kWh/dag')}, ${
+              n > 1 ? 'collectieve boiler' : 'boiler'
+            } ${fmt(b.dhw.tankLitre, 0)} l`
           : ''}
         .
       </p>

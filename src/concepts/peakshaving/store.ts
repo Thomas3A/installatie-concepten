@@ -5,10 +5,17 @@ import { createEngineClient, type EngineClient, type EngineClientOptions } from 
 import { sensitivityKey, type Analysis } from './model/analysis';
 import { climateInSentence, COLD_WEEK_HOURS } from './model/climate';
 import type { EngineResponse } from './model/engine';
-import { normalizeInput, rangesOf, switchUse, withDesignLoad } from './model/input';
+import {
+  normalizeInput,
+  rangesOf,
+  switchKind,
+  switchUse,
+  withDesignLoad,
+  withDwellings,
+} from './model/input';
 import type { Ranges } from './model/ranges';
 import type { SensitivityRow } from './model/sizing';
-import type { BuildingUse, ClimateYearId, PeakshavingInput } from './model/types';
+import type { BuildingKind, BuildingUse, ClimateYearId, PeakshavingInput } from './model/types';
 import { findScenario } from './scenarios';
 import { decodeInput, encodeInput, sameInput, scenarioIdOf } from './share';
 
@@ -48,6 +55,10 @@ interface State {
   update: (fn: (i: PeakshavingInput) => PeakshavingInput) => void;
   setDesignLoad: (kw: number) => void;
   setUse: (use: BuildingUse) => void;
+  /** één woning, meerdere woningen of kantoor: standaardinvoer van die keuze (klimaatjaar blijft) */
+  setKind: (kind: BuildingKind) => void;
+  /** aantal woningen op de warmtepomp; piekvermogen, tapwater, buffer en batterij schalen mee */
+  setDwellings: (n: number) => void;
   setClimateYear: (id: ClimateYearId) => void;
   applyScenario: (id: string) => void;
   loadInput: (input: PeakshavingInput, scenarioId?: string | null) => void;
@@ -204,7 +215,22 @@ export const useStore = create<State>((set, get) => ({
   },
   setUse: (use) => {
     const next = switchUse(get().input, use);
-    set({ input: next, ranges: rangesOf(next), scenarioId: null, scrubHour: null });
+    set({ input: next, ranges: rangesOf(next), scenarioId: scenarioIdOf(next), scrubHour: null });
+    schedule();
+  },
+  setKind: (kind) => {
+    const next = switchKind(get().input, kind);
+    // dezelfde keuze nogmaals: niets wijzigen (het scenario blijft dan ook staan)
+    if (next === get().input) return;
+    // de standaardinvoer van een keuze is meestal ook een scenario (zoals bij een gedeelde link)
+    set({ input: next, ranges: rangesOf(next), scenarioId: scenarioIdOf(next), scrubHour: null });
+    schedule();
+  },
+  setDwellings: (n) => {
+    const next = withDwellings(get().input, n);
+    // kantoor, ongeldig of ongewijzigd aantal: niets te doen
+    if (next === get().input) return;
+    set({ input: next, ranges: rangesOf(next), scenarioId: null });
     schedule();
   },
   setClimateYear: (id) => {

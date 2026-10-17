@@ -124,8 +124,11 @@ function expectValidInput(i: PeakshavingInput): void {
   expect(b.useEndH).toBeGreaterThan(b.useStartH);
   expectInRange(b.preheatH, S.preheatH, 'preheatH');
   expect(typeof b.dhw.enabled).toBe('boolean');
-  expectInRange(b.dhw.dailyKwh, S.dailyKwh, 'dhw.dailyKwh');
-  expectInRange(b.dhw.tankLitre, S.tankLitre, 'dhw.tankLitre');
+  // tapwater: bereik per woning × aantal woningen (kantoor: één)
+  expect(Number.isInteger(b.dwellings)).toBe(true);
+  expectInRange(b.dwellings, b.use === 'office' ? [1, 1] : [1, 500], 'dwellings');
+  expectInRange(b.dhw.dailyKwh, [S.dailyKwh[0], S.dailyKwh[1] * b.dwellings], 'dhw.dailyKwh');
+  expectInRange(b.dhw.tankLitre, [S.tankLitre[0], S.tankLitre[1] * b.dwellings], 'dhw.tankLitre');
   expectInRange(b.dhw.tankTempC, S.tankTempC, 'dhw.tankTempC');
   expect(b.dhw.tankTempC).toBeLessThanOrEqual(i.heatPump.maxSupplyC);
 
@@ -270,7 +273,8 @@ describe('normalizeInput (spec §3)', () => {
       backupHeaterKw: 50,
       nominalKw: 6000,
     });
-    expect(n.building.dhw).toMatchObject({ dailyKwh: 50, tankLitre: 2000, tankTempC: 65 });
+    expect(n.building.dwellings).toBe(500);
+    expect(n.building.dhw).toMatchObject({ dailyKwh: 50 * 500, tankLitre: 2000 * 500, tankTempC: 65 });
     expect(n.grid).toMatchObject({
       contractedKw: 5000,
       heatPumpShare: 1,

@@ -132,6 +132,17 @@
   stroke: var(--border);
   stroke-width: 1.2;
 }
+.plinth {
+  fill: var(--surface-2);
+  stroke: var(--text-2);
+  stroke-width: 1.2;
+}
+.balcony {
+  fill: var(--surface);
+  stroke: var(--text-2);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
 .alertOutline {
   fill: none;
   stroke: var(--err);

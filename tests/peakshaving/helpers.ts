@@ -96,6 +96,7 @@ export const FIXTURE = fixture as unknown as {
 export function buildingFromPython(g: PyGebouw): Building {
   return {
     use: g.functie === 'kantoor' ? 'office' : 'residential',
+    dwellings: 1,
     designLoadKw: g.P_ontwerp,
     designOutdoorC: g.T_e_ontwerp,
     designIndoorC: g.T_i_ontwerp,
