@@ -309,16 +309,18 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   gelijktijdigheid (de dagbehoefte per woning wordt bij veel woningen niet verlaagd); dat is voor de pieken aan de veilige
   kant. Circulatieverlies van een collectief tapwatersysteem zit er niet in; wie dat wil meenemen, verhoogt de
   tapwaterbehoefte per woning.
-- **Standaardwaarden:** 10 woningen × 5 kW (appartement na isolatie), per woning 10 kWh/dag tapwater en 200 l boilervat
-  (gelijk aan de woningstandaard), samen dus 50 kW, 100 kWh/dag en 2000 l. De collectieve installatie heeft een eigen
-  aansluiting van 3×40 A, waarvan 80 % voor warmtepomp + batterij; de rest is voor pompen, ventilatie en algemene
+- **Standaardwaarden:** 10 woningen × 5 kW (appartement na isolatie), per woning 6 kWh/dag tapwater en 120 l boilervat,
+  samen dus 50 kW, 60 kWh/dag en 1200 l. Een appartement gebruikt minder tapwater dan de woningstandaard van spec §3
+  (10 kWh/dag, 200 l); 120 l per woning geeft dezelfde vulgraad (nuttig 5,3 kWh ≈ 0,9 dag). Met 10 kWh/dag per woning
+  zou het tapwater de warmtepomp domineren (89 kW voor 50 kW piekvermogen). De collectieve installatie heeft een eigen
+  aansluiting van 3×35 A, waarvan 80 % voor warmtepomp + batterij; de rest is voor pompen, ventilatie en algemene
   ruimten. De woningen hebben elk een eigen aansluiting die hier niet meetelt. Alle overige waarden zijn die van de
   woning (spec §3), klimaatjaar T5.
-- **Waarom 3×40 A en 80 %:** zo laat het standaardgeval, net als bij de ene woning, de rol van buffer en batterij zien
-  (T5): zonder maatregelen wordt de warmtepomp 89,1 kW, is de piek aan de meter 29,7 kW tegen een budget van 22,2 kW,
-  zijn er 215 uur overschrijding en is 3×63 A de kleinste passende aansluiting. Met 1 m³ buffer blijven er 47 uur over
-  (kleinste 3×50 A); met 2 m³ buffer wordt de warmtepomp 64,6 kW en past het gebouw met 0 uur binnen 3×40 A; met 2 m³
-  buffer en 20 kWh batterij kan het naar 3×35 A.
+- **Waarom 3×35 A en 80 %:** zo laat het standaardgeval, net als bij de ene woning, de rol van de buffer zien (T5):
+  zonder maatregelen wordt de warmtepomp 65,8 kW, is de piek aan de meter 21,6 kW tegen een budget van 19,4 kW, zijn er
+  121 uur overschrijding en is 3×40 A de kleinste passende aansluiting. Met 1 m³ buffer wordt de warmtepomp 63,6 kW en
+  blijft de piek aan de meter met 0 uur binnen 3×35 A. Met 2 m³ buffer is er weer 1 uur overschrijding: de warmtepomp
+  wordt dan kleiner gedimensioneerd (61,2 kW) en laadt het tapwater langer; met 20 kWh batterij erbij is het weer 0 uur.
 - **Aantal woningen wijzigen:** het gebouw groeit met dezelfde woningen mee. Piekvermogen, tapwaterbehoefte en boilervat
   schalen met nieuw/oud aantal, en via het piekvermogen (zie "Piekvermogen wijzigen") ook buffer, batterij (capaciteit en
   een handmatig vermogen) en een handmatig WP-vermogen; de waarden per woning blijven zo gelijk. De aansluiting blijft
@@ -330,12 +332,12 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   het bereik per woning × het aantal (0–50 kWh/dag en 0–2000 l per woning). Het piekvermogen blijft 1–2000 kW in totaal;
   de bereiken van buffer, batterij en WP-vermogen volgen zoals altijd uit het totale piekvermogen. Een gebouw met 1 woning
   is weer de keuze "woning". In de invoer loopt het aantal woningen van 2 tot 500 (schuif 2–100; een lager getal wordt 2);
-  terug naar één woning gaat via de keuze "Woning". Tapwater aanzetten zonder boiler vult 200 l en 10 kWh/dag per woning
-  in.
+  terug naar één woning gaat via de keuze "Woning". Tapwater aanzetten zonder boiler vult 120 l en 6 kWh/dag per woning
+  in (bij één woning 200 l en 10 kWh/dag).
 - **Hint bij één woning:** boven 20 kW piekvermogen toont de keuze "woning" de hint "Groot voor één woning" met de
   verwijzing naar meerdere woningen. Het is alleen een wegwijzer; de invoer wordt niet begrensd.
 - **Deelbare link:** het aantal woningen staat in de link als afwijking van de woningstandaard (één woning); het
   versienummer blijft 1. Een oudere link zonder aantal woningen opent als één woning.
 - **Scenario's:** naast de acht van spec §10 zijn er twee met meerdere woningen: "10 woningen op één warmtepomp — 50 kW,
-  3×40 A, zonder maatregelen" en "… met 2 m³ buffer". Ze staan in de lijst direct na de vier woningscenario's (nummers 5
+  3×35 A, zonder maatregelen" en "… met 1 m³ buffer". Ze staan in de lijst direct na de vier woningscenario's (nummers 5
   en 6; de kantoorscenario's worden 7–10).

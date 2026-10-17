@@ -1,6 +1,7 @@
 // Blok 1 — Gebouw (spec §3.1). Bij meerdere woningen op één warmtepomp zijn piekvermogen, tapwaterbehoefte en
 // boilervat totalen van het gebouw; de UI toont daarnaast de waarde per woning (tapwater wordt per woning ingevoerd).
 import { fmt } from '../../../../core/format';
+import { DEFAULT_MULTI_DHW_KWH_PER_DWELLING, DEFAULT_MULTI_TANK_L_PER_DWELLING } from '../../data/defaults';
 import { CheckField, SegField } from '../../../../ui/fields';
 import { buildingKind, LIMITS } from '../../model/input';
 import type { Building, BuildingKind } from '../../model/types';
@@ -266,12 +267,13 @@ export function BuildingPanel() {
         checked={b.dhw.enabled}
         onChange={(enabled) =>
           patchDhw(
-            // standaard per woning (bij meerdere woningen × het aantal)
+            // standaard per woning (bij meerdere woningen de appartementwaarden × het aantal)
             enabled && b.dhw.tankLitre === 0
               ? {
                   enabled,
-                  tankLitre: office ? 500 : 200 * n,
-                  dailyKwh: b.dhw.dailyKwh || (office ? 20 : 10 * n),
+                  tankLitre: office ? 500 : multi ? DEFAULT_MULTI_TANK_L_PER_DWELLING * n : 200,
+                  dailyKwh:
+                    b.dhw.dailyKwh || (office ? 20 : multi ? DEFAULT_MULTI_DHW_KWH_PER_DWELLING * n : 10),
                 }
               : { enabled },
           )

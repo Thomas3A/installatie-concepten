@@ -326,7 +326,7 @@ export const EXPLAIN: ExplainSection[] = [
       '$$P = \\sqrt{3}\\,U\\,I \\quad (U = 400\\ \\mathrm{V},\\ \\cos\\varphi = 1)$$',
       'bij 3-fase; 3×25 A is dus 17,3 kW. Grootverbruikers geven hun gecontracteerde vermogen op. Het WP-budget is het aandeel van de aansluiting voor warmtepomp en batterij: $P_{limiet} = P_{aansluiting} \\cdot aandeel$.',
       'De rest van de aansluiting wordt op het piekmoment volledig benut verondersteld (koken, wassen, laden): dat is de veilige aanname, omdat de koudste uren vaak samenvallen met de avondpiek van het overige gebruik. Overschrijding van het WP-budget is daarmee overschrijding van de aansluiting.',
-      'Bij **meerdere woningen** is de aansluiting die van de collectieve installatie (standaard 3×40 A, waarvan 80 % voor warmtepomp en batterij; de rest voor pompen, ventilatie en algemene ruimten). De woningen zelf hebben elk een eigen aansluiting die hier niet meetelt.',
+      'Bij **meerdere woningen** is de aansluiting die van de collectieve installatie (standaard 3×35 A, waarvan 80 % voor warmtepomp en batterij; de rest voor pompen, ventilatie en algemene ruimten). De woningen zelf hebben elk een eigen aansluiting die hier niet meetelt.',
     ],
   },
   {

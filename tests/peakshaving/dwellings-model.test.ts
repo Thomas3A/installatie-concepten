@@ -29,13 +29,14 @@ const toLink = (payload: unknown): string =>
   btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 describe('standaardinvoer meerdere woningen', () => {
-  it('10 woningen × 5 kW, tapwater en boilervat × 10, eigen aansluiting 3×40 A met 80 %', () => {
+  it('10 woningen × 5 kW, tapwater 6 kWh/dag en boilervat 120 l × 10, eigen aansluiting 3×35 A met 80 %', () => {
     const i = multi();
     expect(i).toEqual(multiDwellingInput());
     expect(i.building.use).toBe('residential');
     expect(i.building.dwellings).toBe(DEFAULT_DWELLINGS);
     expect(i.building.designLoadKw).toBe(DEFAULT_DWELLINGS * DEFAULT_MULTI_LOAD_PER_DWELLING_KW);
-    expect(i.building.dhw).toMatchObject({ enabled: true, dailyKwh: 100, tankLitre: 2000 });
+    expect(i.building.dhw).toMatchObject({ enabled: true, dailyKwh: 60, tankLitre: 1200 });
+    expect(i.grid.connection).toBe('3x35');
     expect(i.grid.connection).toBe(MULTI_DEFAULT_CONNECTION);
     expect(i.grid.heatPumpShare).toBe(MULTI_DEFAULT_SHARE);
     expect(i.climateYear).toBe('T5');
@@ -129,8 +130,8 @@ describe('withDwellings: het gebouw groeit met dezelfde woningen mee', () => {
     const after = withDwellings(before, 20);
     expect(after.building.dwellings).toBe(20);
     expect(after.building.designLoadKw).toBeCloseTo(100, 9);
-    expect(after.building.dhw.dailyKwh).toBeCloseTo(200, 9);
-    expect(after.building.dhw.tankLitre).toBeCloseTo(4000, 9);
+    expect(after.building.dhw.dailyKwh).toBeCloseTo(120, 9);
+    expect(after.building.dhw.tankLitre).toBeCloseTo(2400, 9);
     expect(after.buffer.volumeM3).toBeCloseTo(4, 9);
     expect(after.battery.capacityKwh).toBeCloseTo(40, 9);
     expect(after.battery.powerKw).toBeCloseTo(16, 9);
@@ -175,8 +176,8 @@ describe('withDwellings: het gebouw groeit met dezelfde woningen mee', () => {
     const big = withDwellings(multi(), 500);
     expect(big.building.dwellings).toBe(500);
     expect(big.building.designLoadKw).toBe(LIMITS.designLoadKw[1]);
-    expect(big.building.dhw.dailyKwh).toBeCloseTo(5000, 9);
-    expect(big.building.dhw.tankLitre).toBeCloseTo(100000, 9);
+    expect(big.building.dhw.dailyKwh).toBeCloseTo(3000, 9);
+    expect(big.building.dhw.tankLitre).toBeCloseTo(60000, 9);
     expect(normalizeInput(big)).toEqual(big);
   });
   it('kantoor, hetzelfde aantal en een ongeldig aantal: niets wijzigt (hetzelfde object)', () => {

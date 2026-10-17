@@ -20,7 +20,7 @@ function residential(patch: (i: PeakshavingInput) => void): () => PeakshavingInp
   };
 }
 
-/** Meerdere woningen op één warmtepomp: standaard 10 woningen van 5 kW op een eigen aansluiting van 3×40 A. */
+/** Meerdere woningen op één warmtepomp: standaard 10 woningen van 5 kW op een eigen aansluiting van 3×35 A. */
 function multiDwelling(patch: (i: PeakshavingInput) => void): () => PeakshavingInput {
   return () => {
     const i = multiDwellingInput();
@@ -76,18 +76,18 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'woningen-basis',
-    title: '10 woningen op één warmtepomp — 50 kW, 3×40 A, zonder maatregelen',
+    title: '10 woningen op één warmtepomp — 50 kW, 3×35 A, zonder maatregelen',
     description:
-      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt bijna 90 kW en zit ruim 200 uur per jaar boven het budget van 22 kW; pas 3×63 A past.',
+      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt zo’n 66 kW en zit ruim honderd uur per jaar boven het budget van 19,4 kW; pas 3×40 A past.',
     build: multiDwelling(() => undefined),
   },
   {
     id: 'woningen-buffer',
-    title: '… met 2 m³ buffer',
+    title: '… met 1 m³ buffer',
     description:
-      'Twee kuub buffer vangt de pieken op: de warmtepomp zakt naar zo’n 65 kW en past zonder overschrijding binnen 3×40 A.',
+      'Eén kuub buffer vangt het boilerladen en de avondpiek op: de piek aan de meter zakt van 21,6 naar 19,4 kW en past zonder overschrijding binnen 3×35 A.',
     build: multiDwelling((i) => {
-      i.buffer.volumeM3 = 2;
+      i.buffer.volumeM3 = 1;
     }),
   },
   {

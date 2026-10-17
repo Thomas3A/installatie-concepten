@@ -99,13 +99,16 @@ export function defaultBattery(): Battery {
 /** Meerdere woningen: standaardaantal en piekvermogen per woning [kW] (appartement na isolatie). */
 export const DEFAULT_DWELLINGS = 10;
 export const DEFAULT_MULTI_LOAD_PER_DWELLING_KW = 5;
+/** Tapwater per appartement: nuttige behoefte [kWh/dag] en boilerinhoud [l] (zelfde vulgraad als de woning: ≈ 0,9 dag). */
+export const DEFAULT_MULTI_DHW_KWH_PER_DWELLING = 6;
+export const DEFAULT_MULTI_TANK_L_PER_DWELLING = 120;
 
 /** Eigen aansluiting van de collectieve warmtepomp (zie docs/AANNAMES.md). */
-export const MULTI_DEFAULT_CONNECTION = '3x40' as const;
+export const MULTI_DEFAULT_CONNECTION = '3x35' as const;
 /** Deel van die aansluiting voor WP + batterij; de rest is voor pompen, ventilatie en algemene ruimten. */
 export const MULTI_DEFAULT_SHARE = 0.8;
 
-/** Woningen op één warmtepomp: tapwater (dagbehoefte en boilervat) per woning × aantal, eigen aansluiting. */
+/** Woningen op één warmtepomp: piekvermogen en tapwater (dagbehoefte en boilervat) per woning × aantal, eigen aansluiting. */
 export function multiDwellingInput(dwellings = DEFAULT_DWELLINGS): PeakshavingInput {
   const one = residentialBuilding();
   return {
@@ -114,7 +117,11 @@ export function multiDwellingInput(dwellings = DEFAULT_DWELLINGS): PeakshavingIn
       ...one,
       dwellings,
       designLoadKw: DEFAULT_MULTI_LOAD_PER_DWELLING_KW * dwellings,
-      dhw: { ...one.dhw, dailyKwh: one.dhw.dailyKwh * dwellings, tankLitre: one.dhw.tankLitre * dwellings },
+      dhw: {
+        ...one.dhw,
+        dailyKwh: DEFAULT_MULTI_DHW_KWH_PER_DWELLING * dwellings,
+        tankLitre: DEFAULT_MULTI_TANK_L_PER_DWELLING * dwellings,
+      },
     },
     grid: {
       connection: MULTI_DEFAULT_CONNECTION,

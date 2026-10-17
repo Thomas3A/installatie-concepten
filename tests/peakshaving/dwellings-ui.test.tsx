@@ -102,9 +102,9 @@ describe('store: meerdere woningen', () => {
     expect(m.building.use).toBe('residential');
     expect(m.building.dwellings).toBe(10);
     expect(m.building.designLoadKw).toBe(50);
-    expect(m.building.dhw.dailyKwh).toBe(100);
-    expect(m.building.dhw.tankLitre).toBe(2000);
-    expect(m.grid.connection).toBe('3x40');
+    expect(m.building.dhw.dailyKwh).toBe(60);
+    expect(m.building.dhw.tankLitre).toBe(1200);
+    expect(m.grid.connection).toBe('3x35');
     expect(m.grid.heatPumpShare).toBe(0.8);
     expect(st().ranges).toEqual(rangesOf(m));
     expect(st().scenarioId).toBeNull();
@@ -151,11 +151,11 @@ describe('store: meerdere woningen', () => {
     const i = st().input;
     expect(i.building.dwellings).toBe(20);
     expect(i.building.designLoadKw).toBeCloseTo(100, 9);
-    expect(i.building.dhw.dailyKwh).toBeCloseTo(200, 9);
-    expect(i.building.dhw.tankLitre).toBeCloseTo(4000, 9);
+    expect(i.building.dhw.dailyKwh).toBeCloseTo(120, 9);
+    expect(i.building.dhw.tankLitre).toBeCloseTo(2400, 9);
     expect(i.buffer.volumeM3).toBeCloseTo(2, 9);
     expect(i.battery.capacityKwh).toBeCloseTo(40, 9);
-    expect(i.grid.connection).toBe('3x40');
+    expect(i.grid.connection).toBe('3x35');
     expect(i.grid.heatPumpShare).toBe(0.8);
     expect(st().ranges).toEqual(rangesOf(i));
     expect(st().ranges.bufferMaxM3).toBeGreaterThan(ranges10.bufferMaxM3);
@@ -182,8 +182,8 @@ describe('store: meerdere woningen', () => {
     const b = st().input.building;
     expect(b.designLoadKw).toBe(LIMITS.designLoadKw[1]);
     expect(b.designLoadKw / b.dwellings).toBeCloseTo(4, 9);
-    expect(b.dhw.dailyKwh).toBeCloseTo(5000, 9);
-    expect(b.dhw.tankLitre).toBeCloseTo(100000, 9);
+    expect(b.dhw.dailyKwh).toBeCloseTo(3000, 9);
+    expect(b.dhw.tankLitre).toBeCloseTo(60000, 9);
     // terug naar 10 woningen houdt de lagere waarde per woning; de toelichting noemt de grens
     act(() => st().setDwellings(10));
     expect(st().input.building.designLoadKw).toBeCloseTo(40, 9);
@@ -234,9 +234,9 @@ describe('invoerblok Gebouw: meerdere woningen', () => {
     // de regel per woning beschrijft het getalveld (na de eenheid)
     expect(description(load)).toBe(`kW ≈ ${nl(5, 1)} kW per woning`);
     // tapwater per woning, boiler collectief
-    expect(field('Tapwaterbehoefte per woning').value).toBe('10,0');
-    expect(field('Boilervat (collectief)').value).toBe('2.000');
-    expect(screen.getByText('≈ 200 l per woning')).toBeTruthy();
+    expect(field('Tapwaterbehoefte per woning').value).toBe('6,0');
+    expect(field('Boilervat (collectief)').value).toBe('1.200');
+    expect(screen.getByText('≈ 120 l per woning')).toBeTruthy();
     expect(screen.queryByLabelText('Tapwaterbehoefte')).toBeNull();
     expect(screen.queryByLabelText('Boilervat')).toBeNull();
     // schuif aantal woningen: 2…100, stap 1
@@ -251,14 +251,14 @@ describe('invoerblok Gebouw: meerdere woningen', () => {
     const b = st().input.building;
     expect(b.dwellings).toBe(20);
     expect(b.designLoadKw).toBeCloseTo(100, 9);
-    expect(b.dhw.dailyKwh).toBeCloseTo(200, 9);
-    expect(b.dhw.tankLitre).toBeCloseTo(4000, 9);
+    expect(b.dhw.dailyKwh).toBeCloseTo(120, 9);
+    expect(b.dhw.tankLitre).toBeCloseTo(2400, 9);
     expect(field('Aantal woningen').value).toBe('20');
     expect(field('Piekvermogen verwarming (totaal)').value).toBe('100,0');
     expect(screen.getByText(`≈ ${nl(5, 1)} kW per woning`)).toBeTruthy();
-    expect(field('Tapwaterbehoefte per woning').value).toBe('10,0');
-    expect(field('Boilervat (collectief)').value).toBe('4.000');
-    expect(screen.getByText('≈ 200 l per woning')).toBeTruthy();
+    expect(field('Tapwaterbehoefte per woning').value).toBe('6,0');
+    expect(field('Boilervat (collectief)').value).toBe('2.400');
+    expect(screen.getByText('≈ 120 l per woning')).toBeTruthy();
 
     // minder dan 2 woningen kan in dit veld niet (dan zou de keuze stilzwijgend "Woning" worden)
     typeAndBlur(field('Aantal woningen'), '1');
@@ -325,9 +325,9 @@ describe('invoerblok Gebouw: meerdere woningen', () => {
     expect(screen.queryByLabelText('Tapwaterbehoefte per woning')).toBeNull();
     click(check);
     expect(st().input.building.dhw.enabled).toBe(true);
-    expect(st().input.building.dhw.tankLitre).toBe(2000);
-    expect(st().input.building.dhw.dailyKwh).toBe(100);
-    expect(field('Tapwaterbehoefte per woning').value).toBe('10,0');
+    expect(st().input.building.dhw.tankLitre).toBe(1200);
+    expect(st().input.building.dhw.dailyKwh).toBe(60);
+    expect(field('Tapwaterbehoefte per woning').value).toBe('6,0');
   });
 
   it('één woning: hint "Groot voor één woning" boven 20 kW; terug naar Woning geeft weer 8 kW', () => {
@@ -378,7 +378,7 @@ describe('invoerblok Gebouw: meerdere woningen', () => {
     expect(
       screen.getByText(
         new RegExp(
-          `tapwater ${nl(100, 1)} kWh/dag \\(${nl(10, 1)} kWh/dag per woning\\), collectieve boiler 2\\.000 l\\.$`,
+          `tapwater ${nl(60, 1)} kWh/dag \\(${nl(6, 1)} kWh/dag per woning\\), collectieve boiler 1\\.200 l\\.$`,
         ),
       ),
     ).toBeTruthy();
