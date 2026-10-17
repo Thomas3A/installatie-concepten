@@ -1,6 +1,11 @@
 // Invoer normaliseren (begrenzen, niet weigeren), gebouwfunctie wisselen en het piekvermogen schalen (spec §3).
 import { CONNECTIONS, LARGE_CONNECTION_ID, type ConnectionId } from '../data/connections';
-import { defaultInput, defaultInputOfKind } from '../data/defaults';
+import {
+  DEFAULT_MULTI_DHW_KWH_PER_DWELLING,
+  DEFAULT_MULTI_TANK_L_PER_DWELLING,
+  defaultInput,
+  defaultInputOfKind,
+} from '../data/defaults';
 import { EMITTER_PRESETS, MAX_SUPPLY_OPTIONS, type EmitterPreset } from '../data/heatPumpCurves';
 import { clamp } from '../../../core/interp';
 import { BATTERY_C_RATE_MAX, BATTERY_C_RATE_MIN } from './battery';
@@ -120,8 +125,17 @@ export function normalizeInput(raw: unknown): PeakshavingInput {
     preheatH: int(rb.preheatH, d.building.preheatH, LIMITS.preheatH),
     dhw: {
       enabled: bool(rdhw.enabled, d.building.dhw.enabled),
-      dailyKwh: num(rdhw.dailyKwh, d.building.dhw.dailyKwh * dwellings, perDwelling(LIMITS.dhwDailyKwh)),
-      tankLitre: num(rdhw.tankLitre, d.building.dhw.tankLitre * dwellings, perDwelling(LIMITS.tankLitre)),
+      // ontbrekend: de standaard per woning (bij meerdere woningen die van een appartement) × aantal
+      dailyKwh: num(
+        rdhw.dailyKwh,
+        (dwellings > 1 ? DEFAULT_MULTI_DHW_KWH_PER_DWELLING : d.building.dhw.dailyKwh) * dwellings,
+        perDwelling(LIMITS.dhwDailyKwh),
+      ),
+      tankLitre: num(
+        rdhw.tankLitre,
+        (dwellings > 1 ? DEFAULT_MULTI_TANK_L_PER_DWELLING : d.building.dhw.tankLitre) * dwellings,
+        perDwelling(LIMITS.tankLitre),
+      ),
       // boilertemperatuur begrensd op de maximale WP-aanvoer
       tankTempC: Math.min(
         num(rdhw.tankTempC, d.building.dhw.tankTempC, LIMITS.tankTempC),

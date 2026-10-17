@@ -97,7 +97,7 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
   gedimensioneerd of handmatig, bijstook) en maatregelen (buffervolume, laadstrategie, batterij, bedrijfsmodus).
   De bereiken van buffer en batterij volgen uit het piekvermogen.
 - **Drie gebouwkeuzes:** _één woning_, _meerdere woningen op één warmtepomp_ (een woongebouw met een collectieve
-  warmtepomp en boilervat op een eigen aansluiting; standaard 10 woningen × 5 kW op 3×40 A) en _kantoor_. Bij meerdere
+  warmtepomp en boilervat op een eigen aansluiting; standaard 10 woningen × 5 kW op 3×35 A) en _kantoor_. Bij meerdere
   woningen kies je het aantal woningen; piekvermogen, tapwater, buffer en batterij schalen mee en de tool toont de waarden
   per woning. Het rekenmodel rekent met de totalen van het gebouw (zie [`docs/AANNAMES.md`](docs/AANNAMES.md)).
 - **Resultaat:** acht KPI-kaarten (piek warmtevraag, benodigd WP-vermogen, piek aan de meter, uren overschrijding,

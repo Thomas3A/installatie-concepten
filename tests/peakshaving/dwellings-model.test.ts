@@ -3,7 +3,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_DWELLINGS,
+  DEFAULT_MULTI_DHW_KWH_PER_DWELLING,
   DEFAULT_MULTI_LOAD_PER_DWELLING_KW,
+  DEFAULT_MULTI_TANK_L_PER_DWELLING,
   MULTI_DEFAULT_CONNECTION,
   MULTI_DEFAULT_SHARE,
   defaultInput,
@@ -79,10 +81,13 @@ describe('normalizeInput: aantal woningen', () => {
     const office = normalizeInput({ building: { use: 'office', dwellings: 10, dhw: { dailyKwh: 400 } } });
     expect(office.building.dhw.dailyKwh).toBe(LIMITS.dhwDailyKwh[1]);
   });
-  it('ontbrekende tapwaterwaarden: de standaard per woning × aantal', () => {
+  it('ontbrekende tapwaterwaarden: de appartementstandaard per woning × aantal (één woning: de woningstandaard)', () => {
     const i = residential({ dwellings: 4 });
-    expect(i.building.dhw.dailyKwh).toBe(40);
-    expect(i.building.dhw.tankLitre).toBe(800);
+    expect(i.building.dhw.dailyKwh).toBe(4 * DEFAULT_MULTI_DHW_KWH_PER_DWELLING);
+    expect(i.building.dhw.tankLitre).toBe(4 * DEFAULT_MULTI_TANK_L_PER_DWELLING);
+    const one = residential({ dwellings: 1 });
+    expect(one.building.dhw.dailyKwh).toBe(10);
+    expect(one.building.dhw.tankLitre).toBe(200);
   });
 });
 
@@ -213,8 +218,8 @@ describe('rekenmodel: rekent met de totalen, het aantal woningen telt niet mee',
   }
   const run = (i: PeakshavingInput) => analyze(i, refYear('T5'), { robustnessYears: [refYear('T5')] });
 
-  // 5 woningen: de totalen (50 kWh/dag, 1000 l) passen ook binnen de grenzen van één woning; bij 10 woningen
-  // (100 kWh/dag) niet, die vergelijken we met aantal 2
+  // 5 woningen: de totalen (30 kWh/dag, 600 l) passen ook binnen de grenzen van één woning; bij 10 woningen
+  // (60 kWh/dag, boven 50 kWh/dag) niet, die vergelijken we met aantal 2
   it.each([
     [5, 1],
     [DEFAULT_DWELLINGS, 2],

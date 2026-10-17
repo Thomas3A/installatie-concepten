@@ -85,7 +85,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'woningen-buffer',
     title: '… met 1 m³ buffer',
     description:
-      'Eén kuub buffer vangt het boilerladen en de avondpiek op: de piek aan de meter zakt van 21,6 naar 19,4 kW en past zonder overschrijding binnen 3×35 A.',
+      'Eén kuub buffer vangt het bijladen van de boiler (’s ochtends en ’s avonds) op: de piek aan de meter zakt van 21,6 naar 19,4 kW en past zonder overschrijding binnen 3×35 A.',
     build: multiDwelling((i) => {
       i.buffer.volumeM3 = 1;
     }),

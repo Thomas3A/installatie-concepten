@@ -1,5 +1,6 @@
 // Standaardwaarden woning en kantoor (spec §3; gelijk aan woning_defaults(8) en kantoor_defaults(100) in de referentie).
-// Meerdere woningen (buiten de spec, zie docs/AANNAMES.md): woningstandaard met de totalen van n woningen.
+// Meerdere woningen (buiten de spec, zie docs/AANNAMES.md): woningstandaard met appartementwaarden (piekvermogen en
+// tapwater per woning) × n woningen en een eigen aansluiting.
 import type {
   Battery,
   Building,
@@ -99,7 +100,7 @@ export function defaultBattery(): Battery {
 /** Meerdere woningen: standaardaantal en piekvermogen per woning [kW] (appartement na isolatie). */
 export const DEFAULT_DWELLINGS = 10;
 export const DEFAULT_MULTI_LOAD_PER_DWELLING_KW = 5;
-/** Tapwater per appartement: nuttige behoefte [kWh/dag] en boilerinhoud [l] (zelfde vulgraad als de woning: ≈ 0,9 dag). */
+/** Tapwater per appartement: nuttige behoefte [kWh/dag] en boilerinhoud [l] (zelfde voorraad als de woning: ≈ 0,9 dag). */
 export const DEFAULT_MULTI_DHW_KWH_PER_DWELLING = 6;
 export const DEFAULT_MULTI_TANK_L_PER_DWELLING = 120;
 

@@ -311,7 +311,7 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   tapwaterbehoefte per woning.
 - **Standaardwaarden:** 10 woningen × 5 kW (appartement na isolatie), per woning 6 kWh/dag tapwater en 120 l boilervat,
   samen dus 50 kW, 60 kWh/dag en 1200 l. Een appartement gebruikt minder tapwater dan de woningstandaard van spec §3
-  (10 kWh/dag, 200 l); 120 l per woning geeft dezelfde vulgraad (nuttig 5,3 kWh ≈ 0,9 dag). Met 10 kWh/dag per woning
+  (10 kWh/dag, 200 l); 120 l per woning geeft dezelfde voorraad in dagen (nuttig 5,3 kWh ≈ 0,9 dag). Met 10 kWh/dag per woning
   zou het tapwater de warmtepomp domineren (89 kW voor 50 kW piekvermogen). De collectieve installatie heeft een eigen
   aansluiting van 3×35 A, waarvan 80 % voor warmtepomp + batterij; de rest is voor pompen, ventilatie en algemene
   ruimten. De woningen hebben elk een eigen aansluiting die hier niet meetelt. Alle overige waarden zijn die van de
@@ -319,8 +319,10 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
 - **Waarom 3×35 A en 80 %:** zo laat het standaardgeval, net als bij de ene woning, de rol van de buffer zien (T5):
   zonder maatregelen wordt de warmtepomp 65,8 kW, is de piek aan de meter 21,6 kW tegen een budget van 19,4 kW, zijn er
   121 uur overschrijding en is 3×40 A de kleinste passende aansluiting. Met 1 m³ buffer wordt de warmtepomp 63,6 kW en
-  blijft de piek aan de meter met 0 uur binnen 3×35 A. Met 2 m³ buffer is er weer 1 uur overschrijding: de warmtepomp
-  wordt dan kleiner gedimensioneerd (61,2 kW) en laadt het tapwater langer; met 20 kWh batterij erbij is het weer 0 uur.
+  blijft de piek aan de meter met 0 uur binnen 3×35 A. Alle 121 uren zonder maatregelen zijn uren waarin de
+  boiler wordt bijgeladen ('s ochtends om 8 en 's avonds om 19 uur). Met 2 m³ buffer is er weer 1 uur overschrijding: de
+  warmtepomp wordt dan kleiner gedimensioneerd (61,2 kW) en bij het bijladen van de boiler op een koude avond raakt de
+  buffer net leeg (19,5 kW tegen 19,4 kW); met 20 kWh batterij erbij is het weer 0 uur.
 - **Aantal woningen wijzigen:** het gebouw groeit met dezelfde woningen mee. Piekvermogen, tapwaterbehoefte en boilervat
   schalen met nieuw/oud aantal, en via het piekvermogen (zie "Piekvermogen wijzigen") ook buffer, batterij (capaciteit en
   een handmatig vermogen) en een handmatig WP-vermogen; de waarden per woning blijven zo gelijk. De aansluiting blijft
@@ -328,7 +330,8 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   batterij met de begrensde factor), terwijl het tapwater wel doorschaalt; de toelichting bij "Aantal woningen" noemt
   deze grens.
 - **Piekvermogen wijzigen** bij meerdere woningen verandert het vermogen per woning; het aantal woningen blijft.
-- **Bereiken:** 1–500 woningen (geheel getal; een kantoor is altijd 1). Tapwaterbehoefte en boilervat zijn begrensd op
+- **Bereiken:** 1–500 woningen (geheel getal; een kantoor is altijd 1). Ontbreken tapwaterbehoefte of boilervat in de
+  invoer, dan geldt de standaard per woning (bij meerdere woningen 6 kWh/dag en 120 l) × het aantal. Tapwaterbehoefte en boilervat zijn begrensd op
   het bereik per woning × het aantal (0–50 kWh/dag en 0–2000 l per woning). Het piekvermogen blijft 1–2000 kW in totaal;
   de bereiken van buffer, batterij en WP-vermogen volgen zoals altijd uit het totale piekvermogen. Een gebouw met 1 woning
   is weer de keuze "woning". In de invoer loopt het aantal woningen van 2 tot 500 (schuif 2–100; een lager getal wordt 2);
