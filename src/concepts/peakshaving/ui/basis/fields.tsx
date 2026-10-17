@@ -6,7 +6,12 @@ import { fmt } from '../../../../core/format';
 import { clamp } from '../../../../core/interp';
 import { InfoIcon, SegField, SelectField } from '../../../../ui/fields';
 import u from '../../../../ui/ui.module.css';
-import { CONNECTIONS, LARGE_CONNECTION_ID, type ConnectionId } from '../../data/connections';
+import {
+  CONNECTIONS,
+  LARGE_CONNECTION_ID,
+  LARGE_CONNECTION_LABEL,
+  type ConnectionId,
+} from '../../data/connections';
 import { EMITTER_PRESETS, MAX_SUPPLY_OPTIONS, type EmitterPreset } from '../../data/heatPumpCurves';
 import { connectionPowerKw, gridLimitKw } from '../../model/grid';
 import { buildingKind, LIMITS } from '../../model/input';
@@ -324,7 +329,8 @@ export function ConnectionField() {
         value={connection}
         options={[
           ...CONNECTIONS.map((c) => ({ value: c.id, label: `${c.label} — ${fmt(c.powerKw, 2)} kW` })),
-          { value: LARGE_CONNECTION_ID, label: 'Grootverbruik (gecontracteerd vermogen)' },
+          // kort: het veld ernaast heet al "Gecontracteerd vermogen" (de lange tekst viel buiten de keuzelijst)
+          { value: LARGE_CONNECTION_ID, label: LARGE_CONNECTION_LABEL },
         ]}
         onChange={(c) => patch.grid({ connection: c })}
       />
@@ -411,11 +417,12 @@ export function MassField() {
   );
 }
 
+/** Ontwerpbuiten- en ontwerpbinnentemperatuur naast elkaar. */
 export function DesignTempsField() {
   const b = useStore((st) => st.input.building);
   const patch = usePatch();
   return (
-    <FieldCell field="designTemps" className={s.stack}>
+    <FieldCell field="designTemps" className={p.pair}>
       <RangeField
         label="Ontwerpbuitentemperatuur"
         info={HELP.designOutdoor}
@@ -442,88 +449,99 @@ export function DesignTempsField() {
   );
 }
 
-/** Overige gebouwvelden: setpoints, stookgrens, gevel, opwarmfactor en (kantoor) de opstooktijd. */
+/**
+ * Overige gebouwvelden, twee aan twee: setpoints tijdens en buiten gebruik, stookgrens en gevel, opwarmfactor en (kantoor)
+ * de opstooktijd.
+ */
 export function BuildingMoreFields() {
   const b = useStore((st) => st.input.building);
   const patch = usePatch();
   return (
     <>
-      <RangeField
-        label="Setpoint tijdens gebruik"
-        info={HELP.setpointUse}
-        value={b.setpointUseC}
-        min={LIMITS.setpointUseC[0]}
-        max={LIMITS.setpointUseC[1]}
-        step={0.5}
-        unit="°C"
-        noSlider
-        onChange={(v) => patch.building({ setpointUseC: v })}
-      />
-      <RangeField
-        label="Setpoint buiten gebruik"
-        info={HELP.setpointSetback}
-        value={b.setpointSetbackC}
-        min={LIMITS.setpointSetbackC[0]}
-        max={LIMITS.setpointSetbackC[1]}
-        step={0.5}
-        unit="°C"
-        noSlider
-        onChange={(v) => patch.building({ setpointSetbackC: v })}
-      />
-      <RangeField
-        label="Stookgrens tijdens gebruik"
-        info={HELP.balanceTemp}
-        value={b.balanceTempC}
-        min={LIMITS.balanceTempC[0]}
-        max={LIMITS.balanceTempC[1]}
-        step={0.5}
-        unit="°C"
-        noSlider
-        onChange={(v) => patch.building({ balanceTempC: v })}
-      />
-      <RangeField
-        label="Traagheid gevel"
-        info={HELP.envelopeLag}
-        value={b.envelopeLagH}
-        min={LIMITS.envelopeLagH[0]}
-        max={LIMITS.envelopeLagH[1]}
-        step={0.5}
-        unit="h"
-        noSlider
-        onChange={(v) => patch.building({ envelopeLagH: v })}
-      />
-      <RangeField
-        label="Opwarmfactor"
-        info={HELP.boost}
-        value={b.boostFraction}
-        min={LIMITS.boostFraction[0]}
-        max={LIMITS.boostFraction[1]}
-        step={0.05}
-        digits={2}
-        unit="× P"
-        noSlider
-        onChange={(v) => patch.building({ boostFraction: v })}
-      />
-      {b.use === 'office' && (
+      <div className={p.pair}>
         <RangeField
-          label="Opstooktijd"
-          info={HELP.preheat}
-          value={b.preheatH}
-          min={LIMITS.preheatH[0]}
-          max={LIMITS.preheatH[1]}
-          step={1}
+          label="Setpoint tijdens gebruik"
+          info={HELP.setpointUse}
+          value={b.setpointUseC}
+          min={LIMITS.setpointUseC[0]}
+          max={LIMITS.setpointUseC[1]}
+          step={0.5}
+          unit="°C"
+          noSlider
+          onChange={(v) => patch.building({ setpointUseC: v })}
+        />
+        <RangeField
+          label="Setpoint buiten gebruik"
+          info={HELP.setpointSetback}
+          value={b.setpointSetbackC}
+          min={LIMITS.setpointSetbackC[0]}
+          max={LIMITS.setpointSetbackC[1]}
+          step={0.5}
+          unit="°C"
+          noSlider
+          onChange={(v) => patch.building({ setpointSetbackC: v })}
+        />
+      </div>
+      <div className={p.pair}>
+        <RangeField
+          label="Stookgrens tijdens gebruik"
+          info={HELP.balanceTemp}
+          value={b.balanceTempC}
+          min={LIMITS.balanceTempC[0]}
+          max={LIMITS.balanceTempC[1]}
+          step={0.5}
+          unit="°C"
+          noSlider
+          onChange={(v) => patch.building({ balanceTempC: v })}
+        />
+        <RangeField
+          label="Traagheid gevel"
+          info={HELP.envelopeLag}
+          value={b.envelopeLagH}
+          min={LIMITS.envelopeLagH[0]}
+          max={LIMITS.envelopeLagH[1]}
+          step={0.5}
           unit="h"
           noSlider
-          onChange={(v) => patch.building({ preheatH: v })}
+          onChange={(v) => patch.building({ envelopeLagH: v })}
         />
-      )}
+      </div>
+      <div className={p.pair}>
+        <RangeField
+          label="Opwarmfactor"
+          info={HELP.boost}
+          value={b.boostFraction}
+          min={LIMITS.boostFraction[0]}
+          max={LIMITS.boostFraction[1]}
+          step={0.05}
+          digits={2}
+          unit="× P"
+          noSlider
+          onChange={(v) => patch.building({ boostFraction: v })}
+        />
+        {b.use === 'office' && (
+          <RangeField
+            label="Opstooktijd"
+            info={HELP.preheat}
+            value={b.preheatH}
+            min={LIMITS.preheatH[0]}
+            max={LIMITS.preheatH[1]}
+            step={1}
+            unit="h"
+            noSlider
+            onChange={(v) => patch.building({ preheatH: v })}
+          />
+        )}
+      </div>
     </>
   );
 }
 
 /**
  * Tapwatergetallen (alleen als tapwater aan staat): behoefte (per woning), boilervat (collectief) en
- * boilertemperatuur. Bij meerdere woningen wordt de behoefte per woning ingevoerd; het model krijgt het totaal.
+ * boilertemperatuur. Bij meerdere woningen wordt de behoefte per woning ingevoerd; het model krijgt het totaal. Behoefte
+ * en boilervat staan naast elkaar, bij meerdere woningen onder elkaar (de labels zijn daar langer), zoals in de oude
+ * invoer.
  */
 export function DhwDetailsField() {
   const b = useStore((st) => st.input.building);
@@ -533,40 +551,44 @@ export function DhwDetailsField() {
   const n = multi ? b.dwellings : 1;
   return (
     <FieldCell field="dhwDetails" className={s.stack}>
-      <RangeField
-        label={multi ? 'Tapwaterbehoefte per woning' : 'Tapwaterbehoefte'}
-        info={multi ? HELP.dhwDailyPerDwelling : HELP.dhwDaily}
-        value={b.dhw.dailyKwh / n}
-        min={LIMITS.dhwDailyKwh[0]}
-        max={LIMITS.dhwDailyKwh[1]}
-        step={0.5}
-        unit="kWh/dag"
-        noSlider
-        onChange={(v) => patch.dhw({ dailyKwh: v * n })}
-      />
-      <RangeField
-        label={multi ? 'Boilervat (collectief)' : 'Boilervat'}
-        info={multi ? HELP.tankCollective : HELP.tank}
-        value={b.dhw.tankLitre}
-        min={LIMITS.tankLitre[0]}
-        max={LIMITS.tankLitre[1] * n}
-        step={multi ? 50 : 10}
-        unit="l"
-        noSlider
-        hint={multi ? <>≈ {fmt(b.dhw.tankLitre / n, 0)} l per woning</> : undefined}
-        onChange={(v) => patch.dhw({ tankLitre: v })}
-      />
-      <RangeField
-        label="Boilertemperatuur"
-        info={HELP.tankTemp}
-        value={b.dhw.tankTempC}
-        min={LIMITS.tankTempC[0]}
-        max={LIMITS.tankTempC[1]}
-        step={1}
-        unit="°C"
-        noSlider
-        onChange={(v) => patch.dhw({ tankTempC: v })}
-      />
+      <div className={multi ? s.stack : p.pair}>
+        <RangeField
+          label={multi ? 'Tapwaterbehoefte per woning' : 'Tapwaterbehoefte'}
+          info={multi ? HELP.dhwDailyPerDwelling : HELP.dhwDaily}
+          value={b.dhw.dailyKwh / n}
+          min={LIMITS.dhwDailyKwh[0]}
+          max={LIMITS.dhwDailyKwh[1]}
+          step={0.5}
+          unit="kWh/dag"
+          noSlider
+          onChange={(v) => patch.dhw({ dailyKwh: v * n })}
+        />
+        <RangeField
+          label={multi ? 'Boilervat (collectief)' : 'Boilervat'}
+          info={multi ? HELP.tankCollective : HELP.tank}
+          value={b.dhw.tankLitre}
+          min={LIMITS.tankLitre[0]}
+          max={LIMITS.tankLitre[1] * n}
+          step={multi ? 50 : 10}
+          unit="l"
+          noSlider
+          hint={multi ? <>≈ {fmt(b.dhw.tankLitre / n, 0)} l per woning</> : undefined}
+          onChange={(v) => patch.dhw({ tankLitre: v })}
+        />
+      </div>
+      <div className={p.pair}>
+        <RangeField
+          label="Boilertemperatuur"
+          info={HELP.tankTemp}
+          value={b.dhw.tankTempC}
+          min={LIMITS.tankTempC[0]}
+          max={LIMITS.tankTempC[1]}
+          step={1}
+          unit="°C"
+          noSlider
+          onChange={(v) => patch.dhw({ tankTempC: v })}
+        />
+      </div>
     </FieldCell>
   );
 }
@@ -576,6 +598,7 @@ export function HeatPumpMoreField() {
   const patch = usePatch();
   return (
     <FieldCell field="heatPumpMore" className={s.stack}>
+      {/* het lange label breekt in een halve kolom af; daarom over de volle breedte */}
       <SelectField<number>
         label="Max. aanvoertemperatuur warmtepomp"
         info={HELP.maxSupply}
@@ -583,18 +606,20 @@ export function HeatPumpMoreField() {
         options={MAX_SUPPLY_OPTIONS.map((v) => ({ value: v, label: `${v} °C` }))}
         onChange={(maxSupplyC) => patch.heatPump({ maxSupplyC })}
       />
-      <RangeField
-        label="Bijstookelement"
-        info={HELP.backup}
-        value={hp.backupHeaterKw}
-        min={LIMITS.backupHeaterKw[0]}
-        max={LIMITS.backupHeaterKw[1]}
-        step={0.5}
-        digits={1}
-        unit="kW"
-        noSlider
-        onChange={(backupHeaterKw) => patch.heatPump({ backupHeaterKw })}
-      />
+      <div className={p.pair}>
+        <RangeField
+          label="Bijstookelement"
+          info={HELP.backup}
+          value={hp.backupHeaterKw}
+          min={LIMITS.backupHeaterKw[0]}
+          max={LIMITS.backupHeaterKw[1]}
+          step={0.5}
+          digits={1}
+          unit="kW"
+          noSlider
+          onChange={(backupHeaterKw) => patch.heatPump({ backupHeaterKw })}
+        />
+      </div>
       <RangeField
         label="Carnot-rendement"
         info={HELP.carnot}
@@ -613,7 +638,7 @@ export function AllowedHoursField() {
   const g = useStore((st) => st.input.grid);
   const patch = usePatch();
   return (
-    <FieldCell field="allowedHours" className={s.stack}>
+    <FieldCell field="allowedHours" className={p.pair}>
       <RangeField
         label="Toegestane overschrijdingsuren"
         info={HELP.allowedExceedance}

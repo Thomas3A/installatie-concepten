@@ -16,9 +16,15 @@ import {
 } from './model/input';
 import type { Ranges } from './model/ranges';
 import type { SensitivityRow } from './model/sizing';
-import type { BuildingKind, BuildingUse, ClimateYearId, PeakshavingInput } from './model/types';
-import { findScenario } from './scenarios';
-import { decodeInput, encodeInput, sameInput, scenarioIdOf } from './share';
+import type {
+  BuildingKind,
+  BuildingUse,
+  ClimateYearId,
+  OperatingMode,
+  PeakshavingInput,
+} from './model/types';
+import { findScenario, SCENARIOS } from './scenarios';
+import { decodeInput, encodeInput, sameInput } from './share';
 import { TOAST_TEXTS } from './texts';
 import { readKey, STORAGE_KEYS, writeKey } from './ui/storage';
 import type { SensitivityState } from './view/sensitivityFacts';
@@ -88,6 +94,11 @@ interface State {
   /** aantal woningen op de warmtepomp; piekvermogen, tapwater, buffer en batterij schalen mee */
   setDwellings: (n: number) => void;
   setClimateYear: (id: ClimateYearId) => void;
+  /**
+   * bedrijfsmodus van grafieken en kerngetallen: een weergavekeuze, geen invoerwijziging. Het voorbeeld, de eigen
+   * invoer en het ongedaan maken blijven staan; de modus gaat wel mee in de deellink.
+   */
+  setMode: (mode: OperatingMode) => void;
   applyScenario: (id: string) => void;
   loadInput: (input: PeakshavingInput, scenarioId?: string | null) => void;
   fromShareHash: (code: string) => boolean;
@@ -263,6 +274,24 @@ function requestSensitivity(explicit = false): void {
 
 const initialInput = normalizeInput(findScenario(DEFAULT_SCENARIO)?.build() ?? defaultInput('residential'));
 
+/** Invoer met een andere bedrijfsmodus; dezelfde invoer (hetzelfde object) als de modus al klopt. */
+function withMode(input: PeakshavingInput, mode: OperatingMode): PeakshavingInput {
+  return input.grid.mode === mode ? input : { ...input, grid: { ...input.grid, mode } };
+}
+
+/**
+ * Id van het voorbeeld met deze invoer, anders null. De bedrijfsmodus telt niet mee: dat is een weergavekeuze in
+ * Verdieping, geen eigenschap van het voorbeeld (zie setMode).
+ */
+function exampleIdOf(input: PeakshavingInput): string | null {
+  return (
+    SCENARIOS.find((sc) => {
+      const example = sc.build();
+      return sameInput(withMode(input, example.grid.mode), example);
+    })?.id ?? null
+  );
+}
+
 /** Een handmatige invoerwijziging: het ongedaan maken vervalt, en daarmee een melding die erop steunt. */
 function manualChange(st: Pick<State, 'notice'>): Pick<State, 'undo' | 'notice'> {
   return { undo: null, notice: st.notice && st.notice.kind !== 'example' ? null : st.notice };
@@ -302,11 +331,13 @@ export const useStore = create<State>((set, get) => ({
     schedule();
   },
   setUse: (use) => {
-    const next = switchUse(get().input, use);
+    const cur = get().input;
+    // de standaardinvoer van de functie, met dezelfde weergavekeuze (bedrijfsmodus)
+    const next = withMode(switchUse(cur, use), cur.grid.mode);
     set({
       input: next,
       ranges: rangesOf(next),
-      scenarioId: scenarioIdOf(next),
+      scenarioId: exampleIdOf(next),
       scrubHour: null,
       ...manualChange(get()),
     });
@@ -314,16 +345,18 @@ export const useStore = create<State>((set, get) => ({
   },
   setKind: (kind) => {
     const st = get();
-    const next = switchKind(st.input, kind);
+    const switched = switchKind(st.input, kind);
     // dezelfde keuze nogmaals: niets wijzigen (het scenario blijft dan ook staan)
-    if (next === st.input) return;
+    if (switched === st.input) return;
+    // de bedrijfsmodus is een weergavekeuze en blijft staan
+    const next = withMode(switched, st.input.grid.mode);
     // over eigen invoer heen: die bewaren, met één stap terug en een melding "… · Ongedaan maken"
     const own = st.scenarioId === null;
     set({
       input: next,
       ranges: rangesOf(next),
       // de standaardinvoer van een keuze is meestal ook een scenario (zoals bij een gedeelde link)
-      scenarioId: scenarioIdOf(next),
+      scenarioId: exampleIdOf(next),
       scrubHour: null,
       ...(own
         ? {
@@ -346,11 +379,21 @@ export const useStore = create<State>((set, get) => ({
     get().update((i) => ({ ...i, climateYear: id }));
     set({ scrubHour: null });
   },
+  setMode: (mode) => {
+    const st = get();
+    // nogmaals dezelfde keuze: niets te doen
+    if (st.input.grid.mode === mode) return;
+    const next = normalizeInput(withMode(st.input, mode));
+    // geen manualChange: voorbeeld, eigen invoer, ongedaan maken en melding blijven staan
+    set({ input: next, ranges: rangesOf(next) });
+    schedule();
+  },
   applyScenario: (id) => {
     const sc = findScenario(id);
     if (!sc) return;
     const st = get();
-    get().loadInput(sc.build(), id);
+    // het voorbeeld met de huidige weergavekeuze (bedrijfsmodus)
+    get().loadInput(withMode(sc.build(), st.input.grid.mode), id);
     // over eigen invoer heen: die bewaren en terug kunnen ("Terug naar je invoer")
     if (st.scenarioId === null)
       set({
@@ -374,8 +417,8 @@ export const useStore = create<State>((set, get) => ({
   fromShareHash: (code) => {
     const input = decodeInput(code);
     if (!input) return false;
-    // link van een ongewijzigd scenario: dat scenario (met titel) tonen
-    get().loadInput(input, scenarioIdOf(input));
+    // link van een ongewijzigd scenario: dat scenario (met titel) tonen; de modus uit de link geldt
+    get().loadInput(input, exampleIdOf(input));
     // de ontvanger ziet eerst het resultaat; de keuze voor de Basis wordt niet bewaard
     get().setBasisOpen(false, false);
     set({ openedFromLink: true });
@@ -407,9 +450,10 @@ export const useStore = create<State>((set, get) => ({
     if (!isWhatIfField(target)) get().setBasisOpen(true);
   },
   restoreOwnInput: () => {
-    const own = get().ownInput;
+    const { ownInput: own, input } = get();
     if (!own) return;
-    get().loadInput(own, null);
+    // de eigen invoer met de huidige weergavekeuze (bedrijfsmodus)
+    get().loadInput(withMode(own, input.grid.mode), null);
     set({ ownInput: null });
   },
   applyFix: (label, fn) => {
@@ -421,18 +465,20 @@ export const useStore = create<State>((set, get) => ({
     set({
       input: next,
       ranges: rangesOf(next),
-      scenarioId: scenarioIdOf(next),
+      scenarioId: exampleIdOf(next),
       undo: { input: st.input, scenarioId: st.scenarioId },
       notice: { kind: 'fix', text: label },
     });
     computeNow();
   },
   undoLast: () => {
-    const { undo, ownInput } = get();
+    const { undo, ownInput, input } = get();
     if (!undo) return;
+    // de invoer van vóór de knop, met de huidige weergavekeuze (bedrijfsmodus)
+    const back = withMode(undo.input, input.grid.mode);
     set({
-      input: undo.input,
-      ranges: rangesOf(undo.input),
+      input: back,
+      ranges: rangesOf(back),
       scenarioId: undo.scenarioId,
       undo: null,
       notice: null,

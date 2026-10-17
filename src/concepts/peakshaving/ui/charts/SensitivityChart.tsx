@@ -21,7 +21,6 @@ import {
   type GridModel,
   type Transition,
 } from '../../view/sensitivityFacts';
-import { usePointerCoarse } from '../hooks';
 import { pixelRatio } from './coldWeekDraw';
 import css from './SensitivityChart.module.css';
 
@@ -30,14 +29,8 @@ const TEXT = {
   lead: 'Waar de lijnen vlak worden, helpt meer buffer niet meer; een stip markeert vanaf welk buffervolume een aansluiting volstaat.',
   howToRead: 'Hoe lees ik dit?',
   pending: 'De gevoeligheid wordt berekend…',
-  clickHint: {
-    mouse: 'Klik in de grafiek om het buffervolume te kiezen.',
-    touch: 'Tik in de grafiek om het buffervolume te kiezen.',
-  },
-  readout: {
-    mouse: 'Beweeg over de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
-    touch: 'Tik in de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
-  },
+  clickHint: 'Klik in de grafiek om het buffervolume te kiezen.',
+  readout: 'Beweeg over de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
 } as const;
 
 // vaste middentint die in het lichte én donkere thema leesbaar is (zelfde oranje als de buffer in de andere tabbladen)
@@ -598,10 +591,9 @@ function Readout({
   designLoadKw: number;
   netDigits: number;
 }) {
-  const coarse = usePointerCoarse();
   const row = idx !== null ? m.rows[idx] : null;
   if (!row) {
-    return <div className={css.readout}>{coarse ? TEXT.readout.touch : TEXT.readout.mouse}</div>;
+    return <div className={css.readout}>{TEXT.readout}</div>;
   }
   const hours = bufferHoursOfPeak(row.volumeM3, kwhPerM3, designLoadKw);
   return (
@@ -927,7 +919,6 @@ export function SensitivityChart({ print = false }: { print?: boolean }) {
   const grid = useStore((st) => st.input.grid);
   const designLoadKw = useStore((st) => st.input.building.designLoadKw);
   const retry = useStore((st) => st.retry);
-  const coarse = usePointerCoarse();
   const n = sens && sens.total > 0 ? sens.total : SENSITIVITY_VOLUME_FRACTIONS.length;
   const computed = sens ? sens.rows.filter((r) => r !== null && r !== undefined).length : 0;
   const error = sens?.error ?? null;
@@ -961,9 +952,7 @@ export function SensitivityChart({ print = false }: { print?: boolean }) {
       {!print && (
         // vaste hoogte: de voortgang en de klikhint staan op dezelfde plek, dus niets verspringt
         <div className={css.statusRow}>
-          <p className={`${css.clickHint} ${busy ? css.off : ''}`}>
-            {coarse ? TEXT.clickHint.touch : TEXT.clickHint.mouse}
-          </p>
+          <p className={`${css.clickHint} ${busy ? css.off : ''}`}>{TEXT.clickHint}</p>
           <div className={`${css.progress} ${busy ? '' : css.off}`}>
             <progress max={n} value={computed} aria-label="Voortgang gevoeligheidsberekening" />
             <span>

@@ -105,6 +105,16 @@ beforeAll(async () => {
     officeHeavy: variant('kantoor-basis', (i) => {
       i.building.timeConstantH = 80;
     }),
+    officeHeavyMeasures: variant('kantoor-basis', (i) => {
+      i.building.timeConstantH = 80;
+      i.buffer.volumeM3 = 2;
+      i.battery.capacityKwh = 50;
+    }),
+    // boiler veel te klein voor de tapvraag: niet te dimensioneren door het tapwater
+    tinyBoiler: variant('woning-basis', (i) => {
+      i.building.dhw.tankLitre = 50;
+      i.building.dhw.dailyKwh = 30;
+    }),
     // rasterpunten naast de schuifstap: V_max = 2,5 m³ (0,05 × 2,5 = 0,125 m³) en E_max = 15 kWh (0,25 × 15 = 3,75)
     offStep5kW: normalizeInput({
       ...withDesignLoad(scenario('woning-basis'), 5),
@@ -157,19 +167,19 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
       title: 'Boven budget',
       value: '101',
       unit: 'uur/jaar',
-      line: '12 kWh/jaar · max. 0,26 kW',
+      line: '12 kWh/jaar',
       reference: null,
     });
     expect(sm).toMatchObject({
       title: 'Kleinste aansluiting',
       value: '1×40 A',
-      line: '1 stap groter dan de huidige 1×35 A',
+      line: '1 stap groter dan de huidige',
       reference: null,
     });
     const m = v.meter;
     expect(m.ariaLabel).toBe('Piek aan de meter 3,48 kW tegen een budget van 3,22 kW');
     expect(m.peakLabel).toBe('Piek aan de meter 3,48 kW');
-    expect(m.budgetLabel).toBe('budget 3,22 kW = 40 % van 1×35 A (8,05 kW)');
+    expect(m.budgetLabel).toBe('budget 3,22 kW');
     expect(m.withoutLabel).toBeNull();
     expect(m.shadowKw).toBeNull();
     expect(m.shaved).toBeNull();
@@ -186,12 +196,13 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(v.headline).toBe('Past op 1×35 A met 0,50 m³ buffer');
     expect(v.detail).toBe('Piek aan de meter 3,18 kW, 0,04 kW (1 %) onder het budget van 3,22 kW.');
     expect(v.tiles.map((t) => [t.value, t.reference])).toEqual([
-      ['9,4', 'zonder maatregelen 10,6 kW (−1,1)'],
+      // het verschil uit de getoonde waarden: 9,4 − 10,6 = −1,2 (ongerond −1,1)
+      ['9,4', 'zonder maatregelen 10,6 kW (−1,2)'],
       ['0', 'zonder maatregelen 101 uur'],
       ['1×35 A', 'zonder maatregelen 1×40 A'],
     ]);
     expect(v.tiles[1].line).toBe('geen enkel uur');
-    expect(v.tiles[2].line).toBe('gelijk aan de huidige aansluiting');
+    expect(v.tiles[2].line).toBe('gelijk aan de huidige');
     expect(v.stressLine).toBe('Strenge winter (T1): 0 uur boven budget, 48 uur te koud.');
     expect(v.fixesLabel).toBe('Kleinere aansluiting volstaat ook');
     expect(labels(v.fixes)).toEqual(['Probeer 1×25 A met 0,60 m³ buffer en 7,5 kWh batterij']);
@@ -234,7 +245,7 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(v.status).toBe('fitAmple');
     expect(v.headline).toBe('Past ruim op 3×25 A met 0,50 m³ buffer');
     expect(v.tiles[2].value).toBe('1×35 A');
-    expect(v.tiles[2].line).toBe('2 stappen kleiner dan de huidige 3×25 A');
+    expect(v.tiles[2].line).toBe('2 stappen kleiner dan de huidige');
     expect(labels(v.fixes)).toEqual(['Probeer 1×35 A']);
     expect(await hoursAfter(input, v.fixes[0])).toBe(0);
   });
@@ -269,8 +280,8 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
       'Grootverbruik 95 kW',
       'of 84 % voor de warmtepomp',
     ]);
-    expect(v.tiles[2]).toMatchObject({ value: 'Grootverbruik 95 kW', line: 'groter dan de huidige 3×80 A' });
-    expect(v.meter.budgetLabel).toBe('budget 27,7 kW = 50 % van 3×80 A (55,4 kW)');
+    expect(v.tiles[2]).toMatchObject({ value: 'Grootverbruik 95 kW', line: 'groter dan de huidige' });
+    expect(v.meter.budgetLabel).toBe('budget 27,7 kW');
   });
 
   it('woning met 43 % en 5 toegestane uren: past binnen de toegestane uren', () => {
@@ -282,6 +293,12 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(v.detail).toBe('4 uur per jaar boven het WP-budget van 3,46 kW, tot 0,02 kW erboven.');
     expect(v.fixesLabel).toBe('Wat helpt');
     expect(labels(v.fixes)).toEqual(['0,20 m³ buffer', '0,5 kWh batterij', 'of 44 % voor de warmtepomp']);
+    // 4 uur boven budget met minder dan 0,5 kWh: niet "0 kWh/jaar" onder "4 uur/jaar"
+    const kwh = exceedanceKpis(cases.share43.a).exceedanceKwh;
+    expect(kwh).toBeGreaterThan(0);
+    expect(kwh).toBeLessThan(0.5);
+    expect(v.tiles[1].value).toBe('4');
+    expect(v.tiles[1].line).toBe('< 1 kWh/jaar');
   });
 
   it('woning met 42,5 %: past net niet (piek hoogstens 3 % boven het budget)', () => {
@@ -330,13 +347,49 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(v.status).toBe('sizingFailed');
     expect(v.tone).toBe('err');
     expect(v.headline).toBe('Warmtepomp niet te dimensioneren');
-    expect(v.detail).toBe(`${MESSAGE_TEXTS.sizingFailed.summary} ${MESSAGE_TEXTS.sizingFailed.solutions[0]}`);
+    // kantoor zonder tapwater: het comfort (nachtverlaging) is de oorzaak, geen advies over boiler of tapwater
+    const [boiler, allowComfortLoss, setback] = MESSAGE_TEXTS.sizingFailed.solutions;
+    expect(cases.officeHeavy.input.building.dhw.enabled).toBe(false);
+    expect(v.detail).toBe(`Ook met 3 × het piekvermogen wordt het comfort niet gehaald. ${setback}`);
+    expect(v.detail).not.toMatch(/boiler|tapwater/i);
+    expect(v.why).not.toBeNull();
+    expect(v.why!.solutions).toEqual([setback, allowComfortLoss]);
+    expect(v.why!.solutions).not.toContain(boiler);
+    // de toelichting van de melding, met de terugvalwaarde ingevuld
+    expect(v.why!.paragraphs[0]).toBe(MESSAGE_TEXTS.sizingFailed.why[0]);
+    expect(v.why!.paragraphs.join(' ')).not.toContain('{');
     expect(v.fixes).toEqual([]);
     expect(v.fixesLabel).toBeNull();
     expect(v.tiles[0].value).toBe('–');
     // de balk onderaan noemt de terugvalwaarde (3 × piekvermogen) niet, net als de tegel
     expect(v.mini).toMatch(/^Niet te dimensioneren · \d+ uur$/);
     expect(v.mini).not.toContain('WP');
+    // ook Wat als? geeft dan geen batterijadvies (dat zou met de terugvalwaarde rekenen)
+    expect(batteryState(cases.officeHeavy.a).fix).toBeNull();
+  });
+
+  it('niet te dimensioneren met buffer en batterij: geen verwijzing naar de terugvalwaarde in de tegel', () => {
+    const { a, v } = cases.officeHeavyMeasures;
+    expect(v.status).toBe('sizingFailed');
+    expect(a.withoutMeasures.nominalKw).toBe(300);
+    expect(v.tiles[0].value).toBe('–');
+    expect(v.tiles[0].reference).toBeNull();
+    for (const t of v.tiles) expect(`${t.value} ${t.line} ${t.reference ?? ''}`).not.toContain('300,0');
+    expect(v.fixes).toEqual([]);
+    expect(batteryState(a).fix).toBeNull();
+  });
+
+  it('te kleine boiler: niet te dimensioneren door het tapwater, met de boiler als eerste oplossing', () => {
+    const { v } = cases.tinyBoiler;
+    const [boiler, allowComfortLoss] = MESSAGE_TEXTS.sizingFailed.solutions;
+    expect(v.status).toBe('sizingFailed');
+    expect(v.detail).toBe(`Ook met 3 × het piekvermogen wordt het tapwater niet gehaald. ${boiler}`);
+    // een woning zonder nachtverlaging: geen advies over opwarmfactor en verlaagd setpoint
+    expect(v.why!.solutions).toEqual([boiler, allowComfortLoss]);
+  });
+
+  it('alleen bij niet te dimensioneren een "Waarom?"', () => {
+    for (const { v } of Object.values(examples)) expect(v.why).toBeNull();
   });
 });
 

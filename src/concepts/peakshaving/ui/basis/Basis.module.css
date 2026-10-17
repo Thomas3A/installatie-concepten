@@ -1,5 +1,6 @@
 /* Stap 1 · Basis (UX-plan §2.2–§2.5, §3): open paneel, ingeklapte strook, Meer instellingen en budgetbalk.
-   Breekpunten: ≥ 1280 px 4 kolommen, 1024–1279 px 3, 640–1023 px 2, < 640 px 1 (telefoon). */
+   Alleen pc/laptop: ≥ 1280 px 4 kolommen, 1024–1279 px 3. Smaller (tablet, telefoon) toont de schil een melding;
+   de Basis valt dan terug op 2 kolommen zonder verdere afstemming. */
 .basis {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -100,7 +101,8 @@
 }
 .form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* de eerste kolom is breed genoeg voor de drie knoppen van Gebouwfunctie op één regel */
+  grid-template-columns: minmax(340px, 1.15fr) repeat(3, minmax(0, 1fr));
   gap: 12px 18px;
   align-items: start;
 }
@@ -181,8 +183,10 @@
 .moreSummary:hover {
   color: var(--text);
 }
+/* vanaf 1280 px 3 kolommen, daaronder 2 (zie de breekpunten), zodat de velden die twee aan twee staan niet te smal
+   worden */
 .moreBody {
-  columns: 3 250px;
+  columns: 3;
   column-gap: 24px;
   padding-top: 8px;
 }
@@ -280,65 +284,14 @@
 /* ---- breekpunten */
 @media (max-width: 1279px) {
   .form {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(340px, 1.1fr) repeat(2, minmax(0, 1fr));
+  }
+  .moreBody {
+    columns: 2;
   }
 }
 @media (max-width: 1023px) {
   .form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 639px) {
-  .basis {
-    padding: 10px 12px 12px;
-  }
-  .top {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'title edit'
-      'line line'
-      'chips chips';
-  }
-  .isOpen .top {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'title'
-      'line';
-  }
-  .form {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .moreSummary {
-    padding-right: 0;
-  }
-  .showResult,
-  .more[open] + .showResult {
-    position: static;
-    display: block;
-    width: 100%;
-    margin: 10px 0 0;
-  }
-}
-
-/* aanraakschermen: raakvlakken van minstens 44 px */
-@media (pointer: coarse) {
-  .chip,
-  .edit,
-  .showResult,
-  .moreSummary,
-  .form [role='group'] > button,
-  .more [role='group'] > button,
-  .form select,
-  .more select,
-  .form input[type='text'],
-  .more input[type='text'] {
-    min-height: 44px;
-  }
-  .check {
-    min-height: 44px;
-  }
-  .check input[type='checkbox'] {
-    width: 22px;
-    height: 22px;
   }
 }

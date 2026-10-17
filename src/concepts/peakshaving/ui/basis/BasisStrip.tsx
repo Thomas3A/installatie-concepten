@@ -10,14 +10,11 @@ import { buildingKind } from '../../model/input';
 import { buildingText, connectionText, designLoadText } from '../../model/kpis';
 import type { PeakshavingInput } from '../../model/types';
 import { useStore } from '../../store';
-import { BASIS_TEXTS, UI_LABELS } from '../../texts';
+import { BASIS_TEXTS, STEP_TITLES, UI_LABELS } from '../../texts';
 import { kwDigitsFor } from '../../view/format';
 import type { FieldKey } from '../../view/types';
 import { nightSetbackOn } from './fields';
 import s from './Basis.module.css';
-
-// TODO(texts): naar BASIS_TEXTS (label van de chip met de gebruikstijden van een kantoor)
-const USE_HOURS_LABEL = 'Gebruikstijden';
 
 export interface StripChip {
   /** sleutel voor React (uniek per chip) */
@@ -60,7 +57,7 @@ export function stripChips(input: PeakshavingInput): StripChip[] {
     chips.push(
       {
         key: 'useHours',
-        label: USE_HOURS_LABEL,
+        label: BASIS_TEXTS.useHoursLabel,
         value: BASIS_TEXTS.chipUseHours(b.useStartH, b.useEndH),
         target: 'useHours',
       },
@@ -127,7 +124,7 @@ export function BasisStrip({ onEdit }: { onEdit: () => void }) {
 
   return (
     <>
-      <div role="toolbar" aria-label="Basis" className={s.chips} onKeyDown={onKeyDown}>
+      <div role="toolbar" aria-label={STEP_TITLES.basis} className={s.chips} onKeyDown={onKeyDown}>
         {chips.map((c, i) => (
           <button
             key={c.key}

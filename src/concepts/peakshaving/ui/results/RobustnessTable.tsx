@@ -1,51 +1,21 @@
-// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3). Ingeklapt in ResultMore, op
-// papier open (data-print-open). De link "Robuustheid ▸" in het oordeel opent de tabel met openRobustness(): een
-// DOM-gebeurtenis op window, zodat het oordeel geen ref of storeveld nodig heeft.
-import { useEffect, useRef } from 'react';
+// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3). Ingeklapt in ResultMore, direct
+// onder de oordeelkaart (die de T1-regel toont); op papier open (data-print-open).
 import { fmt } from '../../../../core/format';
 import { climateShortName } from '../../model/climate';
 import { useStore } from '../../store';
 import { ROBUSTNESS_NOTE } from '../../texts';
 import { ScrollRegion } from '../../../../ui/ScrollRegion';
 import u from '../../../../ui/ui.module.css';
-import { prefersReducedMotion } from '../hooks';
 import p from '../peakshaving.module.css';
-
-/** Gebeurtenis (op window) die de robuustheidstabel openklapt, in beeld scrolt en de focus op de titel zet. */
-export const OPEN_ROBUSTNESS_EVENT = 'ps:open-robustness';
-
-/** Robuustheidstabel openen en erheen scrollen (doet niets als de tabel er niet is). */
-export function openRobustness(): void {
-  window.dispatchEvent(new Event(OPEN_ROBUSTNESS_EVENT));
-}
 
 export function RobustnessTable({ open = false }: { open?: boolean }) {
   const analysis = useStore((st) => st.analysis);
-  const ref = useRef<HTMLDetailsElement>(null);
-
-  useEffect(() => {
-    const onOpen = (): void => {
-      const details = ref.current;
-      if (!details) return;
-      details.open = true;
-      details.scrollIntoView?.({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-      details.querySelector('summary')?.focus({ preventScroll: true });
-    };
-    window.addEventListener(OPEN_ROBUSTNESS_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_ROBUSTNESS_EVENT, onOpen);
-  }, []);
 
   if (!analysis) return null;
   const rows = analysis.robustness;
   return (
-    // `open` alleen als begintoestand; daarna beslist de gebruiker (of openRobustness)
-    <details
-      ref={ref}
-      className={u.acc}
-      open={open || undefined}
-      data-print-open=""
-      style={{ scrollMarginTop: 12 }}
-    >
+    // `open` alleen als begintoestand; daarna beslist de gebruiker
+    <details className={u.acc} open={open || undefined} data-print-open="">
       <summary>Robuustheid: zelfde configuratie in andere klimaatjaren</summary>
       <div className={u.accBody}>
         <p className={u.hint} style={{ margin: 0 }}>

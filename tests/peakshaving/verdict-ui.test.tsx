@@ -15,12 +15,13 @@ import type { SensitivityRow } from '../../src/concepts/peakshaving/model/sizing
 import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/types';
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import { configureEngine, useStore } from '../../src/concepts/peakshaving/store';
-import { ROBUSTNESS_NOTE, type MessageCode } from '../../src/concepts/peakshaving/texts';
+import { MESSAGE_TEXTS, ROBUSTNESS_NOTE, type MessageCode } from '../../src/concepts/peakshaving/texts';
+import { AnswerTiles } from '../../src/concepts/peakshaving/ui/result/AnswerTiles';
 import { MiniVerdictBar } from '../../src/concepts/peakshaving/ui/result/MiniVerdictBar';
 import { ResultMore } from '../../src/concepts/peakshaving/ui/result/ResultMore';
 import { VerdictCard } from '../../src/concepts/peakshaving/ui/result/VerdictCard';
-import { openRobustness } from '../../src/concepts/peakshaving/ui/results/RobustnessTable';
 import type { SensitivityState } from '../../src/concepts/peakshaving/view/sensitivityFacts';
+import type { Tile } from '../../src/concepts/peakshaving/view/verdict';
 
 const engine = createEngine();
 const st = () => useStore.getState();
@@ -89,6 +90,35 @@ beforeAll(async () => {
       false,
     ],
     office: [scenarioInput('kantoor-basis'), true],
+    // binnen de toegestane uren (warn), niet te dimensioneren en een handmatig (te klein) WP-vermogen
+    share43: [
+      scenarioInput('woning-basis', (i) => {
+        i.grid.heatPumpShare = 0.43;
+        i.grid.allowedExceedanceH = 5;
+      }),
+      false,
+    ],
+    officeHeavy: [
+      scenarioInput('kantoor-basis', (i) => {
+        i.building.timeConstantH = 80;
+      }),
+      false,
+    ],
+    officeHeavyMeasures: [
+      scenarioInput('kantoor-basis', (i) => {
+        i.building.timeConstantH = 80;
+        i.buffer.volumeM3 = 2;
+        i.battery.capacityKwh = 50;
+      }),
+      false,
+    ],
+    manual: [
+      scenarioInput('woning-basis', (i) => {
+        i.heatPump.sizingMode = 'manual';
+        i.heatPump.nominalKw = 8;
+      }),
+      false,
+    ],
   };
   for (const [k, [input, grid]] of Object.entries(specs)) cases[k] = await caseOf(input, grid);
 }, 240000);
@@ -244,26 +274,27 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
       name: 'Piek aan de meter 3,48 kW tegen een budget van 3,22 kW',
     });
     expect(meter.closest('[data-testid="meter-bar"]')?.textContent).toBe(
-      'Piek aan de meter 3,48 kW' + 'budget 3,22 kW = 40 % van 1×35 A (8,05 kW)',
+      'Piek aan de meter 3,48 kW' + 'budget 3,22 kW',
     );
     expect(meter.querySelector('[class*="over"]')).not.toBeNull();
     expect(meter.querySelector('[class*="shaved"]')).toBeNull();
     expect(meter.querySelector('[class*="shadowMark"]')).toBeNull();
     // tegels
     expect(tileText('Warmtepomp')).toBe('Warmtepomp | 10,6kW | A7/W35 · 7,4 kW bij −10 °C');
-    expect(tileText('Boven budget')).toBe('Boven budget | 101uur/jaar | 12 kWh/jaar · max. 0,26 kW');
+    expect(tileText('Boven budget')).toBe('Boven budget | 101uur/jaar | 12 kWh/jaar');
     expect(tileText('Kleinste aansluiting')).toBe(
-      'Kleinste aansluiting | 1×40 A | 1 stap groter dan de huidige 1×35 A',
+      'Kleinste aansluiting | 1×40 A | 1 stap groter dan de huidige',
     );
     expect(within(tile('Warmtepomp')).getByRole('button', { name: 'eigen vermogen kiezen' })).toBeTruthy();
     // gevolgregels
     const limiter = screen.getByTestId('limiter-line');
     expect(limiter.getAttribute('data-tone')).toBe('neutral');
     expect(limiter.textContent).toBe('Met begrenzer: geen uur te koud (laagste 19,5 °C).toon in grafieken');
+    // zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart
     expect(screen.getByTestId('stress-line').textContent).toBe(
-      'Strenge winter (T1): 111 uur boven budget, 40 uur te koud.Robuustheid▸',
+      'Strenge winter (T1): 111 uur boven budget, 40 uur te koud.',
     );
-    expect(screen.getByRole('button', { name: 'Robuustheid' })).toBeTruthy();
+    expect(within(screen.getByTestId('stress-line')).queryByRole('button')).toBeNull();
   });
 
   it('+ 0,5 m³ (voorbeeld 2): ✓ past; "Kleinere aansluiting volstaat ook" uit het raster; verwijzingen', () => {
@@ -279,13 +310,13 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     ]);
     expect(screen.queryByRole('group', { name: 'Wat helpt' })).toBeNull();
     expect(tileText('Warmtepomp')).toMatch(
-      /^Warmtepomp \| 9,4kW \| A7\/W35 · \d+,\d kW bij −10 °C \| zonder maatregelen 10,6 kW \(−1,1\)$/,
+      /^Warmtepomp \| 9,4kW \| A7\/W35 · \d+,\d kW bij −10 °C \| zonder maatregelen 10,6 kW \(−1,2\)$/,
     );
     expect(tileText('Boven budget')).toBe(
       'Boven budget | 0uur/jaar | geen enkel uur | zonder maatregelen 101 uur',
     );
     expect(tileText('Kleinste aansluiting')).toBe(
-      'Kleinste aansluiting | 1×35 A | gelijk aan de huidige aansluiting | zonder maatregelen 1×40 A',
+      'Kleinste aansluiting | 1×35 A | gelijk aan de huidige | zonder maatregelen 1×40 A',
     );
     // meterbalk: schaduwstreep en label "zonder maatregelen"
     const meter = screen.getByRole('img', { name: /^Piek aan de meter 3,18 kW/ });
@@ -342,7 +373,108 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(screen.getByTestId('stress-line').textContent).toMatch(
       /^Strenge winter \(T1\): 424 uur boven budget, 157 uur te koud\./,
     );
-    expect(screen.getByText('budget 27,7 kW = 50 % van 3×80 A (55,4 kW)')).toBeTruthy();
+    expect(screen.getByText('budget 27,7 kW')).toBeTruthy();
+  });
+});
+
+describe('Resultaat: andere toestanden', () => {
+  it('binnen de toegestane uren: ! (warn) met "Wat helpt"; zonder raster een plaatshouder voor de buffer', () => {
+    show(cases.share43);
+    render(<VerdictCard />);
+    expect(card().getAttribute('data-tone')).toBe('warn');
+    expect(document.querySelector('#ps-oordeel-kop [aria-hidden="true"]')!.textContent).toBe('!');
+    expect(screen.getByText('Past op 1×35 A, binnen de toegestane 5 uur')).toBeTruthy();
+    expect(
+      screen.getByText('4 uur per jaar boven het WP-budget van 3,46 kW, tot 0,02 kW erboven.'),
+    ).toBeTruthy();
+    const fixes = fixGroup('Wat helpt');
+    expect(fixes.querySelector('[data-pending]')?.textContent).toBe('wordt berekend…');
+    expect(buttonNames(fixes)).toEqual(['0,5 kWh batterij', 'of 44 % voor de warmtepomp']);
+    expect(within(card()).getByRole('status').textContent).toBe(
+      'Past op 1×35 A, binnen de toegestane 5 uur: 4 uur per jaar boven het budget.',
+    );
+  });
+
+  it('niet te dimensioneren: ✕ zonder knoppen; tegel Warmtepomp zonder vermogen, wel "eigen vermogen kiezen"', () => {
+    show(cases.officeHeavy);
+    render(<VerdictCard />);
+    expect(card().getAttribute('data-status')).toBe('sizingFailed');
+    expect(card().getAttribute('data-tone')).toBe('err');
+    expect(screen.getByText('Warmtepomp niet te dimensioneren')).toBeTruthy();
+    // kantoor zonder tapwater: geen advies over boiler of tapwater, wel de passende oplossing
+    const [boiler, allowComfortLoss, setback] = MESSAGE_TEXTS.sizingFailed.solutions;
+    expect(
+      screen.getByText(`Ook met 3 × het piekvermogen wordt het comfort niet gehaald. ${setback}`),
+    ).toBeTruthy();
+    // "Waarom?" in de kaart (de melding staat niet in Opvallend): toelichting en alle passende oplossingen
+    const why = within(card()).getByText('Waarom?').closest('details')!;
+    expect(why.open).toBe(false);
+    expect(why.hasAttribute('data-print-open')).toBe(true);
+    expect(within(why).getByText(MESSAGE_TEXTS.sizingFailed.why[0])).toBeTruthy();
+    expect(Array.from(why.querySelectorAll('li')).map((li) => li.textContent)).toEqual([
+      setback,
+      allowComfortLoss,
+    ]);
+    expect(why.textContent).not.toContain(boiler);
+    expect(screen.queryByRole('group', { name: /Wat helpt|Kleinere aansluiting/ })).toBeNull();
+    // geen vermogen en dan ook geen eenheid
+    expect(tileText('Warmtepomp')).toMatch(/^Warmtepomp \| – \| /);
+    expect(tileText('Warmtepomp')).toContain('benodigd: niet te bepalen');
+    expect(within(tile('Warmtepomp')).getByRole('button', { name: 'eigen vermogen kiezen' })).toBeTruthy();
+  });
+
+  it('niet te dimensioneren met buffer en batterij: geen "zonder maatregelen 300,0 kW" bij de tegel Warmtepomp', () => {
+    show(cases.officeHeavyMeasures);
+    render(<VerdictCard />);
+    expect(card().getAttribute('data-status')).toBe('sizingFailed');
+    // de doorrekening gebruikt 3 × 100 kW; de tegel toont "–" en dan ook geen verwijzing met die terugvalwaarde
+    expect(cases.officeHeavyMeasures.a.withoutMeasures.nominalKw).toBe(300);
+    expect(tileText('Warmtepomp')).toMatch(/^Warmtepomp \| – \| /);
+    expect(tileText('Warmtepomp')).not.toContain('zonder maatregelen');
+    expect(screen.getByRole('group', { name: 'Antwoord' }).textContent).not.toContain('300,0');
+    expect(screen.queryByRole('group', { name: /Wat helpt|Kleinere aansluiting/ })).toBeNull();
+  });
+
+  it('tegelregel breekt alleen bij " · ", niet tussen een getal en zijn eenheid ("6,6 kW/woning")', () => {
+    const base = { unit: 'kW', tone: 'neutral', reference: null, refineLink: false } as const;
+    const tiles: Tile[] = [
+      {
+        ...base,
+        id: 'heatPump',
+        title: 'Warmtepomp',
+        value: '65,8',
+        line: 'A7/W35 · 46,0 kW bij −10 °C · 6,6 kW/woning',
+      },
+      { ...base, id: 'exceedance', title: 'Boven budget', value: '0', line: 'geen enkel uur' },
+      {
+        ...base,
+        id: 'smallest',
+        title: 'Kleinste aansluiting',
+        value: '3×25 A',
+        unit: '',
+        line: 'gelijk aan de huidige',
+      },
+    ];
+    render(<AnswerTiles tiles={tiles} />);
+    const line = tile('Warmtepomp').children[2];
+    // de tekst blijft gelijk; elk deel is één onbreekbaar stuk
+    expect(line.textContent).toBe('A7/W35 · 46,0 kW bij −10 °C · 6,6 kW/woning');
+    expect(Array.from(line.querySelectorAll('span')).map((el) => [el.textContent, el.className])).toEqual([
+      ['A7/W35', expect.stringMatching(/nowrap/)],
+      ['46,0 kW bij −10 °C', expect.stringMatching(/nowrap/)],
+      ['6,6 kW/woning', expect.stringMatching(/nowrap/)],
+    ]);
+  });
+
+  it('handmatig WP-vermogen kleiner dan benodigd: tegel "Warmtepomp (handmatig)" met warn, zonder link', () => {
+    show(cases.manual);
+    render(<VerdictCard />);
+    const t = tile('Warmtepomp (handmatig)');
+    expect(t.getAttribute('data-tone')).toBe('warn');
+    expect(tileText('Warmtepomp (handmatig)')).toBe('Warmtepomp (handmatig) | 8,0kW | benodigd 10,6 kW');
+    expect(within(t).queryByRole('button')).toBeNull();
+    // de andere tegels blijven neutraal
+    expect(tile('Boven budget').getAttribute('data-tone')).toBe('neutral');
   });
 });
 
@@ -356,7 +488,7 @@ describe('Resultaat: knoppen', () => {
     expect(pending.tagName).toBe('SPAN');
     expect(pending.textContent).toBe('wordt berekend…');
     // eerste plek, daarna de knoppen die niet op het raster steunen
-    expect(fixes.children[1]).toBe(pending);
+    expect(pending.parentElement!.firstElementChild).toBe(pending);
     expect(buttonNames(fixes)).toEqual(['1,0 kWh batterij', '1×40 A', 'of 44 % voor de warmtepomp']);
     // raster klaar: de knop verschijnt op dezelfde plek
     show(c);
@@ -497,35 +629,13 @@ describe('Resultaat: gevolgregels', () => {
     expect(document.activeElement?.id).toBe('ps-tab-koude-week');
   });
 
-  it('"Robuustheid ▸" klapt de robuustheidstabel open, scrolt erheen en zet de focus op de titel', () => {
-    show(cases.basis);
-    render(
-      <>
-        <VerdictCard />
-        <ResultMore />
-      </>,
-    );
-    const details = screen.getByText(/^Robuustheid: zelfde configuratie/).closest('details')!;
-    expect(details.open).toBe(false);
-    const scroll = vi.fn();
-    details.scrollIntoView = scroll;
-    fireEvent.click(screen.getByRole('button', { name: 'Robuustheid' }));
-    expect(details.open).toBe(true);
-    expect(scroll).toHaveBeenCalledTimes(1);
-    expect(document.activeElement).toBe(details.querySelector('summary'));
-    // ook rechtstreeks (zonder tabel gebeurt er niets)
-    details.open = false;
-    act(() => openRobustness());
-    expect(details.open).toBe(true);
-  });
-
   it('T1 gekozen: "Dit is al de stresstest (T1)."', async () => {
     const input = scenarioInput('woning-basis', (i) => {
       i.climateYear = 'T1';
     });
     show({ input, a: await analyzeInput(input), sens: null });
     render(<VerdictCard />);
-    expect(screen.getByTestId('stress-line').textContent).toBe('Dit is al de stresstest (T1).Robuustheid▸');
+    expect(screen.getByTestId('stress-line').textContent).toBe('Dit is al de stresstest (T1).');
   });
 });
 
@@ -707,7 +817,7 @@ describe('Mini-oordeel (vaste balk onderaan)', () => {
     expect(screen.getByTestId('mini-verdict').getAttribute('data-tone')).toBe('ok');
   });
 
-  it('zonder doorrekening geen balk; vaste positie met de veilige zone van iOS', () => {
+  it('zonder doorrekening geen balk; vaste positie onderaan met ruimte voor de footer', () => {
     render(
       <>
         <VerdictCard />
@@ -716,7 +826,6 @@ describe('Mini-oordeel (vaste balk onderaan)', () => {
     );
     expect(screen.queryByTestId('mini-verdict')).toBeNull();
     expect(cssText).toMatch(/\.miniBar\s*\{[^}]*position:\s*fixed;[^}]*bottom:\s*0;/);
-    expect(cssText).toMatch(/\.miniBar\s*\{[^}]*env\(safe-area-inset-bottom/);
-    expect(cssText).toMatch(/body\.ps-mini-verdict\)\s*\{[^}]*padding-bottom:/);
+    expect(cssText).toMatch(/body\.ps-mini-verdict\)\s*\{[^}]*--ps-bottom-bar:\s*52px;[^}]*padding-bottom:/);
   });
 });

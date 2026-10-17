@@ -9,15 +9,13 @@ import { useStore } from '../../store';
 import { BASIS_TEXTS, STEP_TITLES, UI_LABELS } from '../../texts';
 import { isWhatIfField } from '../../view/types';
 import { prefersReducedMotion } from '../hooks';
+import { focusResult } from '../result/VerdictCard';
 import { tourAnchor } from '../tour/anchors';
 import p from '../peakshaving.module.css';
 import { BasisForm } from './BasisForm';
 import { BasisStrip } from './BasisStrip';
 import { MoreSettings } from './MoreSettings';
 import s from './Basis.module.css';
-
-/** id van de H2 "Resultaat" in de oordeelkaart (WP-D): doel van "Bekijk het resultaat". */
-export const RESULT_HEADING_ID = 'ps-resultaat';
 
 /**
  * Element dat de focus krijgt binnen een veld: eerst een getalveld, keuzelijst of vinkje (geen schuif), dan de
@@ -68,14 +66,9 @@ export function BasisSection() {
   useEffect(() => {
     if (open || !toResult.current) return;
     toResult.current = false;
-    const heading = document.getElementById(RESULT_HEADING_ID);
-    if (heading) {
-      heading.scrollIntoView?.({ block: 'start', behavior: scrollBehavior() });
-      heading.focus({ preventScroll: true });
-    } else {
-      // zonder oordeelkaart (nog niet getekend) de focus niet verliezen: naar de strook
+    // zonder oordeelkaart (nog niet getekend) de focus niet verliezen: naar de strook
+    if (!focusResult('nearest'))
       editRef.current?.querySelector<HTMLElement>('[role="toolbar"] [tabindex="0"]')?.focus();
-    }
   }, [open]);
 
   const scenario = scenarioId !== null ? findScenario(scenarioId) : undefined;

@@ -36,6 +36,11 @@ export interface Fix {
   id: FixId;
   /** knoptekst, bijv. "0,20 m³ buffer" */
   label: string;
+  /**
+   * toegankelijke naam als de knoptekst alleen in zijn zin klopt: "Zet" achter "Kleinste batterij voor 0 uur:
+   * 1,0 kWh" heet "Zet op 1,0 kWh" (begint met de knoptekst, dus spraakbediening vindt hem ook)
+   */
+  name?: string;
   /** tekst van de melding "{undoLabel} · Ongedaan maken" (eerste argument van applyFix) */
   undoLabel: string;
   /** grijze plaatshouder met vaste breedte zolang het raster rekent; `apply` verandert dan niets */

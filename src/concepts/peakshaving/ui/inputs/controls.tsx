@@ -137,34 +137,3 @@ export function RangeField({
     </Field>
   );
 }
-
-/** Invoerblok met nummer, titel en een uitklapbaar deel "Expert". */
-export function Block({
-  no,
-  title,
-  children,
-  expert,
-}: {
-  no: number;
-  title: string;
-  children: ReactNode;
-  expert?: ReactNode;
-}) {
-  return (
-    <section className={p.block} aria-labelledby={`blok-${no}`}>
-      <h2 className={p.blockHead} id={`blok-${no}`}>
-        <span className={p.stepNo} aria-hidden="true">
-          {no}
-        </span>
-        {title}
-      </h2>
-      {children}
-      {expert && (
-        <details className={p.expert}>
-          <summary>Expert</summary>
-          <div className={p.expertBody}>{expert}</div>
-        </details>
-      )}
-    </section>
-  );
-}

@@ -1,21 +1,21 @@
 // @vitest-environment jsdom
 // Verdieping (UX-plan §6, §10 WP-E): kop "Verdieping" (id ps-verdieping, anker depth, noPrint) met de keuze
 // "Grafieken en kerngetallen" (bedrijfsmodus, met toelichting), daaronder de regio "Detailweergave" met de tabbladen
-// in de volgorde van TAB_LABELS en Schema als standaard; toetsenbord (pijlen, Home, End, roving tabindex); de tabrij
-// scrolt horizontaal via een eigen klasse en houdt het gekozen tabblad in beeld; showInDepth voor links van buiten.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+// in de volgorde van TAB_LABELS en Schema als standaard; toetsenbord (pijlen, Home, End, roving tabindex);
+// showInDepth (lichte module depthLinks) voor links van buiten.
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Engine } from '../../src/concepts/peakshaving/model/engine';
 import { configureEngine, useStore } from '../../src/concepts/peakshaving/store';
 import { HELP, TAB_LABELS } from '../../src/concepts/peakshaving/texts';
+import { DepthSection } from '../../src/concepts/peakshaving/ui/depth/DepthSection';
 import {
   DEPTH_SECTION_ID,
   DEPTH_TABS,
-  DepthSection,
   showInDepth,
-} from '../../src/concepts/peakshaving/ui/depth/DepthSection';
+  tabButtonId,
+  tabPanelId,
+} from '../../src/concepts/peakshaving/ui/depth/depthLinks';
 
 // uPlot tekent op canvas; jsdom heeft geen canvas, dus een lege stand-in
 vi.mock('uplot', () => {
@@ -112,6 +112,8 @@ describe('Verdieping: opbouw', () => {
     expect(tabNames()).toEqual(Object.values(TAB_LABELS));
     expect(DEPTH_TABS).toEqual(['concept', 'koude-week', 'jaar', 'gevoeligheid', 'uitleg']);
     for (const t of DEPTH_TABS) {
+      expect(tabButtonId(t)).toBe(`ps-tab-${t}`);
+      expect(tabPanelId(t)).toBe(`ps-panel-${t}`);
       const btn = document.getElementById(`ps-tab-${t}`)!;
       expect(btn.getAttribute('role')).toBe('tab');
       expect(btn.getAttribute('aria-controls')).toBe(`ps-panel-${t}`);
@@ -194,9 +196,13 @@ describe('Verdieping: grafieken en kerngetallen (bedrijfsmodus)', () => {
     expect(st().input.grid.mode).toBe('limited');
     expect(withLimiter.getAttribute('aria-pressed')).toBe('true');
     expect(without.getAttribute('aria-pressed')).toBe('false');
-    // de modus blijft invoer (ook in de deellink)
+    // een weergavekeuze (die wel in de deellink gaat): het voorbeeld blijft staan, er komt geen eigen invoer
+    expect(st().scenarioId).toBe(initial.scenarioId);
+    expect(st().ownInput).toBeNull();
     act(() => fireEvent.click(without));
     expect(st().input.grid.mode).toBe('exceedance');
+    expect(st().input).toEqual(before);
+    expect(st().scenarioId).toBe(initial.scenarioId);
   });
 
   it('de (i) toont HELP.mode', () => {
@@ -205,51 +211,6 @@ describe('Verdieping: grafieken en kerngetallen (bedrijfsmodus)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Toelichting: Grafieken en kerngetallen' })),
     );
     expect(screen.getByRole('note').textContent).toBe(HELP.mode);
-  });
-});
-
-describe('Verdieping: scrollende tabrij', () => {
-  it('heeft naast u.tabList een eigen klasse: één rij die horizontaal scrolt, zonder verticale scroll', () => {
-    render(<DepthSection />);
-    const classes = tablist().className.split(/\s+/).filter(Boolean);
-    expect(classes).toHaveLength(2);
-    const css = readFileSync(
-      resolve(__dirname, '../../src/concepts/peakshaving/ui/depth/Depth.module.css'),
-      'utf8',
-    );
-    const rule = /\.detail > \.tabList \{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(rule).toMatch(/flex-wrap:\s*nowrap/);
-    expect(rule).toMatch(/overflow-x:\s*auto/);
-    expect(rule).toMatch(/overflow-y:\s*hidden/);
-    // aanraakschermen: tabbladen en modusknoppen minstens 44 px hoog
-    expect(css).toMatch(/@media \(pointer: coarse\)[^{]*\{[^@]*min-height:\s*44px/);
-  });
-
-  it('houdt een tabblad dat van buiten wordt gekozen in beeld, zonder de pagina te scrollen', () => {
-    render(<DepthSection />);
-    const row = tablist();
-    let left = 0;
-    Object.defineProperty(row, 'scrollWidth', { configurable: true, value: 420 });
-    Object.defineProperty(row, 'clientWidth', { configurable: true, value: 300 });
-    Object.defineProperty(row, 'scrollLeft', {
-      configurable: true,
-      get: () => left,
-      set: (v: number) => {
-        left = v;
-      },
-    });
-    const place = (name: string, offsetLeft: number, offsetWidth: number): void => {
-      Object.defineProperty(tab(name), 'offsetLeft', { configurable: true, value: offsetLeft });
-      Object.defineProperty(tab(name), 'offsetWidth', { configurable: true, value: offsetWidth });
-    };
-    place('Schema', 0, 70);
-    place('Uitleg', 350, 64);
-
-    act(() => st().setTab('uitleg'));
-    // rechterrand van "Uitleg" plus 24 px marge in beeld
-    expect(left).toBe(350 + 64 + 24 - 300);
-    act(() => st().setTab('concept'));
-    expect(left).toBe(0);
   });
 });
 

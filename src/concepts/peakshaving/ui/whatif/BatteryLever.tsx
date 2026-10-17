@@ -1,16 +1,17 @@
-// Batterijhendel in Wat als? (UX-plan §5, §5.2): schuif "Batterijcapaciteit", de effectregel met de knoppen
-// "Zet op … kWh", "Zet" en "◀ Probeer {kleiner}" (met ongedaan maken) en de meldingen die bij de batterij horen.
+// Batterijhendel in Wat als? (UX-plan §5, §5.2): schuif "Batterijcapaciteit", de effectregel met de knoppen "Zet"
+// (naam "Zet op … kWh") en "◀ Probeer {kleiner}" (met ongedaan maken) en de meldingen die bij de batterij horen.
 import { useMemo } from 'react';
 import { BATTERY_DEFAULT_C_RATE, batteryPower } from '../../model/battery';
 import type { Battery } from '../../model/types';
 import { useStore } from '../../store';
-import { HELP, UI_LABELS } from '../../texts';
+import { HELP, UI_LABELS, WHATIF_TEXTS } from '../../texts';
 import type { Fix } from '../../view/fixes';
 import { batteryState } from '../../view/levers';
+import { sizingFailed } from '../../view/verdict';
 import u from '../../../../ui/ui.module.css';
 import { RangeField } from '../inputs/controls';
 import { Messages } from '../results/Messages';
-import { markerLabel } from './BufferLever';
+import { SeparatedText } from './SeparatedText';
 import css from './WhatIf.module.css';
 
 /** C-waarde van de batterij (vermogen / capaciteit); zonder capaciteit de standaard 0,5 C. */
@@ -29,6 +30,7 @@ export function FixButton({ fix }: { fix: Fix }) {
     <button
       type="button"
       className={`${u.btn} ${u.btnSmall} ${css.fixBtn}`}
+      aria-label={fix.name}
       onClick={() => {
         applyFix(fix.undoLabel, fix.apply);
         revealSetting(fix.target);
@@ -51,6 +53,8 @@ export function BatteryLever() {
   const a = useStore((st) => st.analysis);
   const stale = useStore((st) => st.busy || st.error !== null);
   const state = useMemo(() => (a ? batteryState(a) : null), [a]);
+  // niet te dimensioneren: ook geen meldingen "Batterij raakt leeg" e.d. (die rekenen met de terugvalwaarde)
+  const noAdvice = a !== null && sizingFailed(a);
   const cRate = batteryCRate(battery);
 
   return (
@@ -64,12 +68,15 @@ export function BatteryLever() {
         step={r.batteryStepKwh}
         digits={1}
         unit="kWh"
-        markers={r.batteryMarkersKwh.map((m) => ({ value: m.value, label: markerLabel(m.hours) }))}
+        markers={r.batteryMarkersKwh.map((m) => ({
+          value: m.value,
+          label: WHATIF_TEXTS.markerHours(m.hours),
+        }))}
         hint={
           <span className={`${css.effect} ${stale ? css.stale : ''}`} data-testid="battery-effect">
             {state ? (
               <>
-                {state.text}
+                <SeparatedText text={state.text} />
                 {state.fix && <FixButton fix={state.fix} />}
               </>
             ) : (
@@ -89,7 +96,7 @@ export function BatteryLever() {
           }))
         }
       />
-      <Messages include={['batteryEmpty', 'batteryPower']} compact hideEmpty />
+      {!noAdvice && <Messages include={['batteryEmpty', 'batteryPower']} compact hideEmpty />}
     </div>
   );
 }

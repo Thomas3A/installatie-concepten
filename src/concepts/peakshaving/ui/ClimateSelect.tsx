@@ -1,6 +1,5 @@
 // Keuzelijst klimaatjaar (spec §4.3), met de statistiek van het gekozen jaar als tooltip en in een regel eronder.
-// ClimateField en ClimateStats staan in Meer instellingen › Klimaat (UX-plan §3.2); ClimateSelect en ClimateNote zijn
-// de oude kop-versies en verdwijnen bij de integratie (WP-F).
+// ClimateField en ClimateStats staan in Meer instellingen › Klimaat (UX-plan §3.2).
 import { useId } from 'react';
 import { fmt } from '../../../core/format';
 import { Field } from '../../../ui/fields';
@@ -13,15 +12,13 @@ import {
   realYearId,
   realYearOf,
   RECOMMENDED_STRESS_YEARS,
-  REFERENCE_YEAR_LABELS,
   REFERENCE_YEARS,
 } from '../model/climate';
 import type { ClimateYearId } from '../model/types';
 import { useStore } from '../store';
-import { CLIMATE_NOTE, CLIMATE_NOTE_SHORT, CLIMATE_RECONSTRUCTION } from '../texts';
+import { CLIMATE_NOTE_SHORT, CLIMATE_OPTION_LABELS, CLIMATE_RECONSTRUCTION } from '../texts';
 import u from '../../../ui/ui.module.css';
 import b from './basis/Basis.module.css';
-import p from './peakshaving.module.css';
 
 /** Statistiekregel voor de tooltip (zoals de tabel in spec §4.2). */
 export function statsLine(s: ClimateStatsSummary): string {
@@ -40,7 +37,7 @@ export function statsOf(id: ClimateYearId): ClimateStatsSummary | null {
   return y === null ? null : (REAL_YEAR_STATS[y] ?? null);
 }
 
-/** id van de statistiekregel onder de kop (beschrijving van de keuzelijst). */
+/** id van de statistiekregel onder het veld (beschrijving van de keuzelijst). */
 const STATS_ID = 'ps-klimaat-statistiek';
 
 const REAL_YEARS = Array.from(
@@ -61,7 +58,7 @@ function ClimateOptions() {
       <optgroup label="Referentiejaren (reconstructie NEN 5060:2018)">
         {REFERENCE_YEARS.map((y) => (
           <option key={y} value={y} title={statsLine(REFERENCE_YEAR_STATS[y])}>
-            {REFERENCE_YEAR_LABELS[y]}
+            {CLIMATE_OPTION_LABELS[y]}
           </option>
         ))}
       </optgroup>
@@ -80,30 +77,10 @@ function ClimateOptions() {
   );
 }
 
-export function ClimateSelect() {
-  const id = useStore((st) => st.input.climateYear);
-  const setClimateYear = useStore((st) => st.setClimateYear);
-  return (
-    <label className={p.headField}>
-      Klimaatjaar
-      <select
-        className={u.select}
-        value={id}
-        onChange={(e) => setClimateYear(e.target.value)}
-        // de tooltips op de opties tonen veel browsers niet: de statistiek van het gekozen jaar staat daarom
-        // ook op de keuzelijst zelf en in de regel onder de kop (ClimateNote)
-        title={selectTitle(id)}
-        aria-describedby={STATS_ID}
-      >
-        <ClimateOptions />
-      </select>
-    </label>
-  );
-}
-
 /**
- * Veld Klimaatjaar in Meer instellingen › Klimaat: zelfde label, opties en tooltips als de keuzelijst in de kop. De
- * statistiekregel (ClimateStats) beschrijft de keuzelijst.
+ * Veld Klimaatjaar in Meer instellingen › Klimaat, met alle opties en hun tooltips. De tooltips op de opties tonen veel
+ * browsers niet: de statistiek van het gekozen jaar staat daarom ook op de keuzelijst zelf en in de regel eronder
+ * (ClimateStats), die de keuzelijst beschrijft.
  */
 export function ClimateField() {
   const id = useStore((st) => st.input.climateYear);
@@ -138,21 +115,6 @@ export function ClimateStats() {
         <strong>Klimaatjaar {climateShortName(id)}:</strong> {stats ? statsLine(stats) : '–'}
       </p>
       <p>{CLIMATE_NOTE_SHORT}</p>
-    </div>
-  );
-}
-
-export function ClimateNote() {
-  const id = useStore((st) => st.input.climateYear);
-  const stats = statsOf(id);
-  return (
-    <div className={p.climateNote}>
-      <p className={p.climateStats} id={STATS_ID}>
-        <strong>Klimaatjaar {climateShortName(id)}:</strong> {stats ? statsLine(stats) : '–'}
-      </p>
-      <p>
-        {CLIMATE_NOTE} {CLIMATE_RECONSTRUCTION} ★ = aanbevolen stresstest.
-      </p>
     </div>
   );
 }

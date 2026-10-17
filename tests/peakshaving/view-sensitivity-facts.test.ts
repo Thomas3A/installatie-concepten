@@ -159,6 +159,12 @@ describe('rasterhulpjes met een synthetisch raster', () => {
     ];
     expect(plateauStart(rows)).toEqual({ index: 3, volumeM3: 3, minKw: 8 });
     expect(plateauStart([null, null])).toBeNull();
+    // knik op het laatste berekende punt: de lijn daalt tot het einde, dus geen plateau
+    expect(
+      plateauStart([row(0, 10, [[0, '1x35']]), row(1, 9, [[0, '1x35']]), row(2, 8, [[0, '1x35']])]),
+    ).toBeNull();
+    expect(plateauStart([row(0, 10, [[0, '1x35']]), row(1, 8, [[0, '1x35']]), null])).toBeNull();
+    expect(plateauStart([row(0, 8, [[0, '1x35']])])).toBeNull();
   });
 
   it('kleinere optie: één stap terug in de lijst, vanaf grootverbruik 3×80 A', () => {

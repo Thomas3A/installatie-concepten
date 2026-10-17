@@ -5,105 +5,56 @@
   margin: 0 auto;
 }
 
-.headControls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px 12px;
-}
-.headField {
-  display: grid;
-  gap: 2px;
-  font-size: 0.8rem;
-  color: var(--text-2);
-}
-.headField select {
-  /* breed genoeg voor het volledige label van klimaatjaar en scenario (ook bij 1440 px) */
-  max-width: min(560px, calc(100vw - 2 * var(--gutter)));
-}
-.climateNote {
-  flex-basis: 100%;
-  font-size: 0.78rem;
-  color: var(--text-2);
-  margin: -4px 0 8px;
-}
-.climateNote p {
-  margin: 0 0 2px;
-}
-.climateStats {
-  font-variant-numeric: tabular-nums;
-}
-.climateStats strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  grid-template-areas: 'inputs results';
-  gap: 14px;
-  align-items: start;
-}
-.inputs {
-  grid-area: inputs;
-  position: sticky;
-  top: 8px;
-  max-height: calc(100vh - 16px);
-  overflow-y: auto;
-  padding-right: 2px;
-  min-width: 0;
-}
+/* ---- werkbank (UX-plan §2.1, §2.3): Resultaat links met daaronder "meer" (Opvallend, Alle kerngetallen,
+   Robuustheid), Wat als? rechts over beide rijen. Geen sticky kolom en geen eigen scrollgebied: de pagina scrolt als
+   geheel. Alleen afgesteld voor een pc of laptop (vanaf 1024 px); smaller valt alles terug op één kolom. */
 .results {
-  grid-area: results;
   min-width: 0;
 }
-/* onder 1024 px: invoer boven het resultaat (spec §2.2) */
-@media (max-width: 1023px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'inputs'
-      'results';
-  }
-  .inputs {
-    position: static;
-    max-height: none;
-    overflow: visible;
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr);
+  /* is Wat als? hoger dan oordeel en "meer" samen, dan komt de ruimte onder "meer", niet tussen oordeel en "meer" */
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'verdict whatif'
+    'more whatif';
+  /* tussen oordeel en "meer" staat de ondermarge van de oordeelkaart */
+  gap: 0 16px;
+  align-items: start;
+  /* Verdieping is een volgende laag: wat meer lucht dan tussen de blokken van de werkbank */
+  margin-bottom: 24px;
+}
+.verdict {
+  grid-area: verdict;
+  min-width: 0;
+}
+.whatif {
+  grid-area: whatif;
+  min-width: 0;
+}
+.more {
+  grid-area: more;
+  min-width: 0;
+}
+@media (max-width: 1279px) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
   }
 }
-/* tablet (640–1023 px): de vier invoerblokken in twee kolommen, zodat het resultaat eerder in beeld komt */
-@media (min-width: 640px) and (max-width: 1023px) {
-  .inputs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    align-items: start;
-    padding-right: 0;
-  }
-  .inputs .block {
-    margin-bottom: 0;
+@media (max-width: 1023px) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'verdict'
+      'whatif'
+      'more';
+    row-gap: 12px;
   }
 }
 
-/* ---- invoerblokken */
-.block {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  margin-bottom: 10px;
-  padding: 10px 12px 12px;
-  display: grid;
-  gap: 10px;
-}
-.blockHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 1rem;
-}
+/* stapnummer in de H2 van Basis, Resultaat en Wat als? (aria-hidden) */
 .stepNo {
   display: inline-grid;
   place-items: center;
@@ -116,21 +67,8 @@
   font-weight: 700;
   flex: none;
 }
-.expert {
-  border-top: 1px dashed var(--border);
-  padding-top: 6px;
-}
-.expert > summary {
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--text-2);
-  font-weight: 600;
-}
-.expertBody {
-  display: grid;
-  gap: 10px;
-  padding-top: 8px;
-}
+
+/* ---- getal + schuif (inputs/controls.tsx) */
 .live {
   font-size: 0.8rem;
   color: var(--text-2);
@@ -173,19 +111,6 @@
   background: var(--text-2);
 }
 
-/* keuze gebouwfunctie (drie knoppen) over de volle breedte van de invoerkolom. Op een heel smal scherm breken de
-   knoppen af; de scheidingslijnen liggen dan links en boven elke knop (aan de buitenrand weggeknipt door de groep) */
-.kindSeg [role='group'] {
-  display: flex;
-  flex-wrap: wrap;
-}
-.kindSeg [role='group'][aria-label] > button {
-  flex: 1 1 auto;
-  border: 0;
-  border-left: 1px solid var(--border);
-  border-top: 1px solid var(--border);
-  margin: -1px 0 0 -1px;
-}
 /* twee velden naast elkaar (tapwater, boilervat): label, getalveld en regel eronder lijnen uit, ook als één label
    over twee regels loopt */
 .pair {
@@ -201,10 +126,6 @@
 }
 .pair > * > :first-child {
   align-self: end;
-}
-.stack {
-  display: grid;
-  gap: 10px;
 }
 
 /* ---- KPI-kaarten */
@@ -294,20 +215,6 @@
 .advice p {
   margin: 0;
 }
-/* statusregel boven de KPI-kaarten: vaste hoogte, zodat "Rekent…" de kaarten niet laat verspringen */
-.statusRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  min-height: 22px;
-  margin-bottom: 4px;
-}
-/* "Opnieuw proberen" naast een rekenfout (doel minstens 24 px hoog) */
-.retry {
-  min-height: 24px;
-  font-size: 0.8rem;
-}
 .busy {
   display: inline-flex;
   align-items: center;
@@ -337,10 +244,6 @@
 .selectedRow td {
   font-weight: 650;
   background: var(--accent-soft);
-}
-.placeholder {
-  color: var(--text-2);
-  padding: 24px 4px;
 }
 
 /* ---- robuustheidstabel: koppen mogen afbreken, zodat alle zeven kolommen passen */
@@ -405,11 +308,10 @@
 
 /* ---- print */
 @media print {
-  .layout {
+  /* op papier onder elkaar, in DOM-volgorde: oordeel, advies, Alle kerngetallen, Robuustheid (UX-plan §6) */
+  .workbench {
     display: block;
-  }
-  .inputs {
-    display: none;
+    margin-bottom: 0;
   }
   .page {
     padding: 0;

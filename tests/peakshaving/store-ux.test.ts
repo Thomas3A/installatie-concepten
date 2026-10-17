@@ -254,6 +254,87 @@ describe('store: eigen invoer en ongedaan maken', () => {
   });
 });
 
+describe('store: bedrijfsmodus als weergavekeuze', () => {
+  const limitedOf = (i: PeakshavingInput): PeakshavingInput => ({
+    ...i,
+    grid: { ...i.grid, mode: 'limited' },
+  });
+
+  it('wisselen houdt het voorbeeld; terug geeft exact het voorbeeld; een volgend voorbeeld bewaart niets', () => {
+    st().applyScenario('woning-basis');
+    const before = st().input;
+    st().setMode('limited');
+    expect(st().input.grid.mode).toBe('limited');
+    expect(st().scenarioId).toBe('woning-basis');
+    // nogmaals dezelfde keuze: niets
+    const limited = st().input;
+    st().setMode('limited');
+    expect(st().input).toBe(limited);
+    st().setMode('exceedance');
+    expect(st().input).toEqual(before);
+    expect(st().scenarioId).toBe('woning-basis');
+    // geen eigen invoer ontstaan: geen "Terug naar je invoer"
+    st().setMode('limited');
+    st().applyScenario('woning-buffer');
+    expect(st().ownInput).toBeNull();
+    expect(st().notice).toBeNull();
+    // de weergavekeuze blijft staan bij een ander voorbeeld
+    expect(st().scenarioId).toBe('woning-buffer');
+    expect(st().input).toEqual(limitedOf(scenarioInput('woning-buffer')));
+  });
+
+  it('een stap terug en de melding blijven staan; ongedaan maken houdt de gekozen modus', () => {
+    st().applyScenario('woning-basis');
+    const before = st().input;
+    st().applyFix('Buffer op 0,20 m³', (i) => ({ ...i, buffer: { ...i.buffer, volumeM3: 0.2 } }));
+    const undo = st().undo;
+    const notice = st().notice;
+    st().setMode('limited');
+    expect(st().undo).toBe(undo);
+    expect(st().notice).toBe(notice);
+    st().undoLast();
+    expect(st().input).toEqual(limitedOf(before));
+    expect(st().scenarioId).toBe('woning-basis');
+  });
+
+  it('eigen invoer: blijft eigen invoer; bewaren en terugzetten houden de gekozen modus', () => {
+    const own = ownInput();
+    st().loadInput(own, null);
+    st().setMode('limited');
+    expect(st().scenarioId).toBeNull();
+    expect(st().ownInput).toBeNull();
+    st().applyScenario('woning-buffer');
+    expect(st().ownInput).toEqual(limitedOf(own));
+    expect(st().notice?.kind).toBe('example');
+    st().setMode('exceedance');
+    st().restoreOwnInput();
+    expect(st().input).toEqual(own);
+    expect(st().scenarioId).toBeNull();
+  });
+
+  it('gebouwfunctie wisselen houdt de modus en herkent het voorbeeld', () => {
+    st().applyScenario('woning-basis');
+    st().setMode('limited');
+    st().setKind('office');
+    expect(st().input.grid.mode).toBe('limited');
+    expect(st().scenarioId).toBe('kantoor-basis');
+    expect(st().ownInput).toBeNull();
+  });
+
+  it('de modus gaat mee in de deellink; een link van een voorbeeld met begrenzer toont dat voorbeeld', () => {
+    st().applyScenario('woning-buffer');
+    st().setMode('limited');
+    const code = encodeInput(st().input);
+    expect(decodeInput(code)?.grid.mode).toBe('limited');
+    st().applyScenario('kantoor-basis');
+    st().setMode('exceedance');
+    expect(st().fromShareHash(code)).toBe(true);
+    expect(st().input.grid.mode).toBe('limited');
+    expect(st().scenarioId).toBe('woning-buffer');
+    useStore.setState({ openedFromLink: false, basisOpen: true });
+  });
+});
+
 describe('store: Basis open of dicht', () => {
   it('eerste bezoek open; de keuze wordt bewaard en bij het volgende bezoek gelezen', async () => {
     const storage = memoryStorage();

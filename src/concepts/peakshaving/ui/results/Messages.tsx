@@ -13,7 +13,11 @@ const SEV_CLASS: Record<Severity, string> = {
   info: css.sevInfo,
 };
 
-function MessageItem({ m }: { m: Message }) {
+/**
+ * Eén melding. Compact (in de werkbank) alleen ernst en titel; de korte toelichting staat dan bovenaan onder
+ * "Waarom?", zodat het eerste scherm rustig blijft.
+ */
+function MessageItem({ m, compact }: { m: Message; compact: boolean }) {
   const sev = MESSAGE_UI.severity[m.severity];
   return (
     <div className={`${u.msg} ${CLASS[m.severity]}`}>
@@ -27,12 +31,17 @@ function MessageItem({ m }: { m: Message }) {
         </span>
         <span>
           <strong>{m.title}</strong>
-          <br />
-          <span className={u.msgLines}>{m.summary}</span>
+          {!compact && (
+            <>
+              <br />
+              <span className={u.msgLines}>{m.summary}</span>
+            </>
+          )}
         </span>
       </div>
       <details className={`${u.msgBody} ${css.why}`}>
         <summary>{MESSAGE_UI.why}</summary>
+        {compact && <p>{m.summary}</p>}
         {m.why.map((w, i) => (
           <p key={i}>{w}</p>
         ))}
@@ -56,7 +65,7 @@ export interface MessagesProps {
   include?: MessageCode[];
   /** deze meldingen niet */
   exclude?: MessageCode[];
-  /** compact (in de werkbank): geen eigen regio, kleinere marges */
+  /** compact (in de werkbank): geen eigen regio, kleinere marges, alleen de titel (toelichting onder "Waarom?") */
   compact?: boolean;
   /** zonder meldingen niets tonen in plaats van "Geen bijzonderheden." (bijv. onder een hendel) */
   hideEmpty?: boolean;
@@ -77,7 +86,7 @@ export function Messages({ include, exclude, compact = false, hideEmpty = false 
         <div className={u.okBox}>{MESSAGE_UI.empty}</div>
       )
     ) : (
-      messages.map((m) => <MessageItem key={m.code} m={m} />)
+      messages.map((m) => <MessageItem key={m.code} m={m} compact={compact} />)
     );
   // compact: geen eigen regio (de pagina heeft alleen Invoer, Resultaat en Detailweergave)
   return compact ? (

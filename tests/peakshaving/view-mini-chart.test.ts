@@ -9,6 +9,7 @@ import type { SensitivityRow } from '../../src/concepts/peakshaving/model/sizing
 import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/types';
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import {
+  DOT_HIT_PX,
   MINI_CHART_PAD,
   miniChartGeometry,
   nearestRowVolume,
@@ -62,7 +63,7 @@ describe('geometrie bij de woning', () => {
     expect(g.plateau).not.toBeNull();
     expect(g.plateau!.kneeM3).toBeCloseTo(0.8, 9);
     expect(g.plateau!.x).toBeCloseTo(markerX(0.8, 4, W), 9);
-    expect(g.plateau!.label).toBe('8,7 kW vanaf 0,80 m³: meer buffer helpt niet');
+    expect(g.plateau!.label).toBe('8,7 kW vanaf 0,80 m³: meer helpt niet');
     expect(g.ariaLabel).toBe(
       'Benodigde warmtepomp per buffervolume: 10,6 kW zonder buffer, 8,7 kW vanaf 0,80 m³',
     );
@@ -115,9 +116,10 @@ describe('geometrie bij de woning', () => {
     ]);
     expect(g.dots[0].x).toBeCloseTo(markerX(0.2, 4, W), 9);
     expect(g.dots[1].x).toBeCloseTo(markerX(0.6, 4, W), 9);
-    // op de lijn
+    // op de lijn (ver genoeg uit elkaar: niet verschoven)
     expect(g.dots[0].y).toBeCloseTo(g.points[1].y, 9);
     expect(g.dots[1].y).toBeCloseTo(g.points[3].y, 9);
+    expect(g.dots.map((d) => d.anchorY)).toEqual([null, null]);
 
     const a = normalizeInput(g.dots[0].fix.apply(input));
     expect(a.buffer.volumeM3).toBe(0.2);
@@ -174,6 +176,143 @@ describe('geometrie bij de woning', () => {
     expect(b.battery).toEqual({ capacityKwh: 4, powerKw: null });
     expect(b.buffer.volumeM3).toBe(0.2);
     expect(g.dots[1].fix.undoLabel).toBe('1×25 A met 0,20 m³ buffer en 4,0 kWh batterij');
+  });
+
+  describe('samenvallende stippen (beide "vanaf 0,20 m³")', () => {
+    const CONN = {
+      '1x25': { label: '1×25 A', powerKw: 5.75 },
+      '1x35': { label: '1×35 A', powerKw: 8.05 },
+      '1x40': { label: '1×40 A', powerKw: 9.2 },
+    } as const;
+    const row = (volumeM3: number, nominalKw: number, ids: (keyof typeof CONN)[]): SensitivityRow => ({
+      volumeM3,
+      nominalKw,
+      cells: ids.map((id, j) => ({
+        capacityKwh: [0, 3.75, 7.5, 15][j],
+        pGridMaxKw: 3,
+        exceedanceHours: 0,
+        smallest: { id, ...CONN[id], exceedanceHours: 0 },
+      })),
+    });
+    const ranges = { bufferMaxM3: 2, batteryMaxKwh: 15, batteryStepKwh: 0.5 };
+    const geometry = (rows: SensitivityRow[]) =>
+      miniChartGeometry(rows, ranges, { volumeM3: 0, grid: input.grid, dots: true }, W, H);
+
+    it('stip (a) blijft op de lijn; stip (b) een raakvlak lager, met een anker op de lijn', () => {
+      // de hoogste P_th,min ligt op 0,20 m³ (bovenaan): (b) schuift omlaag
+      const g = geometry([
+        row(0, 6, ['1x40', '1x40', '1x40', '1x40']),
+        row(0.2, 7, ['1x35', '1x35', '1x25', '1x25']),
+        row(0.4, 5, ['1x35', '1x35', '1x25', '1x25']),
+      ]);
+      expect(g.dots.map((d) => [d.id, d.label, d.volumeM3])).toEqual([
+        ['current', '1×35 A', 0.2],
+        ['smaller', '1×25 A + 7,5 kWh', 0.2],
+      ]);
+      const [a, b] = g.dots;
+      expect(b.x).toBe(a.x);
+      expect(a.y).toBeCloseTo(MINI_CHART_PAD.top, 9);
+      expect(a.anchorY).toBeNull();
+      expect(b.anchorY).toBeCloseTo(a.y, 9);
+      expect(b.y).toBeCloseTo(a.y + DOT_HIT_PX, 9);
+    });
+
+    it('onderaan (op het plateau) schuift stip (b) omhoog; de knoppen houden elk hun eigen actie', () => {
+      const g = geometry([
+        row(0, 6, ['1x40', '1x40', '1x40', '1x40']),
+        row(0.2, 4.5, ['1x35', '1x35', '1x25', '1x25']),
+        row(0.4, 4.6, ['1x35', '1x35', '1x25', '1x25']),
+      ]);
+      const [a, b] = g.dots;
+      expect(a.y).toBeCloseTo(H - MINI_CHART_PAD.bottom, 9);
+      expect(b.anchorY).toBeCloseTo(a.y, 9);
+      expect(b.y).toBeCloseTo(a.y - DOT_HIT_PX, 9);
+      expect(normalizeInput(a.fix.apply(input))).toMatchObject({
+        buffer: { volumeM3: 0.2 },
+        battery: { capacityKwh: 0 },
+        grid: { connection: '1x35' },
+      });
+      expect(normalizeInput(b.fix.apply(input))).toMatchObject({
+        buffer: { volumeM3: 0.2 },
+        battery: { capacityKwh: 7.5, powerKw: null },
+        grid: { connection: '1x25' },
+      });
+    });
+
+    it('dicht bij elkaar maar niet op hetzelfde punt: ook uit elkaar; ver genoeg uit elkaar: niet', () => {
+      // 0,20 en 0,25 m³ bij V_max = 2 m³ liggen 7,6 px uit elkaar (W = 320), op dezelfde hoogte
+      const near = geometry([
+        row(0, 6, ['1x40', '1x40', '1x40', '1x40']),
+        row(0.2, 5, ['1x35', '1x40', '1x40', '1x40']),
+        row(0.25, 5, ['1x35', '1x35', '1x25', '1x25']),
+      ]);
+      expect(near.dots[1].x - near.dots[0].x).toBeLessThan(DOT_HIT_PX);
+      expect(near.dots[1].anchorY).not.toBeNull();
+      expect(Math.abs(near.dots[1].y - near.dots[0].y)).toBeCloseTo(DOT_HIT_PX, 9);
+      const far = geometry([
+        row(0, 6, ['1x40', '1x40', '1x40', '1x40']),
+        row(0.2, 5, ['1x35', '1x40', '1x40', '1x40']),
+        row(0.4, 5, ['1x35', '1x35', '1x25', '1x25']),
+      ]);
+      expect(far.dots[1].x - far.dots[0].x).toBeGreaterThanOrEqual(DOT_HIT_PX);
+      expect(far.dots.map((d) => d.anchorY)).toEqual([null, null]);
+    });
+  });
+
+  it('lijn daalt tot het einde van het bereik: geen plateau, wel het laagste punt "(einde bereik)"', () => {
+    // knik = laatste rasterpunt (V_max): "meer helpt niet" is binnen het bereik niet aangetoond
+    const falling = rows.map((r, i) => ({ ...r, nominalKw: 12 - 0.3 * i }));
+    expect(falling[falling.length - 1].volumeM3).toBe(4);
+    const g = miniChartGeometry(
+      falling,
+      rangesOf(input),
+      { volumeM3: 0, grid: input.grid, dots: false },
+      W,
+      H,
+    );
+    expect(g.plateau).toBeNull();
+    expect(g.endLabel).toBe('8,4 kW bij 4,00 m³ (einde bereik)');
+    expect(g.ariaLabel).toBe(
+      'Benodigde warmtepomp per buffervolume: 12,0 kW zonder buffer, 8,4 kW bij 4,00 m³',
+    );
+    // een raster dat nog rekent (laatste punt ontbreekt): geen plateau en ook geen "einde bereik"
+    const partial: (SensitivityRow | null)[] = [...falling];
+    partial[partial.length - 1] = null;
+    const p = miniChartGeometry(
+      partial,
+      rangesOf(input),
+      { volumeM3: 0, grid: input.grid, dots: false },
+      W,
+      H,
+    );
+    expect(p.plateau).toBeNull();
+    expect(p.endLabel).toBeNull();
+    expect(p.ariaLabel).toBe('Benodigde warmtepomp per buffervolume');
+    // bij de woning (wel een plateau) geen "einde bereik"
+    const woning = miniChartGeometry(
+      rows,
+      rangesOf(input),
+      { volumeM3: 0, grid: input.grid, dots: false },
+      W,
+      H,
+    );
+    expect(woning.endLabel).toBeNull();
+  });
+
+  it('bij geen enkel buffervolume te dimensioneren: geen punten, geen plateau en geen stippen', () => {
+    const unsizable = rows.map((r) => ({ ...r, nominalKw: NaN }));
+    const g = miniChartGeometry(
+      unsizable,
+      rangesOf(input),
+      { volumeM3: 0.5, grid: input.grid, dots: true },
+      W,
+      H,
+    );
+    expect(g.points).toEqual([]);
+    expect(g.path).toBe('');
+    expect(g.plateau).toBeNull();
+    expect(g.endLabel).toBeNull();
+    expect(g.firstKw).toBeNull();
   });
 
   it('zonder berekende punten: geen lijn, geen plateau, een neutrale naam', () => {

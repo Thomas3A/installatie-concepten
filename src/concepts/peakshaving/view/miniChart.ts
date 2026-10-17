@@ -13,6 +13,11 @@ import { gridModel, plateauStart, smallerOption, transitionsOf } from './sensiti
 export const MINI_CHART_PAD = { top: 18, bottom: 6 } as const;
 /** Halve breedte van de schuifknop [px]: dezelfde inzet als de markeringen onder de schuif (controls.tsx). */
 export const SLIDER_INSET = 8;
+/**
+ * Raakvlak van een stip [px] (zie .dot in WhatIf.module.css). Liggen twee stippen dichter bij elkaar, dan dekt de
+ * ene de andere af; stip (b) schuift dan een raakvlak op (zie miniChartGeometry).
+ */
+export const DOT_HIT_PX = 24;
 
 /** x van een buffervolume, gelijk aan de markeringen van de schuif: 8 + (W − 16) · V / V_max. */
 export function sliderX(v: number, max: number, width: number): number {
@@ -48,7 +53,10 @@ export interface MiniDot {
   /** (a) huidige aansluiting zonder batterij; (b) eerstvolgende kleinere aansluiting met de kleinste batterij */
   id: 'current' | 'smaller';
   x: number;
+  /** midden van de knop; bij samenvallende stippen ligt (b) een raakvlak naast de lijn */
   y: number;
+  /** punt op de lijn als de stip is verschoven (verbindingslijn), anders null */
+  anchorY: number | null;
   volumeM3: number;
   /** "1×35 A" of "1×25 A + 7,5 kWh" */
   label: string;
@@ -77,6 +85,11 @@ export interface MiniChartGeometry {
   firstKw: number | null;
   /** plateau vanaf het knikpunt (grijs gearceerd van x tot de rechterrand) */
   plateau: { x: number; kneeM3: number; minKw: number; label: string } | null;
+  /**
+   * Zonder plateau, als de lijn tot het einde van de schuif blijft dalen: "{min} kW bij {V_max} m³ (einde bereik)".
+   * Alleen als het laatste berekende punt op V_max ligt (niet bij een raster dat nog rekent).
+   */
+  endLabel: string | null;
   /** verticale lijn op de huidige V */
   currentX: number;
   dots: MiniDot[];
@@ -123,6 +136,20 @@ function dotFix(
 }
 
 /**
+ * Twee stippen op (bijna) dezelfde plek, bijvoorbeeld beide "vanaf 0,20 m³": de knoppen zouden elkaar afdekken en een
+ * klik zou altijd de bovenste raken. Stip (a) blijft op de lijn; stip (b) schuift een raakvlak omlaag (of omhoog als
+ * daar geen ruimte is) en houdt het punt op de lijn als anker voor een verbindingslijn.
+ */
+function separateDots(dots: MiniDot[], bottom: number): void {
+  if (dots.length < 2) return;
+  const [a, b] = dots;
+  if (Math.abs(b.x - a.x) >= DOT_HIT_PX || Math.abs(b.y - a.y) >= DOT_HIT_PX) return;
+  const below = a.y + DOT_HIT_PX;
+  b.anchorY = b.y;
+  b.y = below <= bottom ? below : a.y - DOT_HIT_PX;
+}
+
+/**
  * Geometrie bij een breedte en hoogte in px. `rows` mag onvolledig zijn (een raster dat nog rekent, of het vorige
  * raster gedimd): de lijn toont wat er is; stippen alleen met `current.dots`.
  */
@@ -135,7 +162,8 @@ export function miniChartGeometry(
 ): MiniChartGeometry {
   const max = ranges.bufferMaxM3;
   const finite = rows.filter((r): r is SensitivityRow => r !== null && Number.isFinite(r.nominalKw));
-  let lo = finite.length > 0 ? Math.min(...finite.map((r) => r.nominalKw)) : 0;
+  const minFinite = finite.length > 0 ? Math.min(...finite.map((r) => r.nominalKw)) : NaN;
+  let lo = finite.length > 0 ? minFinite : 0;
   let hi = finite.length > 0 ? Math.max(...finite.map((r) => r.nominalKw)) : 1;
   if (hi - lo < 1e-9) {
     lo -= 0.5;
@@ -179,6 +207,16 @@ export function miniChartGeometry(
       }
     : null;
 
+  // geen plateau: daalt de lijn tot het einde van het bereik, dan het laatste (laagste) punt noemen
+  const last = finite[finite.length - 1];
+  const end =
+    !knee &&
+    finite.length > 1 &&
+    last.volumeM3 >= max - 1e-9 * Math.max(1, max) &&
+    last.nominalKw <= minFinite + 1e-9
+      ? last
+      : null;
+
   const dots: MiniDot[] = [];
   if (current.dots && rows[0]) {
     const m = gridModel({ key: '', rows: [...rows], total: rows.length, done: true }, ranges);
@@ -195,6 +233,7 @@ export function miniChartGeometry(
         id: 'current',
         x: sliderX(a.volumeM3, max, width),
         y: at(a.volumeM3),
+        anchorY: null,
         volumeM3: a.volumeM3,
         label,
         ariaLabel: WHATIF_TEXTS.dotAria(label, a.volumeM3, false),
@@ -216,12 +255,14 @@ export function miniChartGeometry(
         id: 'smaller',
         x: sliderX(b.volumeM3, max, width),
         y: at(b.volumeM3),
+        anchorY: null,
         volumeM3: b.volumeM3,
         label,
         ariaLabel: WHATIF_TEXTS.dotAria(label, b.volumeM3, true),
         fix: dotFix('smaller', label, b.volumeM3, kwh, b.conn),
       });
     }
+    separateDots(dots, bottom);
   }
 
   return {
@@ -233,11 +274,14 @@ export function miniChartGeometry(
     maxKw: hi,
     firstKw,
     plateau,
+    endLabel: end ? WHATIF_TEXTS.miniEndOfRange(end.nominalKw, end.volumeM3) : null,
     currentX: sliderX(current.volumeM3, max, width),
     dots,
     ariaLabel:
       firstKw !== null && knee
         ? WHATIF_TEXTS.miniAria(firstKw, knee.minKw, knee.volumeM3)
-        : WHATIF_TEXTS.miniAriaPending,
+        : firstKw !== null && end
+          ? WHATIF_TEXTS.miniAriaEnd(firstKw, end.nominalKw, end.volumeM3)
+          : WHATIF_TEXTS.miniAriaPending,
   };
 }

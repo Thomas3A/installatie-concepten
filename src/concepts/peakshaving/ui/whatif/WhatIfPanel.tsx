@@ -18,8 +18,6 @@ import css from './WhatIf.module.css';
 
 /** Id van de kop "Wat als?". */
 export const WHATIF_HEADING_ID = 'ps-wat-als';
-// TODO(texts): anker 'whatif' ontbreekt in TOUR_ANCHORS (ui/tour/anchors.ts); tot dan als letterlijke waarde
-const WHATIF_TOUR_ANCHOR = 'whatif';
 
 /**
  * Bedieningselement van een hendel: de groep zelf als die focusbaar is (stapper), anders het getalveld, anders de
@@ -70,7 +68,7 @@ export function WhatIfPanel() {
 
   return (
     // een <div> met een kop, geen eigen regio: binnen "Resultaat" bestaan alleen blokken met een H2 (§2.1)
-    <div ref={root} className={`${css.panel} noPrint`} data-tour={WHATIF_TOUR_ANCHOR}>
+    <div ref={root} className={`${css.panel} noPrint`} {...tourAnchor('whatif')}>
       <div className={`${u.card} ${css.card}`}>
         <div className={css.head}>
           <h2 className={css.title} id={WHATIF_HEADING_ID}>

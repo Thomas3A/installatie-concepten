@@ -2,17 +2,14 @@
 // de effectregel uit de doorrekening en de meldingen die bij de buffer horen.
 import { useMemo } from 'react';
 import { useStore } from '../../store';
-import { HELP, UI_LABELS } from '../../texts';
+import { HELP, UI_LABELS, WHATIF_TEXTS } from '../../texts';
 import { bufferEffect } from '../../view/levers';
 import { tourAnchor } from '../tour/anchors';
 import { RangeField } from '../inputs/controls';
 import { Messages } from '../results/Messages';
 import { BufferMiniChart } from './BufferMiniChart';
+import { SeparatedText } from './SeparatedText';
 import css from './WhatIf.module.css';
-
-/** Markering onder de schuif: uren piekvermogen ("2 h"). */
-// TODO(texts): eenheid van de markeringen (ongewijzigd uit het oude paneel Maatregelen)
-export const markerLabel = (hours: number): string => `${hours} h`;
 
 export function BufferLever() {
   const volumeM3 = useStore((st) => st.input.buffer.volumeM3);
@@ -36,12 +33,14 @@ export function BufferLever() {
         step={r.bufferStepM3}
         digits={2}
         unit="m³"
-        markers={r.bufferMarkersM3.map((m) => ({ value: m.value, label: markerLabel(m.hours) }))}
+        markers={r.bufferMarkersM3.map((m) => ({ value: m.value, label: WHATIF_TEXTS.markerHours(m.hours) }))}
         hint={
           <span className={`${css.effect} ${stale ? css.stale : ''}`} data-testid="buffer-effect">
             {effect ? (
               <>
-                <span className={css.effectLine}>{effect.text}</span>
+                <span className={css.effectLine}>
+                  <SeparatedText text={effect.text} />
+                </span>
                 {effect.plateau && <span className={css.effectLine}>{effect.plateau}</span>}
               </>
             ) : (

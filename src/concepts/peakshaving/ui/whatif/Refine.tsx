@@ -1,6 +1,5 @@
 // Wat als? › Verfijnen (UX-plan §5.3, B8): WP-vermogen automatisch of handmatig, laadstrategie van de buffer en het
 // batterijvermogen. Velden en labels ongewijzigd uit de oude panelen Warmtepomp & afgifte en Maatregelen.
-import { fmt } from '../../../../core/format';
 import { CheckField, SegField } from '../../../../ui/fields';
 import {
   BATTERY_C_RATE_MAX,
@@ -10,24 +9,11 @@ import {
 } from '../../model/battery';
 import type { Battery, BufferStrategy, HeatPump, SizingMode, ThermalBuffer } from '../../model/types';
 import { useStore } from '../../store';
-import { HELP, UI_LABELS, WHATIF_TEXTS } from '../../texts';
+import { HELP, REFINE_TEXTS, UI_LABELS, WHATIF_TEXTS } from '../../texts';
 import { refineChanged } from '../../view/settingsDiff';
 import { RangeField } from '../inputs/controls';
 import { batteryCRate } from './BatteryLever';
 import css from './WhatIf.module.css';
-
-// TODO(texts): labels en opties van Verfijnen, ongewijzigd uit de oude panelen (HeatPumpPanel, MeasuresPanel)
-export const REFINE_TEXTS = {
-  sizing: 'WP-vermogen',
-  sizingOptions: { auto: 'Automatisch', manual: 'Handmatig' },
-  nominal: 'WP-vermogen (A7/W35)',
-  nominalUnit: 'kW th',
-  strategy: 'Laadstrategie buffer',
-  strategyOptions: { predictive: 'Voorspellend', always: 'Altijd' },
-  batteryAuto: 'Batterijvermogen automatisch (0,5 C)',
-  batteryCRate: 'Batterijvermogen (C-waarde)',
-  batteryPowerHint: (kw: number): string => `= ${fmt(kw, 1)} kW laden/ontladen`,
-} as const;
 
 export function Refine() {
   const input = useStore((st) => st.input);

@@ -1,0 +1,210 @@
+/* Schil van de peakshaving-pagina (UX-plan §2.1, §6): kop met titel, vraagregel en Voorbeelden; skip-link; melding
+   onderaan (toast); korte melding op telefoon en tablet. Alleen voor een pc of laptop afgesteld (vanaf 1024 px). */
+
+/* ---- kop: titel links en de knoppen rechts op de eerste rij; de vraag op de tweede rij over de volle breedte, zodat
+   hij ook naast een brede keuzelijst Voorbeelden (1280 px) op één regel past */
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title controls'
+    'question question';
+  align-items: center;
+  gap: 2px 24px;
+  margin-bottom: 14px;
+}
+.title {
+  grid-area: title;
+  margin: 0;
+  font-size: 1.3rem;
+}
+.question {
+  grid-area: question;
+  margin: 0;
+  max-width: 72ch;
+  color: var(--text-2);
+  font-size: 0.95rem;
+  /* past de vraag niet op één regel, dan twee even lange regels in plaats van één los woord */
+  text-wrap: balance;
+}
+.controls {
+  grid-area: controls;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+/* smaller dan een pc-scherm: alles onder elkaar, zodat de knoppen niet buiten beeld vallen */
+@media (max-width: 1023px) {
+  .header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'question' 'controls';
+  }
+  .controls {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+}
+
+/* ---- keuzelijst Voorbeelden: label links van de lijst */
+.examples {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.examplesSelect {
+  /* breed genoeg voor de langste korte titel; nooit breder dan het scherm */
+  max-width: min(420px, calc(100vw - 2 * var(--gutter) - 100px));
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* ---- skip-link: een knop die pas bij focus verschijnt, linksboven in beeld */
+.skip {
+  position: fixed;
+  top: 8px;
+  left: var(--gutter);
+  z-index: 50;
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  padding: 8px 14px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(20, 30, 40, 0.25);
+}
+.skip:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+/* ---- melding onderaan (toast): linksonder, boven de balk met het oordeel (--ps-bottom-bar, gezet door die balk) */
+.toastRegion {
+  position: fixed;
+  /* op een breed scherm in lijn met de inhoud (max. 1800 px breed, gecentreerd) */
+  left: max(var(--gutter), calc((100vw - 1800px) / 2 + var(--gutter)));
+  bottom: calc(var(--ps-bottom-bar, 0px) + 16px);
+  z-index: 31;
+  max-width: min(680px, calc(100vw - 2 * var(--gutter)));
+  /* een lege regio vangt geen klikken af */
+  pointer-events: none;
+  transition: bottom 160ms ease-out;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: var(--radius);
+  /* omgekeerde kleuren: valt op tegen de kaarten, in licht en donker */
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 8px 24px rgba(10, 15, 20, 0.28);
+  animation: toastIn 160ms ease-out;
+}
+.toast :focus-visible {
+  outline-color: var(--accent-soft);
+}
+.toastText {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.92rem;
+}
+.toastAction {
+  flex: none;
+  appearance: none;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent-soft);
+  padding: 5px 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.toastAction:hover {
+  background: rgba(127, 127, 127, 0.2);
+}
+.toastClose {
+  flex: none;
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  opacity: 0.8;
+  cursor: pointer;
+}
+.toastClose:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.2);
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---- telefoon of tablet: alleen een korte melding bovenaan; de pagina eronder blijft gewoon scrollbaar */
+.smallScreen {
+  display: none;
+}
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1024px) {
+  .smallScreen {
+    display: block;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--info);
+    border-radius: var(--radius);
+    background: var(--info-soft);
+    color: var(--text);
+    font-size: 0.92rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toastRegion {
+    transition: none;
+  }
+  .toast {
+    animation: none;
+  }
+}
+
+@media print {
+  .header,
+  .skip,
+  .toastRegion,
+  .smallScreen {
+    display: none !important;
+  }
+}

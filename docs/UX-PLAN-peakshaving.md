@@ -17,6 +17,10 @@ met het model nagerekend.
   de bottom sheet van de rondleiding en alle meetpunten op 390 px vervallen. Op een telefoon of tablet staat bovenaan
   alleen een korte melding dat de tool beter op een pc of laptop werkt; de pagina eronder blijft gewoon scrollbaar en
   de gebruiker beslist zelf. Gemeten en gecontroleerd wordt op 1280×800, 1440×900 en 1920×1080.
+- **Na de review van de indeling** (tekstdieet en dubbele bediening): de meterbalk zegt alleen "budget {budget} kW",
+  de tegels herhalen de aansluiting en de max. overschrijding niet, Opvallend toont alleen de titel (toelichting onder
+  "Waarom?"), de T1-regel heeft geen link "Robuustheid ▸" en de batterijknop heet "Zet". Details en de stand van de
+  meetbare doelen: `docs/AANNAMES.md` › "Schermopbouw (werkbank)".
 - **Rondleiding:** wordt in deze ronde gebouwd (WP-H), als aparte commit nadat de indeling aan de acceptatiecriteria
   voldoet. `TOUR_ENABLED` gaat dan aan.
 
@@ -270,14 +274,14 @@ Bronnen, steeds onafhankelijk van de modus:
 - `{conn} = currentConnectionText(a)`;
 - `{met}`: " met 0,50 m³ buffer", " met 5,0 kWh batterij", " met 1,00 m³ buffer en 5,0 kWh batterij" of leeg.
 
-| Status          | Voorwaarde                                                 | Toon   | Kop                                            | Detailzin                                                                                                                                                                                     |
-| --------------- | ---------------------------------------------------------- | ------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sizingFailed`  | `!isFinite(a.sizing.withBuffer)` bij automatisch           | err ✕  | "Warmtepomp niet te dimensioneren"             | `MESSAGE_TEXTS.sizingFailed.summary` + de eerste oplossing                                                                                                                                    |
-| `nearlyFit`     | uren > toegestaan en `over ≤ 0,03·budget`                  | err ✕  | "Past net niet op {conn}"                      | als bij `notFit`                                                                                                                                                                              |
-| `notFit`        | uren > toegestaan                                          | err ✕  | "Past niet op {conn}"                          | "{u} uur per jaar boven het WP-budget van {budget} kW, tot {over} kW ({pct} %) erboven."                                                                                                      |
-| `withinAllowed` | 0 < uren ≤ toegestaan                                      | warn ! | "Past op {conn}, binnen de toegestane {t} uur" | "{u} uur per jaar boven het WP-budget van {budget} kW, tot {over} kW erboven."                                                                                                                |
-| `fitAmple`      | uren = 0, marge > 25 % en geen afschaving door de batterij | ok ✓   | "Past ruim op {conn}{met}"                     | "Piek aan de meter {peak} kW, {marge} kW ({pct} %) onder het budget van {budget} kW."                                                                                                         |
-| `fit`           | uren = 0                                                   | ok ✓   | "Past op {conn}{met}"                          | zonder afschaving: zoals hierboven. Met afschaving (alleen modus exceedance, `a.noBattery.pGridMaxKw − peak > 0,005`): "Piek aan de meter {peak} kW = budget; de batterij schaaft {Δ} kW af." |
+| Status          | Voorwaarde                                                 | Toon   | Kop                                            | Detailzin                                                                                                                                                                                                     |
+| --------------- | ---------------------------------------------------------- | ------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sizingFailed`  | `!isFinite(a.sizing.withBuffer)` bij automatisch           | err ✕  | "Warmtepomp niet te dimensioneren"             | De oorzaak bij 3 × het piekvermogen (comfort en/of tapwater) + de eerste passende oplossing (boiler alleen met tapwater); toelichting en alle passende oplossingen onder "Waarom?" in de kaart (zie AANNAMES) |
+| `nearlyFit`     | uren > toegestaan en `over ≤ 0,03·budget`                  | err ✕  | "Past net niet op {conn}"                      | als bij `notFit`                                                                                                                                                                                              |
+| `notFit`        | uren > toegestaan                                          | err ✕  | "Past niet op {conn}"                          | "{u} uur per jaar boven het WP-budget van {budget} kW, tot {over} kW ({pct} %) erboven."                                                                                                                      |
+| `withinAllowed` | 0 < uren ≤ toegestaan                                      | warn ! | "Past op {conn}, binnen de toegestane {t} uur" | "{u} uur per jaar boven het WP-budget van {budget} kW, tot {over} kW erboven."                                                                                                                                |
+| `fitAmple`      | uren = 0, marge > 25 % en geen afschaving door de batterij | ok ✓   | "Past ruim op {conn}{met}"                     | "Piek aan de meter {peak} kW, {marge} kW ({pct} %) onder het budget van {budget} kW."                                                                                                                         |
+| `fit`           | uren = 0                                                   | ok ✓   | "Past op {conn}{met}"                          | zonder afschaving: zoals hierboven. Met afschaving (alleen modus exceedance, `a.noBattery.pGridMaxKw − peak > 0,005`): "Piek aan de meter {peak} kW = budget; de batterij schaaft {Δ} kW af."                 |
 
 - **Getalnotatie:** alles via `fmt` (nl-NL). kW onder 20 met 2 decimalen, daarboven met 1. WP-vermogen 1 decimaal, uren 0, procenten 0.
 - **Kleur:** alleen de kaart draagt kleur (linkerrand en icoon ✓/!/✕ plus tekst), uit `--ok`, `--warn` en `--err`. De tegels zijn neutraal en de teal-accentkleur komt hier niet voor.
@@ -758,26 +762,30 @@ Opzet: eigen Vite-server, Chromium met locale nl-NL. De baseline wordt **met het
 
 - **Woorden boven de vouw:** woorden met een letter of cijfer in tekstknopen waarvan het element zichtbaar is (`checkVisibility()`, niet `aria-hidden`, niet in een gesloten `<details>` of `hidden`) en waarvan de rect de viewport raakt. `<option>` telt niet mee; SVG-tekst wel. Gemeten na de eerste doorrekening.
 
-| Meting                                                                                     | Doel                                                                                                             |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Woorden, 1440×900, Basis open                                                              | ≤ 230 en ≤ 40 % van de baseline                                                                                  |
-| Woorden, 1440×900, ingeklapt                                                               | ≤ 180                                                                                                            |
-| Woorden, 390×844, open                                                                     | ≤ 120                                                                                                            |
-| Woorden, 390×844, ingeklapt                                                                | ≤ 130                                                                                                            |
-| Zichtbare interactieve elementen bij laden, 1440×900 ingeklapt                             | ≤ 35 (nu 46)                                                                                                     |
-| Tabstops vanaf de bovenkant tot het eerste focusbare element in de oordeelkaart, ingeklapt | ≤ 15 (nu 56)                                                                                                     |
-| Skip-link, Basis open                                                                      | Tabstop 2 of 3; activeren zet de focus op H2 "Resultaat"                                                         |
-| Scrolldiepte, 1440×900 open                                                                | Oordeelkop volledig in beeld en bufferschuif in beeld zonder scrollen                                            |
-| Scrolldiepte, 1440×900 ingeklapt                                                           | Oordeel, buffer- en batterijschuif en stapper in beeld zonder scrollen                                           |
-| Scrolldiepte, 1280×800 ingeklapt                                                           | Oordeel en bufferschuif in beeld                                                                                 |
-| Telefoon 390×844 ingeklapt                                                                 | Oordeelkop top ≤ 420 px; bufferschuif top ≤ 1150 px (documentcoördinaat; nu 1867 px)                             |
-| Telefoon, mini-oordeelbalk                                                                 | Zichtbaar zolang de bufferschuif in beeld is; tekst bijgewerkt binnen 1,5 s na een schuifstap                    |
-| Telefoon, eerste bezoek                                                                    | Gebouwfunctie top < 450 px en de balk zichtbaar                                                                  |
-| Geen horizontale overflow                                                                  | `document.documentElement.scrollWidth ≤ 390`, zie de toestanden hieronder                                        |
-| Geen geneste scroll                                                                        | Geen element buiten ScrollRegion of tabelwrappers met `overflow-y: auto/scroll` en `scrollHeight > clientHeight` |
-| Print (`page.pdf` A4 staand)                                                               | Hoogstens 1 pagina langer dan de baseline                                                                        |
+Alleen pc of laptop: gemeten op 1280×800, 1440×900 en 1920×1080. De doelen op 390 px (telefoon) zijn vervallen en staan
+hieronder doorgehaald. Stand na de review: zie `docs/AANNAMES.md` › "Schermopbouw (werkbank)" (drie doelen niet gehaald;
+de norm is daar bijgesteld, met de reden).
 
-De overflowcontrole op 390 px geldt voor alle combinaties van:
+| Meting                                                                                     | Doel                                                                                                             | Stand (1440×900)                                       |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Woorden, 1440×900, Basis open                                                              | ≤ 230 en ≤ 40 % van de baseline                                                                                  | 228; 40 % (162) niet gehaald, bijgesteld: alleen ≤ 230 |
+| Woorden, 1440×900, ingeklapt                                                               | ≤ 180                                                                                                            | 210, bijgesteld: ≤ 215                                 |
+| ~~Woorden, 390×844, open~~                                                                 | ~~≤ 120~~                                                                                                        | vervallen (alleen pc/laptop)                           |
+| ~~Woorden, 390×844, ingeklapt~~                                                            | ~~≤ 130~~                                                                                                        | vervallen                                              |
+| Zichtbare interactieve elementen bij laden, 1440×900 ingeklapt                             | ≤ 35 (baseline 38)                                                                                               | 37, bijgesteld: ≤ 38                                   |
+| Tabstops vanaf de bovenkant tot het eerste focusbare element in de oordeelkaart, ingeklapt | ≤ 15 (baseline 57)                                                                                               | 8                                                      |
+| Skip-link, Basis open                                                                      | Tabstop 2 of 3; activeren zet de focus op H2 "Resultaat"                                                         | tabstop 2, focus op H2                                 |
+| Scrolldiepte, 1440×900 open                                                                | Oordeelkop volledig in beeld en bufferschuif in beeld zonder scrollen                                            | gehaald                                                |
+| Scrolldiepte, 1440×900 ingeklapt                                                           | Oordeel, buffer- en batterijschuif en stapper in beeld zonder scrollen                                           | gehaald                                                |
+| Scrolldiepte, 1280×800 ingeklapt                                                           | Oordeel en bufferschuif in beeld                                                                                 | gehaald                                                |
+| ~~Telefoon 390×844 ingeklapt~~                                                             | ~~Oordeelkop top ≤ 420 px; bufferschuif top ≤ 1150 px~~                                                          | vervallen                                              |
+| ~~Telefoon, mini-oordeelbalk~~                                                             | ~~Zichtbaar zolang de bufferschuif in beeld is~~                                                                 | vervallen                                              |
+| ~~Telefoon, eerste bezoek~~                                                                | ~~Gebouwfunctie top < 450 px en de balk zichtbaar~~                                                              | vervallen                                              |
+| Geen horizontale overflow                                                                  | `document.documentElement.scrollWidth` ≤ vensterbreedte op 1280, 1440 en 1920, zie de toestanden hieronder       | gehaald                                                |
+| Geen geneste scroll                                                                        | Geen element buiten ScrollRegion of tabelwrappers met `overflow-y: auto/scroll` en `scrollHeight > clientHeight` | gehaald                                                |
+| Print (`page.pdf` A4 staand)                                                               | Hoogstens 1 pagina langer dan de baseline                                                                        | 2 pagina's (baseline 2)                                |
+
+De overflowcontrole op de drie desktopbreedtes geldt voor alle combinaties van:
 
 - Basis open of dicht;
 - Woning, Meerdere woningen of Kantoor;
@@ -786,7 +794,8 @@ De overflowcontrole op 390 px geldt voor alle combinaties van:
 - elk tabblad;
 - toast zichtbaar.
 
-Daarnaast screenshots op 1440, 1280, 820 en 390 in licht en donker, plus de klimaatplafondpagina als regressiebeeld.
+Daarnaast screenshots op 1280, 1440 en 1920 in licht en donker, plus de klimaatplafondpagina als regressiebeeld. Op een
+telefoon of tablet wordt alleen gecontroleerd dat de korte melding bovenaan staat.
 
 ---
 

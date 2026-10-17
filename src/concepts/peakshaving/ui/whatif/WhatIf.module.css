@@ -90,15 +90,10 @@
   font-size: 0.75rem;
   color: var(--text-2);
 }
-/* de hoogte bepaalt de grafiek (gemeten): 96 px, op de telefoon 80 px */
+/* de hoogte bepaalt de grafiek (gemeten): 96 px */
 .plot {
   position: relative;
   height: 96px;
-}
-@media (max-width: 639px) {
-  .plot {
-    height: 80px;
-  }
 }
 .svg {
   display: block;
@@ -114,6 +109,7 @@
 }
 .line {
   fill: none;
+  /* zelfde kleur als de lijn van de warmtepomp in het tabblad Gevoeligheid (HEAT_PUMP_COLOR) */
   stroke: #e8892b;
   stroke-width: 2;
   stroke-linejoin: round;
@@ -135,8 +131,19 @@
   font-size: 10.5px;
   fill: var(--text-2);
   font-variant-numeric: tabular-nums;
+  /* rand in de kaartkleur: de lijn op de huidige buffer loopt bij een kleine buffer achter het getal langs */
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
-/* stip "toereikend vanaf": een knop met een raakvlak van 24 px (44 px bij aanraking) rond een stip van 10 px */
+/* verbindingslijn van een verschoven stip naar zijn punt op de lijn */
+.dotLink {
+  stroke: var(--ok);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
+/* stip "toereikend vanaf": een knop met een raakvlak van 24 px rond een stip van 10 px */
 .dot {
   position: absolute;
   width: 24px;
@@ -303,6 +310,10 @@
 .nowrap {
   white-space: nowrap;
 }
+.stepperBudget {
+  display: block;
+  white-space: nowrap;
+}
 
 /* ---- Verfijnen */
 .refine {
@@ -361,25 +372,4 @@
 /* knoppengroepen zo breed als hun knoppen */
 .refineBody [role='group'] {
   justify-self: start;
-}
-
-/* ---- aanraakvlakken van minstens 44 px bij een grove aanwijzer (telefoon, tablet) */
-@media (pointer: coarse) {
-  .dot {
-    width: 44px;
-    height: 44px;
-    margin: -22px 0 0 -22px;
-  }
-  .stepBtn,
-  .reset,
-  .fixBtn,
-  .fullLink {
-    min-height: 44px;
-  }
-  .stepBtn {
-    min-width: 44px;
-  }
-  .refine > summary {
-    min-height: 44px;
-  }
 }

@@ -9,11 +9,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sensitivityKey } from '../../src/concepts/peakshaving/model/analysis';
 import { createEngine } from '../../src/concepts/peakshaving/model/engine';
 import { normalizeInput, rangesOf } from '../../src/concepts/peakshaving/model/input';
+import type { SensitivityRow } from '../../src/concepts/peakshaving/model/sizing';
 import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/types';
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import { sameInput } from '../../src/concepts/peakshaving/share';
 import { configureEngine, useStore } from '../../src/concepts/peakshaving/store';
 import { sliderX } from '../../src/concepts/peakshaving/view/miniChart';
+import { BufferMiniChart } from '../../src/concepts/peakshaving/ui/whatif/BufferMiniChart';
 import { WhatIfPanel } from '../../src/concepts/peakshaving/ui/whatif/WhatIfPanel';
 
 const st = () => useStore.getState();
@@ -121,12 +123,13 @@ describe('Wat als?: opbouw', () => {
 });
 
 describe('Wat als?: effectregels (§5.2)', () => {
-  it('voorbeeld 1 (woning, zonder maatregelen): geen buffer; kleinste batterij voor 0 uur met "Zet op"', async () => {
+  it('voorbeeld 1 (woning, zonder maatregelen): geen buffer; kleinste batterij voor 0 uur met "Zet"', async () => {
     render(<WhatIfPanel />);
     await load(scenarioInput('woning-basis'), 'woning-basis');
     expect(bufferEffect()).toBe('Geen buffer · 24,1 kWh per m³');
-    expect(batteryEffect()).toBe('Kleinste batterij voor 0 uur: 1,0 kWh' + 'Zet op 1,0 kWh');
-    expect(screen.getByRole('button', { name: 'Zet op 1,0 kWh' })).toBeTruthy();
+    // knoptekst "Zet" (de waarde staat al in de regel), toegankelijke naam "Zet op 1,0 kWh"
+    expect(batteryEffect()).toBe('Kleinste batterij voor 0 uur: 1,0 kWh' + 'Zet');
+    expect(screen.getByRole('button', { name: 'Zet op 1,0 kWh' }).textContent).toBe('Zet');
     expect(stepperText()).toBe('1×35 A · 8,05 kW · budget 3,22 kW (40 %)');
     // zonder maatregelen is er niets terug te zetten
     expect(screen.queryByRole('button', { name: 'Zonder maatregelen' })).toBeNull();
@@ -163,6 +166,40 @@ describe('Wat als?: effectregels (§5.2)', () => {
     expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
   });
 
+  it('kantoor met tijdconstante 80 h (niet te dimensioneren): geen batterijadvies, geen "Zet" en geen 300,0 kW', async () => {
+    render(<WhatIfPanel />);
+    const heavy = (patch?: (i: PeakshavingInput) => void): PeakshavingInput =>
+      scenarioInput('kantoor-basis', (i) => {
+        i.building.timeConstantH = 80;
+        patch?.(i);
+      });
+    await load(heavy());
+    expect(st().analysis!.nominalKw).toBe(300);
+    // zonder de poort: "Kleinste batterij voor 0 uur: 210,0 kWh" met "Zet", op de terugvalwaarde (3 × 100 kW)
+    expect(batteryEffect()).toBe(
+      'Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
+    );
+    expect(within(screen.getByTestId('battery-effect')).queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Zet|Probeer/ })).toBeNull();
+
+    // met buffer en batterij: alleen de batterij zelf en geen "– → – kW" bij de buffer
+    await load(
+      heavy((i) => {
+        i.buffer.volumeM3 = 2;
+        i.battery.capacityKwh = 50;
+      }),
+    );
+    expect(bufferEffect()).toBe('48,1 kWh opslag ≈ 0,5 uur piekvermogen · warmtepomp niet te dimensioneren');
+    expect(batteryEffect()).toBe(
+      '45,0 kWh bruikbaar · 25,0 kW · Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
+    );
+    expect(screen.queryByRole('button', { name: /^Zet|Probeer/ })).toBeNull();
+    expect(panel().textContent).not.toMatch(/300,0|voor 0 uur|meterpiek/);
+    // ook de meldingen bij de batterij rekenen met de terugvalwaarde: niet tonen
+    expect(st().analysis!.messages.map((m) => m.code)).toContain('batteryEmpty');
+    expect(panel().textContent).not.toContain('Batterij raakt leeg');
+  });
+
   it('tijdens het rekenen blijft de vorige regel staan (gedimd), daarna beweegt hij mee', async () => {
     render(<WhatIfPanel />);
     await load(scenarioInput('woning-basis'), 'woning-basis');
@@ -191,6 +228,22 @@ describe('Wat als?: knoppen met ongedaan maken', () => {
     act(() => st().undoLast());
     expect(st().input).toEqual(before);
     expect(batteryInput().value).toBe('0,0');
+  });
+
+  it('"Zet" bij een te kleine batterij: naar de kleinste batterij voor 0 uur, met ongedaan maken', async () => {
+    render(<WhatIfPanel />);
+    const before = scenarioInput('woning-basis', (i) => void (i.battery.capacityKwh = 0.5));
+    await load(before);
+    expect(batteryEffect()).toMatch(
+      /^[\d,]+ kWh bruikbaar · [\d,]+ kW · meterpiek [\d,]+ → [\d,]+ kW · voor 0 uur: 1,0 kWhZet$/,
+    );
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Zet op 1,0 kWh' })));
+    expect(st().input.battery).toEqual({ capacityKwh: 1, powerKw: null });
+    expect(st().notice?.text).toBe('Batterij op 1,0 kWh');
+    expect(document.activeElement).toBe(batteryInput());
+    act(() => st().undoLast());
+    expect(st().input).toEqual(before);
+    await settle(analysisDone, 'doorrekening na ongedaan maken');
   });
 
   it('"◀ Probeer 1×25 A": kleinere aansluiting, focus op de stapper, ongedaan maken zet hem terug', async () => {
@@ -243,6 +296,13 @@ describe('Wat als?: aansluitingsstapper', () => {
     expect(larger.getAttribute('aria-disabled')).toBeNull();
     // de stapper is gewone invoer: geen ongedaan maken
     expect(st().undo).toBeNull();
+    // na een stap wordt de nieuwe aansluiting voorgelezen; een wijziging in de Basis (aandeel) niet
+    const live = panel().querySelector<HTMLElement>('[aria-live="polite"]')!;
+    expect(live.textContent).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    act(() => st().update((i) => ({ ...i, grid: { ...i.grid, heatPumpShare: 0.5 } })));
+    expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,88 kW (50 %)');
+    expect(live.textContent).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
+    act(() => st().update((i) => ({ ...i, grid: { ...i.grid, heatPumpShare: 0.4 } })));
 
     // vanaf 3×80 A naar grootverbruik (minstens het vermogen van 3×80 A) en terug
     act(() => st().update((i) => ({ ...i, grid: { ...i.grid, connection: '3x80', contractedKw: 40 } })));
@@ -285,7 +345,7 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
       'Benodigde warmtepomp per buffervolume: 10,6 kW zonder buffer, 8,7 kW vanaf 0,80 m³',
     );
     expect(chart().getAttribute('aria-busy')).toBeNull();
-    expect(within(panel()).getByText('8,7 kW vanaf 0,80 m³: meer buffer helpt niet')).toBeTruthy();
+    expect(within(panel()).getByText('8,7 kW vanaf 0,80 m³: meer helpt niet')).toBeTruthy();
     const dots = within(chart()).getAllByRole('button');
     expect(dots.map((b) => b.getAttribute('aria-label'))).toEqual([DOT_A, DOT_B]);
     expect(dots.map((b) => b.textContent)).toEqual(['1×35 A', '1×25 A + 7,5 kWh']);
@@ -380,6 +440,68 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
     expect(within(chart()).getByRole('img')).toBeTruthy();
   });
 
+  it('samenvallende stippen (beide vanaf 0,20 m³): elk een eigen raakvlak, elk zijn eigen actie', async () => {
+    // raster waarin 1×35 A zonder batterij en 1×25 A met 7,5 kWh allebei vanaf 0,20 m³ passen (zoals bij 9 kW en
+    // LT 35); batterijen 0 / 7,5 / 15 / 30 kWh
+    const CONN = {
+      '1x25': { label: '1×25 A', powerKw: 5.75 },
+      '1x35': { label: '1×35 A', powerKw: 8.05 },
+      '1x40': { label: '1×40 A', powerKw: 9.2 },
+    } as const;
+    const row = (volumeM3: number, nominalKw: number, ids: (keyof typeof CONN)[]): SensitivityRow => ({
+      volumeM3,
+      nominalKw,
+      cells: ids.map((id, j) => ({
+        capacityKwh: [0, 7.5, 15, 30][j],
+        pGridMaxKw: 3,
+        exceedanceHours: 0,
+        smallest: { id, ...CONN[id], exceedanceHours: 0 },
+      })),
+    });
+    const before = st().input;
+    useStore.setState({
+      sensitivity: {
+        key: sensitivityKey(before),
+        rows: [
+          row(0, 11.8, ['1x40', '1x40', '1x40', '1x40']),
+          row(0.2, 10.4, ['1x35', '1x25', '1x25', '1x25']),
+          row(0.4, 9.6, ['1x35', '1x25', '1x25', '1x25']),
+        ],
+        total: 3,
+        done: true,
+      },
+    });
+    render(<WhatIfPanel />);
+    const a = screen.getByRole('button', { name: '1×35 A past vanaf 0,20 m³: zet buffer' });
+    const b = screen.getByRole('button', {
+      name: '1×25 A + 7,5 kWh past vanaf 0,20 m³: zet buffer, batterij en aansluiting',
+    });
+    // zelfde x, maar een raakvlak (24 px) uit elkaar, met een verbindingslijn naar het punt op de lijn
+    expect(b.style.left).toBe(a.style.left);
+    expect(Math.abs(parseFloat(b.style.top) - parseFloat(a.style.top))).toBeGreaterThanOrEqual(24);
+    expect(within(chart()).getAllByTestId('dot-link')).toHaveLength(1);
+    // elk label naast zijn eigen stip
+    expect(a.textContent).toBe('1×35 A');
+    expect(b.textContent).toBe('1×25 A + 7,5 kWh');
+
+    act(() => fireEvent.click(a));
+    expect(st().input.buffer.volumeM3).toBe(0.2);
+    expect(st().input.battery.capacityKwh).toBe(0);
+    expect(st().input.grid.connection).toBe('1x35');
+    expect(st().notice?.text).toBe('Buffer op 0,20 m³');
+    act(() => st().undoLast());
+    expect(st().input).toEqual(before);
+
+    act(() => fireEvent.click(b));
+    expect(st().input.buffer.volumeM3).toBe(0.2);
+    expect(st().input.battery).toEqual({ capacityKwh: 7.5, powerKw: null });
+    expect(st().input.grid.connection).toBe('1x25');
+    expect(st().notice?.text).toBe('1×25 A met 0,20 m³ buffer en 7,5 kWh batterij');
+    act(() => st().undoLast());
+    expect(st().input).toEqual(before);
+    await settle(analysisDone, 'doorrekening na ongedaan maken');
+  });
+
   it('handmatig WP-vermogen: de lijn blijft, zonder stippen, met de regel over de suggesties', async () => {
     useStore.setState({ autoSensitivity: true });
     render(<WhatIfPanel />);
@@ -422,6 +544,24 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
     expect(within(panel()).queryByRole('button', { name: /Opnieuw proberen/ })).toBeNull();
     // de link naar de volledige gevoeligheid (met daar wel Opnieuw proberen) blijft
     expect(screen.getByRole('button', { name: 'volledige gevoeligheid' })).toBeTruthy();
+  });
+
+  it('bij geen enkel buffervolume te dimensioneren: een plaatshouder met de reden, zonder knop', () => {
+    const input = st().input;
+    const nan: SensitivityRow[] = [0, 1, 2, 3, 4].map((v) => ({ volumeM3: v, nominalKw: NaN, cells: [] }));
+    const key = sensitivityKey(input);
+    // het raster rekent nog: de gewone plaatshouder, nog geen conclusie
+    act(() => useStore.setState({ sensitivity: { key, rows: nan.slice(0, 2), total: 5, done: false } }));
+    render(<BufferMiniChart />);
+    expect(within(chart()).getByText('Grafiek wordt berekend…')).toBeTruthy();
+    // raster klaar, alle punten niet te bepalen
+    act(() => useStore.setState({ sensitivity: { key, rows: nan, total: 5, done: true } }));
+    expect(
+      within(chart()).getByText('Grafiek niet beschikbaar: warmtepomp niet te dimensioneren.'),
+    ).toBeTruthy();
+    expect(within(chart()).queryByRole('img')).toBeNull();
+    expect(within(chart()).queryAllByRole('button')).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: /Opnieuw proberen/ })).toBeNull();
   });
 });
 

@@ -1,11 +1,13 @@
 // Het oordeel van het Resultaat (UX-plan §4): status, kop en detailzin, meterbalk, drie tegels, gevolgregels en de
 // knoppen. Puur: alles uit de doorrekening (en voor sommige knoppen het gevoeligheidsraster), steeds onafhankelijk
-// van de bedrijfsmodus: overschrijding uit exceedanceKpis(a), comfort uit limitedKpis(a).
+// van de bedrijfsmodus: overschrijding uit exceedanceKpis(a), comfort uit limitedKpis(a). Eén uitzondering (plan §4.1
+// en §4.3): hoeveel de batterij afschaaft (het bedrag in de detailzin en de arcering in de meterbalk) is alleen bekend
+// zonder begrenzer, want de doorrekening zonder batterij volgt de gekozen modus. Kop, status en tegels blijven gelijk.
 import { fmt } from '../../../core/format';
 import { LARGE_CONNECTION_ID } from '../data/connections';
 import type { Analysis } from '../model/analysis';
 import { connectionText, currentConnectionText, exceedanceKpis, limitedKpis } from '../model/kpis';
-import { VERDICT_TEXTS } from '../texts';
+import { MESSAGE_TEXTS, VERDICT_TEXTS } from '../texts';
 import { helpFixes, smallerFixes, type Fix } from './fixes';
 import { kwDigitsFor } from './format';
 import { connectionIndex, type SensitivityState } from './sensitivityFacts';
@@ -64,12 +66,20 @@ export interface Tile {
   refineLink: boolean;
 }
 
+/** "Waarom?" in de oordeelkaart (alleen bij niet te dimensioneren): de toelichting en de passende oplossingen. */
+export interface VerdictWhy {
+  paragraphs: string[];
+  solutions: string[];
+}
+
 export interface Verdict {
   status: VerdictStatus;
   tone: VerdictTone;
   icon: '✓' | '!' | '✕';
   headline: string;
   detail: string;
+  /** toelichting onder "Waarom?"; alleen bij niet te dimensioneren (die melding staat niet in Opvallend) */
+  why: VerdictWhy | null;
   /** tekst van de visueel verborgen statusregel */
   liveText: string;
   /** tekst van de vaste balk onderaan */
@@ -106,12 +116,17 @@ function shavedKw(a: Analysis): number | null {
   return (a.requiredBattery?.capacityKwh ?? 0) > 0 ? NaN : null;
 }
 
+/** Automatisch WP-vermogen dat niet te dimensioneren is: de doorrekening gebruikt dan 3 × het piekvermogen. */
+export function sizingFailed(a: Analysis): boolean {
+  return a.input.heatPump.sizingMode === 'auto' && !Number.isFinite(a.sizing.withBuffer);
+}
+
 export function verdictStatus(a: Analysis): VerdictStatus {
   const ex = exceedanceKpis(a);
   const budget = a.pLimitKw;
   const hours = ex.exceedanceHours;
   const allowed = a.input.grid.allowedExceedanceH;
-  if (a.input.heatPump.sizingMode === 'auto' && !Number.isFinite(a.sizing.withBuffer)) return 'sizingFailed';
+  if (sizingFailed(a)) return 'sizingFailed';
   if (hours > allowed) return ex.pGridMaxKw - budget <= NEARLY_FIT_FRACTION * budget ? 'nearlyFit' : 'notFit';
   if (hours > 0) return 'withinAllowed';
   const margin = budget - ex.pGridMaxKw;
@@ -132,8 +147,6 @@ function meterModel(a: Analysis, d: number): MeterModel {
   const shaved = a.main.mode === 'exceedance' && noBattery > peak + SHAVE_EPS_KW;
   // het gearceerde deel valt altijd binnen de schaal
   const maxKw = 1.1 * Math.max(budget, peak, without, shaved ? noBattery : 0) || 1;
-  const grid = a.input.grid;
-  const large = grid.connection === LARGE_CONNECTION_ID;
   return {
     maxKw,
     peakKw: peak,
@@ -145,36 +158,29 @@ function meterModel(a: Analysis, d: number): MeterModel {
     shadowKw: measures ? without : null,
     shadowPos: measures ? without / maxKw : null,
     peakLabel: VERDICT_TEXTS.meter.peak(peak, d),
-    budgetLabel: VERDICT_TEXTS.meter.budget(
-      budget,
-      100 * grid.heatPumpShare,
-      currentConnectionText(a),
-      large ? null : a.connectionKw,
-      d,
-    ),
+    budgetLabel: VERDICT_TEXTS.meter.budget(budget, d),
     withoutLabel: measures ? VERDICT_TEXTS.meter.without(without, d) : null,
     ariaLabel: VERDICT_TEXTS.meter.aria(peak, budget, d),
   };
 }
 
-/** "1 stap groter dan de huidige 1×35 A", "gelijk aan de huidige aansluiting", "groter dan de huidige 3×80 A". */
+/** "1 stap groter dan de huidige", "gelijk aan de huidige", bij grootverbruik "groter dan de huidige". */
 function smallestLine(a: Analysis): string {
   const t = VERDICT_TEXTS.tiles;
   const s = a.smallest;
   if (!Number.isFinite(s.powerKw)) return '';
-  const conn = currentConnectionText(a);
   const cur = a.input.grid.connection;
   if (cur !== LARGE_CONNECTION_ID && s.id !== LARGE_CONNECTION_ID) {
     const steps = connectionIndex(s.id) - connectionIndex(cur);
-    return steps === 0 ? t.smallestEqual : t.smallestSteps(steps, conn);
+    return steps === 0 ? t.smallestEqual : t.smallestSteps(steps);
   }
   // grootverbruik: geen aantal stappen
-  if (s.powerKw > a.connectionKw + 1e-9) return t.smallestLarger(conn);
-  if (s.powerKw < a.connectionKw - 1e-9) return t.smallestSmaller(conn);
+  if (s.powerKw > a.connectionKw + 1e-9) return t.smallestLarger;
+  if (s.powerKw < a.connectionKw - 1e-9) return t.smallestSmaller;
   return t.smallestEqual;
 }
 
-function tiles(a: Analysis, d: number): [Tile, Tile, Tile] {
+function tiles(a: Analysis): [Tile, Tile, Tile] {
   const t = VERDICT_TEXTS.tiles;
   const ex = exceedanceKpis(a);
   const b = a.input.building;
@@ -182,7 +188,7 @@ function tiles(a: Analysis, d: number): [Tile, Tile, Tile] {
   const measures = a.input.buffer.volumeM3 > 0 || a.input.battery.capacityKwh > 0;
   const w = a.withoutMeasures;
   const needed = a.sizing.withBuffer;
-  const failed = auto && !Number.isFinite(needed);
+  const failed = sizingFailed(a);
   const multi = b.use !== 'office' && b.dwellings > 1;
   const heatPump: Tile = {
     id: 'heatPump',
@@ -195,7 +201,8 @@ function tiles(a: Analysis, d: number): [Tile, Tile, Tile] {
         ? t.heatPumpLine(a.capacityAtMinus10.withBuffer, multi ? a.nominalKw / b.dwellings : null)
         : t.heatPumpNeeded(needed),
     tone: !auto && !(a.nominalKw >= needed - 1e-9) ? 'warn' : 'neutral',
-    reference: measures ? t.heatPumpRef(w.nominalKw, a.nominalKw - w.nominalKw) : null,
+    // niet te dimensioneren: ook geen "zonder maatregelen 300,0 kW" (de terugvalwaarde die de tegel niet toont)
+    reference: measures && !failed ? t.heatPumpRef(w.nominalKw, a.nominalKw) : null,
     refineLink: auto,
   };
   const exceedance: Tile = {
@@ -203,8 +210,7 @@ function tiles(a: Analysis, d: number): [Tile, Tile, Tile] {
     title: t.exceedance,
     value: fmt(ex.exceedanceHours, 0),
     unit: t.hoursUnit,
-    line:
-      ex.exceedanceHours > 0 ? t.exceedanceLine(ex.exceedanceKwh, ex.maxExceedanceKw, d) : t.exceedanceNone,
+    line: ex.exceedanceHours > 0 ? t.exceedanceLine(ex.exceedanceKwh) : t.exceedanceNone,
     tone: 'neutral',
     reference: measures ? t.exceedanceRef(w.kpis.exceedanceHours) : null,
     refineLink: false,
@@ -222,6 +228,44 @@ function tiles(a: Analysis, d: number): [Tile, Tile, Tile] {
   return [heatPump, exceedance, smallest];
 }
 
+/**
+ * Niet te dimensioneren: wat er misgaat en welke oplossingen passen, de meest waarschijnlijke eerst. De doorrekening
+ * gebruikt dan de terugvalwaarde (3 × het piekvermogen); de modus "zonder begrenzer" heeft geen elektrische grens,
+ * net als de dimensionering, dus de uren comfortverlies en tapwatertekort daarvan wijzen de oorzaak aan.
+ * - de boiler-oplossing alleen als er tapwater is (een kantoor heeft standaard geen tapwater);
+ * - opwarmfactor en verlaagd setpoint alleen als er een nachtverlaging is (setpoint buiten gebruik lager);
+ * - comfortverlies toestaan helpt alleen bij een comfortprobleem, maar blijft als laatste redmiddel in de lijst.
+ */
+export function sizingFailedAdvice(a: Analysis): { cause: string; solutions: string[] } {
+  const [boiler, allowComfortLoss, setback] = MESSAGE_TEXTS.sizingFailed.solutions;
+  const b = a.input.building;
+  const ex = exceedanceKpis(a);
+  const dhwFails = b.dhw.enabled && ex.dhwShortfallHours > 0;
+  const comfortFails = ex.comfortLossHours > a.input.grid.allowedComfortLossH;
+  const hasSetback = b.setpointSetbackC < b.setpointUseC;
+  const c = VERDICT_TEXTS.sizingFailedCause;
+  const cause = dhwFails && comfortFails ? c.both : dhwFails ? c.dhw : comfortFails ? c.comfort : c.unknown;
+  const ordered: string[] = [];
+  if (dhwFails) ordered.push(boiler);
+  if (comfortFails && hasSetback) ordered.push(setback);
+  if (comfortFails) ordered.push(allowComfortLoss);
+  // de overige oplossingen die bij deze invoer kunnen, achteraan
+  if (b.dhw.enabled) ordered.push(boiler);
+  if (hasSetback) ordered.push(setback);
+  ordered.push(allowComfortLoss);
+  return { cause, solutions: [...new Set(ordered)] };
+}
+
+/** "Waarom?" bij niet te dimensioneren: de toelichting van de melding (met de terugvalwaarde) en de oplossingen. */
+function whyOf(a: Analysis, status: VerdictStatus): VerdictWhy | null {
+  if (status !== 'sizingFailed') return null;
+  const message = a.messages.find((m) => m.code === 'sizingFailed');
+  return {
+    paragraphs: message ? message.why : [MESSAGE_TEXTS.sizingFailed.why[0]],
+    solutions: sizingFailedAdvice(a).solutions,
+  };
+}
+
 function detailOf(a: Analysis, status: VerdictStatus, d: number): string {
   const v = VERDICT_TEXTS;
   const ex = exceedanceKpis(a);
@@ -229,8 +273,10 @@ function detailOf(a: Analysis, status: VerdictStatus, d: number): string {
   const peak = ex.pGridMaxKw;
   const hours = ex.exceedanceHours;
   switch (status) {
-    case 'sizingFailed':
-      return v.sizingFailedDetail;
+    case 'sizingFailed': {
+      const { cause, solutions } = sizingFailedAdvice(a);
+      return v.sizingFailedDetail(cause, solutions[0] ?? null);
+    }
     case 'nearlyFit':
     case 'notFit':
       return v.over(hours, budget, peak - budget, (100 * (peak - budget)) / budget, d);
@@ -301,11 +347,12 @@ export function buildVerdict(a: Analysis, sens: SensitivityState | null): Verdic
     icon: ICON[tone],
     headline,
     detail: detailOf(a, status, d),
+    why: whyOf(a, status),
     liveText: VERDICT_TEXTS.live(headline, ex.exceedanceHours),
     // niet te dimensioneren: geen WP-vermogen (de tegel toont dan ook "–", niet de terugvalwaarde)
     mini: VERDICT_TEXTS.mini(status, ex.exceedanceHours, status === 'sizingFailed' ? null : a.nominalKw),
     meter: meterModel(a, d),
-    tiles: tiles(a, d),
+    tiles: tiles(a),
     limiterLine: {
       text: VERDICT_TEXTS.limiter(lim.comfortLossHours, lim.minIndoorC, lim.dhwShortfallHours),
       tone: lim.comfortLossHours > a.input.grid.allowedComfortLossH ? 'warn' : 'neutral',

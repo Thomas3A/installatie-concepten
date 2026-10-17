@@ -182,15 +182,22 @@ export const PLATEAU_TOLERANCE = 0.02;
 
 /**
  * Knikpunt van P_th,min(V): het eerste buffervolume met P_th,min ≤ 1,02 × het minimum over de berekende punten.
- * Daarna helpt meer buffer niet meer ("uren, geen dagen"). null zonder berekende punten.
+ * Daarna helpt meer buffer niet meer ("uren, geen dagen"). null zonder berekende punten, en ook als het knikpunt het
+ * laatste berekende punt is: dan daalt de lijn tot het einde van het bereik en is "meer helpt niet" niet aangetoond.
  */
 export function plateauStart(
   rows: readonly (SensitivityRow | null)[],
 ): { index: number; volumeM3: number; minKw: number } | null {
   let minKw = Infinity;
-  for (const r of rows) if (r && Number.isFinite(r.nominalKw)) minKw = Math.min(minKw, r.nominalKw);
+  let lastFinite = -1;
+  rows.forEach((r, i) => {
+    if (r && Number.isFinite(r.nominalKw)) {
+      minKw = Math.min(minKw, r.nominalKw);
+      lastFinite = i;
+    }
+  });
   if (!Number.isFinite(minKw)) return null;
-  for (let i = 0; i < rows.length; i++) {
+  for (let i = 0; i < lastFinite; i++) {
     const r = rows[i];
     if (r && Number.isFinite(r.nominalKw) && r.nominalKw <= (1 + PLATEAU_TOLERANCE) * minKw + 1e-9)
       return { index: i, volumeM3: r.volumeM3, minKw };

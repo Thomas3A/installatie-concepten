@@ -1,4 +1,4 @@
-// Gedeelde React-hooks van de werkbank: zichtbaarheid in beeld, invoermethode en verminderde beweging.
+// Gedeelde React-hooks van de werkbank: zichtbaarheid in beeld en verminderde beweging.
 import { useEffect, useState, useSyncExternalStore, type RefCallback } from 'react';
 
 /** Mediaquery als externe bron; zonder matchMedia (jsdom) altijd `fallback`. */
@@ -12,11 +12,6 @@ function useMediaQuery(query: string, fallback = false): boolean {
     () => (typeof window !== 'undefined' ? (window.matchMedia?.(query).matches ?? fallback) : fallback),
     () => fallback,
   );
-}
-
-/** Aanraakscherm (grove aanwijzer): hints per invoermethode en grotere aanraakvlakken. */
-export function usePointerCoarse(): boolean {
-  return useMediaQuery('(pointer: coarse)');
 }
 
 /** De gebruiker vraagt om minder beweging: direct scrollen, geen animatie. */

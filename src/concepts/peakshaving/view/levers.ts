@@ -18,6 +18,7 @@ import {
   smallerOption,
   type SensitivityState,
 } from './sensitivityFacts';
+import { sizingFailed } from './verdict';
 
 export interface BufferEffect {
   /** "Geen buffer · 24,1 kWh per m³" of "12,0 kWh opslag ≈ 1,5 uur piekvermogen · warmtepomp 10,6 → 9,4 kW" */
@@ -45,8 +46,13 @@ export function bufferEffect(a: Analysis, sens: SensitivityState | null = null):
 
 export interface BatteryState {
   text: string;
-  /** knop achter de regel: "Zet op 1,0 kWh", "Zet" of "Probeer 1×25 A" (met ongedaan maken) */
+  /** knop achter de regel: "Zet" (naam "Zet op 1,0 kWh") of "Probeer 1×25 A" (met ongedaan maken) */
   fix: Fix | null;
+}
+
+/** "Zet": de waarde staat al in de regel ervoor; de toegankelijke naam noemt hem wel. */
+function setFix(kwh: number): Fix {
+  return { ...batteryFix(kwh, WHATIF_TEXTS.set), name: WHATIF_TEXTS.setTo(kwh) };
 }
 
 /** Effectregel onder de batterijschuif; `ranges` levert de schuifstap en het schuifbereik. */
@@ -54,6 +60,13 @@ export function batteryState(a: Analysis, ranges: Ranges = a.ranges): BatterySta
   const t = WHATIF_TEXTS;
   const battery = a.input.battery;
   const E = battery.capacityKwh;
+  // niet te dimensioneren: de doorrekening gebruikt de terugvalwaarde (3 × het piekvermogen), die het oordeel en de
+  // tegel bewust niet tonen; een batterij voor 0 uur, de meterpiek of een kleinere aansluiting zou daarop rekenen
+  if (sizingFailed(a)) {
+    const facts =
+      E > 0 ? `${t.batteryEffectLimited(batteryUsableEnergy(battery), batteryPower(battery))} · ` : '';
+    return { text: facts + t.batterySizingFailed, fix: null };
+  }
   const ex = exceedanceKpis(a);
   const hours = ex.exceedanceHours;
   const rb = a.requiredBattery;
@@ -72,7 +85,7 @@ export function batteryState(a: Analysis, ranges: Ranges = a.ranges): BatterySta
   if (!(E > 0)) {
     if (hours > 0) {
       if (needed === null) return { text: rb && !rb.feasible ? t.batteryInfeasible : '', fix: null };
-      return { text: t.batteryNeeded(needed), fix: settable ? batteryFix(needed, t.setTo(needed)) : null };
+      return { text: t.batteryNeeded(needed), fix: settable ? setFix(needed) : null };
     }
     return withSmaller(t.batteryNotNeeded(currentConnectionText(a)));
   }
@@ -90,7 +103,7 @@ export function batteryState(a: Analysis, ranges: Ranges = a.ranges): BatterySta
   let fix: Fix | null = null;
   if (needed !== null && rb && E + 1e-9 < rb.capacityKwh) {
     text += t.batteryMore(needed);
-    if (settable) fix = batteryFix(needed, t.set);
+    if (settable) fix = setFix(needed);
   }
   return { text, fix };
 }

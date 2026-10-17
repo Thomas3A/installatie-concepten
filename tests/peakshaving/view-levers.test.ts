@@ -48,6 +48,20 @@ beforeAll(async () => {
       i.grid.mode = 'limited';
     }),
     plateau: variant('woning-basis', (i) => void (i.buffer.volumeM3 = 1.2)),
+    // 9 kW met LT 35 en 0,5 m³: de buffer laadt de piek precies tot het budget (3,22 kW), de batterij doet niets
+    atBudget: variant('woning-basis', (i) => {
+      i.building.designLoadKw = 9;
+      i.heatPump.emitterPreset = 'LT';
+      i.buffer.volumeM3 = 0.5;
+      i.battery.capacityKwh = 3;
+    }),
+    // kantoor met tijdconstante 80 h: warmtepomp niet te dimensioneren (de doorrekening gebruikt 3 × 100 kW)
+    unsizable: variant('kantoor-basis', (i) => void (i.building.timeConstantH = 80)),
+    unsizableMeasures: variant('kantoor-basis', (i) => {
+      i.building.timeConstantH = 80;
+      i.buffer.volumeM3 = 2;
+      i.battery.capacityKwh = 50;
+    }),
   };
   for (const [k, i] of Object.entries(inputs)) A[k] = await analyzeInput(i);
   const rows: SensitivityRow[] = [];
@@ -71,6 +85,12 @@ describe('effectregel buffer', () => {
     });
   });
 
+  it('niet te dimensioneren: "warmtepomp niet te dimensioneren" in plaats van "– → – kW"', () => {
+    expect(bufferEffect(A.unsizableMeasures).text).toBe(
+      '48,1 kWh opslag ≈ 0,5 uur piekvermogen · warmtepomp niet te dimensioneren',
+    );
+  });
+
   it('vanaf het knikpunt de regel "uren, geen dagen" (alleen met een passend raster)', () => {
     expect(bufferEffect(A.plateau, woningGrid).plateau).toBe(
       'Meer buffer maakt de warmtepomp niet kleiner: een buffer overbrugt uren, geen dagen.',
@@ -80,11 +100,13 @@ describe('effectregel buffer', () => {
 });
 
 describe('effectregel batterij', () => {
-  it('geen batterij en uren boven budget: kleinste batterij voor 0 uur met "Zet op"', async () => {
+  it('geen batterij en uren boven budget: kleinste batterij voor 0 uur met "Zet" (naam "Zet op …")', async () => {
     const s = batteryState(A.basis);
     expect(s.text).toBe('Kleinste batterij voor 0 uur: 1,0 kWh');
+    // de waarde staat al in de regel; de toegankelijke naam noemt hem wel
     expect(s.fix).toMatchObject({
-      label: 'Zet op 1,0 kWh',
+      label: 'Zet',
+      name: 'Zet op 1,0 kWh',
       undoLabel: 'Batterij op 1,0 kWh',
       target: 'battery',
     });
@@ -107,6 +129,12 @@ describe('effectregel batterij', () => {
     expect(s.fix?.label).toBe('Probeer 1×25 A');
   });
 
+  it('batterij die niets doet, met de piek afgerond op het budget: niet "onder" het budget', () => {
+    expect(batteryState(A.atBudget).text).toBe(
+      'Doet nu niets: de piek (3,22 kW) komt al niet boven het budget. Een batterij helpt pas bij een kleinere aansluiting.',
+    );
+  });
+
   it('batterij met effect: bruikbaar, vermogen en meterpiek zonder → met (alleen zonder begrenzer)', () => {
     expect(batteryState(A.both25)).toEqual({
       text: '4,5 kWh bruikbaar · 2,5 kW · meterpiek 2,92 → 2,30 kW',
@@ -115,10 +143,25 @@ describe('effectregel batterij', () => {
     expect(batteryState(A.limited25).text).toBe('4,5 kWh bruikbaar · 2,5 kW');
   });
 
+  it('niet te dimensioneren (kantoor, tijdconstante 80 h): geen advies op de terugvalwaarde, geen knop', () => {
+    // zonder de poort: "Kleinste batterij voor 0 uur: 210,0 kWh" met "Zet", berekend met 3 × het piekvermogen
+    expect(A.unsizable.nominalKw).toBe(300);
+    expect(A.unsizable.requiredBattery?.feasible).toBe(true);
+    expect(batteryState(A.unsizable)).toEqual({
+      text: 'Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
+      fix: null,
+    });
+    // met een batterij: alleen wat de batterij zelf is (geen meterpiek, geen "voor 0 uur")
+    expect(batteryState(A.unsizableMeasures)).toEqual({
+      text: '45,0 kWh bruikbaar · 25,0 kW · Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).',
+      fix: null,
+    });
+  });
+
   it('te kleine batterij: wat er voor 0 uur nodig is, met "Zet"', () => {
     const s = batteryState(A.small);
     expect(s.text).toBe('0,5 kWh bruikbaar · 0,3 kW · meterpiek 3,48 → 3,23 kW · voor 0 uur: 1,0 kWh');
-    expect(s.fix).toMatchObject({ label: 'Zet', undoLabel: 'Batterij op 1,0 kWh' });
+    expect(s.fix).toMatchObject({ label: 'Zet', name: 'Zet op 1,0 kWh', undoLabel: 'Batterij op 1,0 kWh' });
   });
 });
 

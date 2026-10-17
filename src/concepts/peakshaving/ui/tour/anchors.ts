@@ -12,6 +12,8 @@ export const TOUR_ANCHORS = {
   budget: 'budget',
   /** oordeelkaart */
   verdict: 'verdict',
+  /** paneel Wat als? */
+  whatif: 'whatif',
   /** bufferhendel met mini-grafiek */
   buffer: 'buffer',
   /** batterijhendel en aansluitingsstapper samen */

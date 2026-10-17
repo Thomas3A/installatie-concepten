@@ -76,6 +76,6 @@ describe('buffervolume in teksten', () => {
       'Probeer 1×25 A met 0,375 m³ buffer en 4,0 kWh batterij',
     );
     expect(WHATIF_TEXTS.dotAria('1×35 A', 0.125, false)).toBe('1×35 A past vanaf 0,125 m³: zet buffer');
-    expect(WHATIF_TEXTS.miniPlateau(5.7, 0.375)).toBe('5,7 kW vanaf 0,375 m³: meer buffer helpt niet');
+    expect(WHATIF_TEXTS.miniPlateau(5.7, 0.375)).toBe('5,7 kW vanaf 0,375 m³: meer helpt niet');
   });
 });

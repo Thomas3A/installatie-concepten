@@ -1,4 +1,4 @@
-/* Verdieping: kop met de keuze "Grafieken en kerngetallen" en de tabbladen (tabrij scrolt horizontaal als hij niet past). */
+/* Verdieping: kop met de keuze "Grafieken en kerngetallen", daaronder de tabbladen (u.tabList en u.tab). */
 .depth {
   min-width: 0;
 }
@@ -25,7 +25,7 @@
   border-radius: 4px;
 }
 
-/* label en knoppen op één regel; smal (of met de toelichting open) loopt het door op de volgende regel */
+/* label, (i) en knoppen op één regel; met de toelichting open loopt die door op de volgende regel */
 .mode {
   min-width: 0;
 }
@@ -34,44 +34,4 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-}
-
-.detail {
-  min-width: 0;
-}
-
-/* tabrij: nooit in twee regels (de onderstreping hoort bij één rij), wel horizontaal scrollen; met de ouderklasse
-   erbij wint dit van u.tabList, los van de volgorde van de stylesheets */
-.detail > .tabList {
-  position: relative;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  /* geen verticale scroll: de onderstreping valt binnen de knoppen */
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  overscroll-behavior-x: contain;
-}
-.tabList > [role='tab'] {
-  flex: none;
-  white-space: nowrap;
-}
-/* focusring binnen de knop: de scrollende tabrij knipt af wat erbuiten valt */
-.tabList > [role='tab']:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -3px;
-  border-radius: 4px 4px 0 0;
-}
-
-@media (max-width: 639px) {
-  .tabList > [role='tab'] {
-    padding: 8px 11px;
-  }
-}
-
-/* aanraakschermen: knoppen minstens 44 px hoog */
-@media (pointer: coarse) {
-  .tabList > [role='tab'],
-  .mode [role='group'] > button {
-    min-height: 44px;
-  }
 }

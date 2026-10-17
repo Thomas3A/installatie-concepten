@@ -1,0 +1,311 @@
+{
+  "label": "origin/main (8904168)",
+  "source": {
+    "ref": "origin/main",
+    "commit": "8904168",
+    "dirty": false
+  },
+  "tool": "tools/ux-check/measure.mjs",
+  "measuredAt": "2026-10-17T12:03:44.869Z",
+  "browser": "Chromium 141.0.7390.37",
+  "route": "#/peakshaving",
+  "ui": "oud",
+  "print": {
+    "pages": 2,
+    "pageSizePt": "595×842",
+    "a4Portrait": true
+  },
+  "showResult": null,
+  "viewports": [
+    {
+      "viewport": "1280x800",
+      "states": {
+        "open": {
+          "firstResultMs": 901,
+          "settled": true,
+          "ui": "oud",
+          "basisCollapsed": false,
+          "words": 335,
+          "wordsByRegion": {
+            "siteheader": 1,
+            "overig": 94,
+            "Scenario": 31,
+            "Invoer": 35,
+            "Resultaat": 174
+          },
+          "controls": {
+            "count": 26,
+            "disabled": 0,
+            "kinds": {
+              "a": 1,
+              "select": 3,
+              "button": 15,
+              "input:text": 3,
+              "input:range": 1,
+              "input:checkbox": 1,
+              "summary": 2
+            }
+          },
+          "positions": {
+            "verdict": {
+              "top": 333,
+              "bottom": 485,
+              "height": 152,
+              "fullyInView": true,
+              "partlyInView": true
+            },
+            "buffer": {
+              "top": 1594,
+              "bottom": 1618,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "battery": {
+              "top": 1798,
+              "bottom": 1822,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "stepper": null
+          },
+          "horizontalOverflow": {
+            "scrollWidth": 1280,
+            "clientWidth": 1280,
+            "overflow": false
+          },
+          "nestedScroll": {
+            "count": 1,
+            "items": [
+              {
+                "element": "section._inputs_zozn4_48[aria-label=\"Invoer\"] in \"Invoer\"",
+                "scrollHeight": 1708,
+                "clientHeight": 784,
+                "allowed": false
+              }
+            ]
+          },
+          "pageHeight": 2174,
+          "tab": {
+            "tabStops": 57,
+            "firstStops": [
+              "a \"Installatieconcepten\"",
+              "select \"KlimaatjaarOntwerpjaar T5 — gematigd streng (≈ NEN 5060:2018\"",
+              "select \"Scenario's1. Woning jaren '70 na isolatie — 8 kW, 1×35 A, zo\"",
+              "button \"Deel link\"",
+              "button \"Print / PDF\""
+            ],
+            "targetStop": "summary \"Robuustheid: zelfde configuratie in andere klimaatjaren\"",
+            "skipStop": null
+          },
+          "skipLink": null,
+          "errors": []
+        },
+        "dicht": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        },
+        "toast": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        }
+      },
+      "ui": "oud"
+    },
+    {
+      "viewport": "1440x900",
+      "states": {
+        "open": {
+          "firstResultMs": 1031,
+          "settled": true,
+          "ui": "oud",
+          "basisCollapsed": false,
+          "words": 405,
+          "wordsByRegion": {
+            "siteheader": 1,
+            "overig": 94,
+            "Scenario": 31,
+            "Invoer": 47,
+            "Resultaat": 232
+          },
+          "controls": {
+            "count": 38,
+            "disabled": 0,
+            "kinds": {
+              "a": 1,
+              "select": 3,
+              "button": 19,
+              "input:text": 4,
+              "input:range": 2,
+              "input:checkbox": 1,
+              "summary": 3,
+              "tab": 5
+            }
+          },
+          "positions": {
+            "verdict": {
+              "top": 294,
+              "bottom": 412,
+              "height": 118,
+              "fullyInView": true,
+              "partlyInView": true
+            },
+            "buffer": {
+              "top": 1555,
+              "bottom": 1579,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "battery": {
+              "top": 1760,
+              "bottom": 1784,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "stepper": null
+          },
+          "horizontalOverflow": {
+            "scrollWidth": 1440,
+            "clientWidth": 1440,
+            "overflow": false
+          },
+          "nestedScroll": {
+            "count": 1,
+            "items": [
+              {
+                "element": "section._inputs_zozn4_48[aria-label=\"Invoer\"] in \"Invoer\"",
+                "scrollHeight": 1708,
+                "clientHeight": 884,
+                "allowed": false
+              }
+            ]
+          },
+          "pageHeight": 2022,
+          "tab": {
+            "tabStops": 57,
+            "firstStops": [
+              "a \"Installatieconcepten\"",
+              "select \"KlimaatjaarOntwerpjaar T5 — gematigd streng (≈ NEN 5060:2018\"",
+              "select \"Scenario's1. Woning jaren '70 na isolatie — 8 kW, 1×35 A, zo\"",
+              "button \"Deel link\"",
+              "button \"Print / PDF\""
+            ],
+            "targetStop": "summary \"Robuustheid: zelfde configuratie in andere klimaatjaren\"",
+            "skipStop": null
+          },
+          "skipLink": null,
+          "errors": []
+        },
+        "dicht": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        },
+        "toast": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        }
+      },
+      "ui": "oud"
+    },
+    {
+      "viewport": "1920x1080",
+      "states": {
+        "open": {
+          "firstResultMs": 775,
+          "settled": true,
+          "ui": "oud",
+          "basisCollapsed": false,
+          "words": 474,
+          "wordsByRegion": {
+            "siteheader": 1,
+            "overig": 94,
+            "Scenario": 31,
+            "Invoer": 77,
+            "Resultaat": 271
+          },
+          "controls": {
+            "count": 51,
+            "disabled": 0,
+            "kinds": {
+              "a": 1,
+              "select": 3,
+              "button": 30,
+              "input:text": 5,
+              "input:range": 2,
+              "input:checkbox": 1,
+              "summary": 4,
+              "tab": 5
+            }
+          },
+          "positions": {
+            "verdict": {
+              "top": 241,
+              "bottom": 359,
+              "height": 118,
+              "fullyInView": true,
+              "partlyInView": true
+            },
+            "buffer": {
+              "top": 1502,
+              "bottom": 1526,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "battery": {
+              "top": 1707,
+              "bottom": 1731,
+              "height": 24,
+              "fullyInView": false,
+              "partlyInView": false
+            },
+            "stepper": null
+          },
+          "horizontalOverflow": {
+            "scrollWidth": 1920,
+            "clientWidth": 1920,
+            "overflow": false
+          },
+          "nestedScroll": {
+            "count": 1,
+            "items": [
+              {
+                "element": "section._inputs_zozn4_48[aria-label=\"Invoer\"] in \"Invoer\"",
+                "scrollHeight": 1708,
+                "clientHeight": 1064,
+                "allowed": false
+              }
+            ]
+          },
+          "pageHeight": 1868,
+          "tab": {
+            "tabStops": 57,
+            "firstStops": [
+              "a \"Installatieconcepten\"",
+              "select \"KlimaatjaarOntwerpjaar T5 — gematigd streng (≈ NEN 5060:2018\"",
+              "select \"Scenario's1. Woning jaren '70 na isolatie — 8 kW, 1×35 A, zo\"",
+              "button \"Deel link\"",
+              "button \"Print / PDF\""
+            ],
+            "targetStop": "summary \"Robuustheid: zelfde configuratie in andere klimaatjaren\"",
+            "skipStop": null
+          },
+          "skipLink": null,
+          "errors": []
+        },
+        "dicht": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        },
+        "toast": {
+          "status": "n.v.t.",
+          "reason": "bestaat niet in de oude opzet"
+        }
+      },
+      "ui": "oud"
+    }
+  ]
+}

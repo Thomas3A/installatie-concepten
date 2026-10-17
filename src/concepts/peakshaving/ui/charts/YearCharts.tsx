@@ -10,7 +10,6 @@ import { HOURS_PER_YEAR } from '../../model/building';
 import { MONTH_SHORT } from '../../model/climate';
 import { limitFromConnection } from '../../model/grid';
 import { useStore } from '../../store';
-import { usePointerCoarse } from '../hooks';
 import css from './YearCharts.module.css';
 
 type XMode = 'log' | 'lin';
@@ -42,11 +41,8 @@ const LEAD = {
   thermal: 'Warmtevraag per uur, van hoog naar laag, met wat de warmtepomp bij −10 °C levert.',
   monthly: 'Warmte per bron en elektriciteit per maand; de lijn is de SCOP.',
 } as const;
-/** Bediening per invoermethode: aanraken kent geen sleep-zoom, wel de waarden onder de vinger. */
-const HINT = {
-  mouse: 'Sleep om in te zoomen, dubbelklik om terug te gaan.',
-  touch: 'Tik in een grafiek voor de waarden.',
-} as const;
+/** Bediening met de muis (de tool is voor een pc of laptop). */
+const HINT = 'Sleep om in te zoomen, dubbelklik om terug te gaan.';
 
 // ---------------------------------------------------------------- thema
 
@@ -467,7 +463,6 @@ const monthTick = (v: number, plotWidthPx: number): string => {
 
 function YearChartsView({ a }: { a: Analysis }) {
   const dark = useDarkScheme();
-  const coarse = usePointerCoarse();
   const [xMode, setXMode] = useState<XMode>('log');
   // `dark` als afhankelijkheid: bij een ander kleurschema de themakleuren opnieuw lezen
   const pal = useMemo(palette, [dark]);
@@ -503,7 +498,7 @@ function YearChartsView({ a }: { a: Analysis }) {
           </button>
         </div>
         <span className={ui.hint}>
-          Klimaatjaar {a.climateShort}. Logaritmisch: de piekuren groot. {coarse ? HINT.touch : HINT.mouse}
+          Klimaatjaar {a.climateShort}. Logaritmisch: de piekuren groot. {HINT}
         </span>
       </div>
 

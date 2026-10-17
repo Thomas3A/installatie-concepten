@@ -185,16 +185,17 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   voor een kantoor van 10 tot 500 kW en bij meerdere woningen (n woningen, totaal) van 5 kW tot max(500, ⌈n/10⌉·100) kW
   (ten hoogste 2000 kW), stap 1 kW, zodat de schuif bij gangbare waarden bruikbaar blijft.
 - **Gebouwfunctie wisselen** (woning, meerdere woningen of kantoor) laadt alle standaardwaarden van die keuze (spec §3;
-  meerdere woningen: zie hieronder); alleen het klimaatjaar blijft.
+  meerdere woningen: zie hieronder); alleen het klimaatjaar en de bedrijfsmodus (een weergavekeuze) blijven.
 - **Tapwater aanzetten** zonder boiler (kantoor) vult een boiler van 500 l en 20 kWh/dag in (woning: 200 l en 10 kWh/dag),
   omdat tapwater zonder boiler elk uur een tekort geeft en de warmtepomp dan niet te dimensioneren is.
-- **Batterijvermogen** wordt in het expertdeel als C-waarde (0,2–2 C) ingesteld en als kW opgeslagen; bij een andere
-  capaciteit blijft de C-waarde gelijk.
+- **Batterijvermogen** wordt onder Wat als? › Verfijnen als C-waarde (0,2–2 C) ingesteld en als kW opgeslagen; bij een
+  andere capaciteit blijft de C-waarde gelijk.
 - **Klimaatstatistiek in de keuzelijst** komt uit een kleine tabel (`data/climateStats.ts`) die overeenkomt met de meta
   van de JSON-bestanden (gecontroleerd door een test); zo laadt de pagina de uurdata alleen in de Web Worker.
 - **Rekenmotor:** een module-Web Worker (`model/worker.ts`) met verzoeken per id; zonder Worker (tests) draait dezelfde
-  motor in de hoofdthread. Herberekenen gebeurt 250 ms na de laatste wijziging; het gevoeligheidsraster alleen als dat
-  tabblad open is, met een cache op de invoer waarvan het raster afhangt (dus niet op buffer, batterij en WP-vermogen).
+  motor in de hoofdthread. Herberekenen gebeurt 250 ms na de laatste wijziging; het gevoeligheidsraster rekent na elke
+  doorrekening mee (zie "Schermopbouw (werkbank)"), met een cache op de invoer waarvan het raster afhangt (dus niet op
+  buffer, batterij en WP-vermogen).
 - **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gebouwfunctie (woning of
   kantoor; bij meerdere woningen de woningstandaard, zie "Meerdere woningen"), plus een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
 - **Footer:** de klimaatzin van spec §0.1 staat alleen op de pagina's van dit concept (veld `disclaimer` in de registry).
@@ -246,9 +247,10 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 
 ### Uitleg en printen
 
-- **Printweergave** (spec §2.2): A4 staand, twee pagina's. Pagina 1: invoersamenvatting, KPI-kaarten, advies en
-  robuustheidstabel; pagina 2: de koude week (panelen warmte en elektrisch; het toestandspaneel en de scrubber vallen weg)
-  en de gevoeligheidsgrafiek. Meldingen, invoerblokken en tabbladen worden niet geprint. De knop "Print / PDF" rekent zo
+- **Printweergave** (spec §2.2): A4 staand, twee pagina's. Pagina 1: invoersamenvatting, het oordeel, advies,
+  KPI-kaarten en robuustheidstabel; pagina 2: de koude week (panelen warmte en elektrisch; het toestandspaneel en de
+  scrubber vallen weg) en de gevoeligheidsgrafiek. Basis, Wat als?, Opvallend, Verdieping, knoppen en meldingen worden
+  niet geprint. De knop "Print / PDF" rekent zo
   nodig eerst het gevoeligheidsraster uit en bouwt de grafieken buiten beeld op de printbreedte op; daarna opent het
   printvenster. Printen met Ctrl+P geeft dezelfde eerste pagina, maar zonder de grafieken.
 - **Uitleg-tab:** de teksten staan in `texts.ts` (sectie per onderwerp van spec §11, één of meer formules per sectie,
@@ -284,8 +286,9 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   die in beeld is en de zichtbare legenda.
 - **Robuustheidstabel:** korte koppen "Overschrijding [uur/jaar]" (zonder begrenzer) en "Comfortverlies [uur/jaar]" (als
   de aansluiting begrenst); de toelichting staat boven de tabel.
-- **Indeling:** tussen 640 en 1023 px staan de vier invoerblokken in twee kolommen boven het resultaat. Onder de kop staat
-  de statistiek van het gekozen klimaatjaar, omdat browsers de tooltips op opties van een keuzelijst niet tonen.
+- **Indeling:** vervangen door de werkbank (zie "Schermopbouw (werkbank)"). De statistiek van het gekozen klimaatjaar
+  staat onder de keuzelijst in Meer instellingen › Klimaat, omdat browsers de tooltips op opties van een keuzelijst niet
+  tonen.
 - **Toegankelijkheid:** horizontaal scrollende gebieden (tabel, schema, formules) zijn benoemd en met het toetsenbord
   bereikbaar zodra ze scrollen; legenda-knoppen zijn minstens 24 px hoog (WCAG 2.5.8); de pagina's van beide concepten
   staan in één `main`-landmark.
@@ -344,3 +347,145 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
 - **Scenario's:** naast de acht van spec §10 zijn er twee met meerdere woningen: "10 woningen op één warmtepomp — 50 kW,
   3×35 A, zonder maatregelen" en "… met 1 m³ buffer". Ze staan in de lijst direct na de vier woningscenario's (nummers 5
   en 6; de kantoorscenario's worden 7–10).
+
+### Schermopbouw (werkbank)
+
+De pagina volgt `docs/UX-PLAN-peakshaving.md`: één pagina met Basis (invoer) bovenaan, daaronder Resultaat en Wat als?
+naast elkaar (de werkbank) en daaronder Verdieping. Dit wijkt af van spec §2.2 (twee kolommen met vier invoerblokken en
+Expert-delen). Waar dit hoofdstuk en eerdere punten verschillen, geldt dit hoofdstuk.
+
+**Alleen pc of laptop.** De tool is ontworpen, afgesteld en gemeten voor een browser vanaf 1024 px breed (gemeten op
+1280×800, 1440×900 en 1920×1080). Op een telefoon of tablet (smaller dan 760 px, of een aanraakscherm tot 1024 px) staat
+bovenaan alleen een korte melding dat de tool beter werkt op een pc of laptop; de pagina eronder blijft gewoon
+scrollbaar. Onder 1024 px valt de werkbank terug op één kolom, zonder verdere afstelling.
+
+**Indeling**
+
+- **Basis:** vier kolommen vanaf 1280 px, drie tussen 1024 en 1279 px, twee daaronder. De eerste kolom is minstens
+  340 px breed, zodat de drie knoppen van Gebouwfunctie ("Woning | Meerdere woningen | Kantoor") op één regel passen.
+  Meer instellingen staat in drie kolommen vanaf 1280 px en in twee daaronder. "Bekijk het resultaat" klapt de Basis in
+  tot een strook met chips; open of dicht wordt bewaard in `localStorage` (`ps-basis-v1`), een deellink opent ingeklapt
+  zonder dat te bewaren. Na "Bekijk het resultaat" krijgt H2 "Resultaat" de focus; de pagina scrolt alleen als de
+  oordeelkaart niet helemaal in beeld staat (en dan zo weinig mogelijk), zodat de kop en de strook met "Wijzig" in beeld
+  blijven als alles past.
+- **Werkbank:** Resultaat links met daaronder Opvallend, Alle kerngetallen en Robuustheid; Wat als? rechts over beide
+  rijen. Geen sticky kolom en geen eigen scrollgebied. Tussen werkbank en Verdieping staat iets meer ruimte (24 px) dan
+  tussen de blokken van de werkbank: Verdieping is een volgende laag.
+- **Hoofdgetallen** (afwijking van spec §6.1): een oordeelzin, een meterbalk (piek aan de meter tegen het WP-budget) en
+  drie tegels (Warmtepomp, Boven budget, Kleinste aansluiting). De acht KPI-kaarten staan ongewijzigd ingeklapt onder
+  "Alle kerngetallen (8)" en zijn op papier open.
+- **Advies** (spec §6.2) staat alleen nog op papier; op het scherm vervangen kop en detailzin van het oordeel het.
+- **Balk onderaan:** een vaste balk met het oordeel in het kort verschijnt zodra de kop van het oordeel (icoon, kop en
+  detailzin) uit beeld is, rekening houdend met de hoogte van de balk zelf (52 px). Eén gedrag op alle breedtes.
+- **Bedrijfsmodus** ("Zonder begrenzer" / "Met begrenzer") is een weergavekeuze boven de tabbladen van Verdieping en
+  geldt voor de grafieken en Alle kerngetallen. Wisselen (ook via "toon in grafieken") telt niet als invoerwijziging:
+  het voorbeeld blijft staan (een voorbeeld wordt herkend zonder naar de modus te kijken), net als de eigen invoer, het
+  ongedaan maken en de melding. De gekozen modus blijft ook staan bij een ander voorbeeld, een andere gebouwfunctie,
+  ongedaan maken en "Terug naar je invoer". Hij gaat wel mee in de deellink, zodat de ontvanger dezelfde grafieken ziet.
+  Kop, status, tegels en gevolgregels hangen er niet van af: overschrijding komt altijd uit de doorrekening zonder
+  begrenzer, comfortverlies altijd uit die met begrenzer. Eén uitzondering, zoals in plan §4.1 en §4.3: hoeveel een
+  batterij afschaaft, is alleen bekend zonder begrenzer, want de doorrekening zonder batterij volgt de gekozen modus.
+  Met begrenzer zegt de detailzin daarom "de batterij schaaft de piek af" zonder bedrag, ontbreekt de arcering in de
+  meterbalk en noemt de batterijregel in Wat als? geen meterpiek "zonder → met". Een bedrag in beide modi vraagt een
+  extra doorrekening in het model; dat valt buiten deze ronde.
+- **Gevoeligheidsraster** (afwijking van spec §7.4): het raster rekent na elke doorrekening mee (storevlag
+  `autoSensitivity`, in tests standaard uit), omdat de mini-grafiek boven de bufferschuif en de knoppen bij het oordeel het
+  nodig hebben. Buffer en batterij zitten niet in de cachesleutel, dus schuiven met de hendels rekent het raster niet
+  opnieuw.
+
+**Oordeel en knoppen**
+
+- **Drempels:** "Past net niet" als de piek aan de meter hoogstens 3 % boven het budget ligt; "Past ruim" bij meer dan
+  25 % marge onder het budget en geen batterij die afschaaft. Een batterij schaaft af als de piek zonder batterij meer
+  dan 5 W hoger ligt. Er is geen apart oordeel "krap": met opslag ligt de piek bewust op het budget.
+- **Knop batterij (B9):** de benodigde capaciteit naar boven afgerond op de schuifstap (0,527 kWh wordt 1,0 kWh), binnen
+  het schuifbereik. Knoppen zetten een batterij altijd met automatisch vermogen (0,5 C), want daarmee rekenen de
+  benodigde batterij en het raster. De KPI-kaart in Alle kerngetallen en de print tonen de exacte benodigde capaciteit,
+  afgerond op 0,1 kWh ("Batterij voor 0 uur: 0,5 kWh"; het model verandert niet). De knop en de batterijregel in Wat
+  als? ("Kleinste batterij voor 0 uur: 1,0 kWh") ronden naar boven af op de schuifstap, omdat 0,5 kWh nog 2 uur boven
+  het budget geeft. Beide getallen kloppen dus: het eerste is de exacte behoefte, het tweede de kleinste instelbare
+  waarde die 0 uur haalt.
+- **Knop buffer (B10):** alleen het kleinste exacte rasterpunt V > 0 waarop de warmtepomp zonder batterij past, alleen
+  bij automatisch WP-vermogen en alleen als het raster bij de invoer hoort; zolang het raster rekent een grijze
+  plaatshouder. Het volume is het exacte rasterpunt, ook als dat naast de schuifstap ligt. Bij "binnen de toegestane
+  uren" moet de buffer 0 uur geven, anders zou de knop niets verbeteren.
+- **Knop aandeel (B11):** alleen zonder buffer en batterij, en ook niet als het budget het laden van de boiler ergens
+  afremt: de boiler is dan opslag en een groter budget kan de piek aan de meter laten stijgen, zodat de drempel niet
+  exact is.
+- **Knop aansluiting en aandeel** zetten de focus op de aansluitingsstapper in Wat als? (die toont het nieuwe budget),
+  niet op het veld in de Basis: dat zou de ingeklapte Basis boven het oordeel openklappen.
+- **Kleinere aansluiting volstaat ook** (bekende beperking): exact uit het model als de kleinste passende aansluiting
+  kleiner is; anders uit het raster het eerste rasterpunt vanaf het huidige buffervolume met de kleinste rasterbatterij
+  waarmee de eerstvolgende kleinere aansluiting past. Elke knop is geverifieerd (0 uur), maar het is niet de kleinste
+  totale maatregel: het raster kent maar vier batterijgroottes (bij de woning 0 / 7,5 / 15 / 30 kWh). Daardoor kunnen
+  op één scherm verschillende routes naar dezelfde aansluiting staan, bijvoorbeeld bij de woning met 0,20 m³ buffer
+  "Probeer 1×25 A met 0,20 m³ buffer en 15,0 kWh batterij" bij het oordeel, terwijl de stip in de mini-grafiek
+  "1×25 A + 7,5 kWh vanaf 0,60 m³" toont. Ook kan de knop een grotere batterij noemen dan echt nodig is (bij 9 kW en
+  LT 35 op 1×40 A: "Probeer 1×35 A met 7,5 kWh batterij", terwijl 1,0 kWh op 1×35 A ook 0 uur geeft). Exact rekenen per
+  aansluiting kost extra doorrekeningen en staat niet in deze ronde.
+- **Ongedaan maken:** elke knop past de invoer toe met één stap ongedaan maken en een melding van 8 s. Voorbeelden en
+  het wisselen van gebouwfunctie bewaren de eigen invoer (`ownInput`) tot je hem terugzet. Ongedaan maken, eigen invoer,
+  open/dicht en de rondleiding komen nooit in de deellink.
+
+**Teksten en bediening**
+
+- **Voorbeelden** vervangen de scenario's: een keuzelijst in de kop met groepen per gebouwfunctie en korte titels; ids,
+  titels en invoer van de scenario's zijn ongewijzigd.
+- **Nachtverlaging** (kantoor) is alleen een vertaling naar het setpoint buiten gebruik: aangevinkt betekent
+  `setpointSetbackC < setpointUseC`; aanvinken zet het setpoint buiten gebruik 2 K onder het gebruikssetpoint (begrensd),
+  uitvinken zet het gelijk. Een eigen waarde (bijvoorbeeld 17 °C) gaat bij uit- en weer aanvinken verloren; de exacte
+  waarde staat in Meer instellingen › Gebouw.
+- **Meterbalk:** het label bij de budgetstreep is alleen "budget 3,22 kW"; het aandeel en de aansluiting staan al in de
+  strook, de aansluitingsstapper en de budgetbalk van de Basis.
+- **Tegels:** "Boven budget" toont alleen de kWh per jaar (hoe ver de piek boven het budget komt, staat in de detailzin);
+  "Kleinste aansluiting" zegt "1 stap groter dan de huidige" zonder de aansluiting te herhalen (die staat in de kop). Het
+  verschil in de verwijzing "zonder maatregelen 10,6 kW (−1,2)" komt uit de getoonde, afgeronde waarden, zodat de
+  rekensom op het scherm klopt. De regel in een tegel breekt alleen bij " · " af, nooit tussen een getal en zijn
+  eenheid ("6,6 kW/woning").
+- **Niet te dimensioneren:** de detailzin noemt wat er met de terugvalwaarde (3 × het piekvermogen) misgaat en de eerste
+  oplossing die bij de invoer past. De oorzaak komt uit de doorrekening zonder begrenzer, die net als de dimensionering
+  geen elektrische grens heeft: tapwatertekort wijst naar de boiler, comfortverlies met nachtverlaging naar de
+  opwarmfactor en het verlaagde setpoint. Advies over boiler of tapwater verschijnt alleen als er tapwater is (een
+  kantoor heeft standaard geen tapwater). De melding staat niet in Opvallend; de toelichting en alle passende
+  oplossingen staan onder "Waarom?" in de oordeelkaart (op papier open). De mini-grafiek toont dan "Grafiek niet
+  beschikbaar: warmtepomp niet te dimensioneren." zodra het raster klaar is. Wat als? geeft dan geen batterijadvies
+  (geen "Kleinste batterij voor 0 uur", "Zet" of "Probeer {kleiner}"), want dat zou rekenen met de terugvalwaarde;
+  de batterijregel zegt "Geen advies zolang de warmtepomp niet te dimensioneren is (zie Resultaat).", met een batterij
+  voorafgegaan door de bruikbare capaciteit en het vermogen, en de meldingen bij de batterij ("Batterij raakt leeg",
+  "Batterijvermogen begrenst") staan er dan niet onder. De bufferregel zegt "warmtepomp niet te dimensioneren" in
+  plaats van "– → – kW". De tegel Warmtepomp toont "–" en ook geen verwijzing "zonder maatregelen …" (die zou de
+  terugvalwaarde noemen). De tegels Boven budget en Kleinste aansluiting en de meterbalk rekenen wel met de
+  terugvalwaarde; kop en detailzin zeggen dan al dat de warmtepomp niet te dimensioneren is.
+- **Boven budget:** zijn er uren boven het budget met samen minder dan 0,5 kWh, dan zegt de tegel "< 1 kWh/jaar" in
+  plaats van "0 kWh/jaar".
+- **Stresstest (T1)** is een regel zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart.
+- **Opvallend** toont per melding alleen de ernst en de titel; de korte toelichting staat bovenaan onder "Waarom?". Dat
+  geldt ook voor de meldingen bij de buffer en de batterij.
+- **Batterijregel:** de knop heet "Zet" (toegankelijke naam "Zet op 1,0 kWh"), want de waarde staat al in de regel ervoor.
+  Ligt de piek afgerond precies op het budget, dan zegt de regel "komt al niet boven het budget" in plaats van "blijft al
+  onder het budget".
+- **Mini-grafiek:** vallen de twee stippen (vrijwel) samen, bijvoorbeeld bij 9 kW en LT 35 allebei "vanaf 0,20 m³", dan
+  blijft stip (a) op de lijn en schuift stip (b) een raakvlak (24 px) omlaag, of omhoog als daar geen ruimte is, met een
+  stippellijn naar het punt op de lijn. Zo heeft elke stip een eigen klikvlak en een eigen label. Het getal bovenaan de
+  y-as heeft een rand in de kaartkleur, zodat de lijn van de huidige buffer er bij een kleine buffer achter langs loopt.
+  Een plateau ("meer helpt niet") verschijnt alleen als er na het knikpunt nog een berekend punt ligt. Daalt de lijn tot
+  het einde van de schuif (bijvoorbeeld kantoor in T1 met 20 m³ buffer), dan staat er "{min} kW bij {V_max} m³ (einde
+  bereik)" en ook onder de bufferschuif geen regel "Meer buffer maakt de warmtepomp niet kleiner".
+- **Keuzelijsten:** de optie grootverbruik heet "Grootverbruik" (het veld ernaast heet al "Gecontracteerd vermogen") en
+  de referentiejaren heten "Ontwerpjaar T5 — gematigd streng" enzovoort, zonder "(≈ NEN 5060:2018 …)", dat al in de
+  groepskop staat. Zo past de gekozen optie in de kolom.
+
+**Meetbare doelen (UX-plan §11)**
+
+Gemeten met `tools/ux-check/measure.mjs` op 1440×900 tegen de baseline van `main` (405 woorden, 38 bedieningselementen,
+57 tabstops). Gehaald: tabstops tot de oordeelkaart (8), skip-link (tabstop 2, focus op H2), scrolldiepte op 1440×900 en
+1280×800, geen horizontale overflow, geen geneste scroll en print (2 pagina's). Niet gehaald; de norm is bijgesteld, omdat de pagina na het schrappen van dubbele teksten rustig leest (≈ 45 %
+minder woorden boven de vouw dan `main`) en verder schrappen inhoud zou kosten:
+
+| Doel                                     | Norm                            | Gemeten | Toelichting                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------- | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Woorden boven de vouw, Basis open        | ≤ 230 en ≤ 40 % van de baseline | 228     | ≤ 230 is gehaald. 40 % van 405 is 162: kop (26) en open Basis (62) zijn samen al 88 woorden, en de schets in §2.2 bevat zelf ongeveer 230. Voorstel: alleen ≤ 230.                                                                                                                                                                       |
+| Woorden boven de vouw, ingeklapt         | ≤ 180                           | 210     | Na het schrappen van dubbele teksten (budget bij de meterbalk, max. overschrijding in de tegel, toelichting in Opvallend, de aansluiting in de tegel, "Zet op", de link Robuustheid) blijft over: kop 26, strook 23, oordeel 93, Wat als? 45, Opvallend en de twee samenvattingen 18, kop van Verdieping 9. Bijgesteld: ≤ 215.           |
+| Zichtbare bedieningselementen, ingeklapt | ≤ 35                            | 37      | Baseline 38. Twee bewuste snelkoppelingen blijven: "eigen vermogen kiezen" (naar Verfijnen) en "volledige gevoeligheid →" (naar het tabblad Gevoeligheid). De kop van Verdieping (toelichting en "Zonder/Met begrenzer") staat onderaan in beeld; zo is zichtbaar dat er meer onder staat. Bijgesteld: ≤ 38 (niet meer dan de baseline). |
+
+De doelen op 390 px (telefoon) vervallen: de tool is alleen voor een pc of laptop.

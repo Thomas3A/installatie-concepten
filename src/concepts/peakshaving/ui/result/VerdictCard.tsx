@@ -4,8 +4,9 @@
 import { useMemo } from 'react';
 import u from '../../../../ui/ui.module.css';
 import { useStore } from '../../store';
-import { STEP_TITLES, UI_LABELS } from '../../texts';
-import { buildVerdict } from '../../view/verdict';
+import { MESSAGE_UI, STEP_TITLES, UI_LABELS } from '../../texts';
+import { buildVerdict, type VerdictWhy } from '../../view/verdict';
+import { prefersReducedMotion } from '../hooks';
 import p from '../peakshaving.module.css';
 import { tourAnchor } from '../tour/anchors';
 import { AnswerTiles } from './AnswerTiles';
@@ -14,13 +15,48 @@ import { FixChips } from './FixChips';
 import { MeterBar } from './MeterBar';
 import css from './Result.module.css';
 
-// TODO(integratie): RESULT_HEADING_ID staat ook in basis/BasisSection.tsx (doel van "Bekijk het resultaat"); één bron
-/** id van de H2 "Resultaat": doel van "Bekijk het resultaat", de skip-link en de balk onderaan */
+/** id van de H2 "Resultaat": doel van "Bekijk het resultaat", de skip-link, de balk onderaan en de toast */
 export const RESULT_HEADING_ID = 'ps-resultaat';
 /** id van de oordeelkaart */
 export const VERDICT_CARD_ID = 'ps-oordeel';
 /** id van de kop van het oordeel (icoon, kop en detailzin): de balk onderaan verschijnt als die uit beeld is */
 export const VERDICT_HEAD_ID = 'ps-oordeel-kop';
+
+/**
+ * Naar H2 "Resultaat" scrollen (direct, zonder animatie, bij verminderde beweging) en daar de focus zetten, zonder dat
+ * de focus de pagina nog eens verschuift. Geeft false als de kop er (nog) niet is.
+ * `'nearest'` (Bekijk het resultaat): alleen scrollen als de oordeelkaart niet helemaal in beeld staat, en dan zo
+ * weinig mogelijk; zo blijven de kop van de pagina en de strook met "Wijzig" in beeld als alles past.
+ */
+export function focusResult(block: 'start' | 'nearest' = 'start'): boolean {
+  const heading = document.getElementById(RESULT_HEADING_ID);
+  if (!heading) return false;
+  const target = block === 'nearest' ? (document.getElementById(VERDICT_CARD_ID) ?? heading) : heading;
+  target.scrollIntoView?.({ block, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  heading.focus({ preventScroll: true });
+  return true;
+}
+
+/**
+ * "Waarom?" onder de detailzin (alleen bij niet te dimensioneren): de toelichting en alle passende oplossingen. Op
+ * papier open (data-print-open), want de print heeft geen Opvallend.
+ */
+function WhyDetails({ why }: { why: VerdictWhy }) {
+  return (
+    <details className={css.why} data-print-open="">
+      <summary>{MESSAGE_UI.why}</summary>
+      {why.paragraphs.map((t, i) => (
+        <p key={i}>{t}</p>
+      ))}
+      <strong>{MESSAGE_UI.solutions}</strong>
+      <ul>
+        {why.solutions.map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 /** Skelet vóór de eerste doorrekening: vaste hoogte (min-height 340px), zodat er niets verspringt. */
 function Skeleton() {
@@ -98,6 +134,7 @@ export function VerdictCard() {
             <div className={css.headText}>
               <p className={css.headline}>{verdict.headline}</p>
               <p className={css.detail}>{verdict.detail}</p>
+              {verdict.why && <WhyDetails why={verdict.why} />}
             </div>
           </div>
           {verdict.fixesLabel && <FixChips label={verdict.fixesLabel} fixes={verdict.fixes} />}

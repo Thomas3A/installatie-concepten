@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// Meldingen in de werkbank (UX-plan §4.6, §7 #24–25): filteren met include/exclude, compact zonder eigen regio,
-// hideEmpty, de tekst zonder meldingen en de ernst in woorden ("✕ Kritiek", "! Let op", "i Info").
+// Meldingen in de werkbank (UX-plan §4.6, §7 #24–25): filteren met include/exclude, compact zonder eigen regio en
+// met alleen de titel (de toelichting onder "Waarom?"), hideEmpty, de tekst zonder meldingen en de ernst in woorden
+// ("✕ Kritiek", "! Let op", "i Info").
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Analysis } from '../../src/concepts/peakshaving/model/analysis';
@@ -75,6 +76,18 @@ describe('Meldingen', () => {
     // volgorde van het model (op ernst), niet van include
     expect(titles(container)).toEqual(['Te koud met begrenzer', 'Tapwater veroorzaakt de piek']);
     expect(screen.queryByText('Kritiek')).toBeNull();
+    // compact: alleen de titel in beeld; de korte toelichting staat bovenaan onder het ingeklapte "Waarom?"
+    for (const title of ['Te koud met begrenzer', 'Tapwater veroorzaakt de piek']) {
+      const details = screen.getByText(`${title}: kort`).closest('details')!;
+      expect(details.open).toBe(false);
+      expect(details.querySelector('summary')?.textContent).toBe('Waarom?');
+      expect(details.querySelector('summary')?.nextElementSibling?.textContent).toBe(`${title}: kort`);
+    }
+  });
+
+  it('zonder compact: de korte toelichting direct onder de titel', () => {
+    render(<Messages include={['dhwPeak']} />);
+    expect(screen.getByText('Tapwater veroorzaakt de piek: kort').closest('details')).toBeNull();
   });
 
   it('exclude: alle meldingen behalve die', () => {

@@ -24,25 +24,27 @@ export function FixChips({ label, fixes }: FixChipsProps) {
         {label}
         <span aria-hidden="true">:</span>
       </span>
-      {fixes.map((f, i) =>
-        f.pending ? (
-          <span key={`${f.id}-${i}`} className={`${css.chip} ${css.chipPending}`} data-pending="">
-            {f.label}
-          </span>
-        ) : (
-          <button
-            key={`${f.id}-${i}`}
-            type="button"
-            className={css.chip}
-            onClick={() => {
-              applyFix(f.undoLabel, f.apply);
-              revealSetting(f.target);
-            }}
-          >
-            {f.label}
-          </button>
-        ),
-      )}
+      <div className={css.fixList}>
+        {fixes.map((f, i) =>
+          f.pending ? (
+            <span key={`${f.id}-${i}`} className={`${css.chip} ${css.chipPending}`} data-pending="">
+              {f.label}
+            </span>
+          ) : (
+            <button
+              key={`${f.id}-${i}`}
+              type="button"
+              className={css.chip}
+              onClick={() => {
+                applyFix(f.undoLabel, f.apply);
+                revealSetting(f.target);
+              }}
+            >
+              {f.label}
+            </button>
+          ),
+        )}
+      </div>
     </div>
   );
 }

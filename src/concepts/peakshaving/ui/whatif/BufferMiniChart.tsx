@@ -18,14 +18,9 @@ import {
   type MiniDot,
 } from '../../view/miniChart';
 import { gridStatus } from '../../view/sensitivityFacts';
-import { prefersReducedMotion } from '../hooks';
+import { showInDepth } from '../depth/depthLinks';
 import css from './WhatIf.module.css';
-
-/** Id van de sectie Verdieping (WP-E); de link "volledige gevoeligheid →" scrolt erheen. */
-const DEPTH_SECTION_ID = 'ps-verdieping';
-/** Tabblad Gevoeligheid in de tabrij van Verdieping (id `ps-tab-{TabId}`). */
-const SENSITIVITY_TAB_ID = 'ps-tab-gevoeligheid';
-/** Maat zonder meting (jsdom, eerste tekening): de gangbare breedte van de kolom en de hoogte op desktop [px]. */
+/** Maat zonder meting (jsdom, eerste tekening): de gangbare breedte van de kolom en de hoogte van de grafiek [px]. */
 const FALLBACK_BOX = { width: 320, height: 96 };
 /** Geschatte breedte van een teken in het stiplabel (0,7 rem, vet) [px]: genoeg om botsingen te voorkomen. */
 const LABEL_CHAR_PX = 6.4;
@@ -150,14 +145,6 @@ function complete(s: SensitivityState | null): s is SensitivityState {
   return !!s && s.done && s.error === undefined && s.rows.length > 0 && s.rows.every((r) => r !== null);
 }
 
-/** "volledige gevoeligheid →": tabblad Gevoeligheid kiezen, naar Verdieping scrollen en het tabblad focussen. */
-function openFullSensitivity(setTab: (t: 'gevoeligheid') => void): void {
-  setTab('gevoeligheid');
-  const section = document.getElementById(DEPTH_SECTION_ID);
-  section?.scrollIntoView?.({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
-  document.getElementById(SENSITIVITY_TAB_ID)?.focus({ preventScroll: true });
-}
-
 export function BufferMiniChart() {
   const input = useStore((st) => st.input);
   const sens = useStore((st) => st.sensitivity);
@@ -165,7 +152,6 @@ export function BufferMiniChart() {
   const update = useStore((st) => st.update);
   const applyFix = useStore((st) => st.applyFix);
   const revealSetting = useStore((st) => st.revealSetting);
-  const setTab = useStore((st) => st.setTab);
   const [plotRef, box] = useBox();
   const hatchId = `${useId().replace(/:/g, '')}-hatch`;
 
@@ -210,7 +196,11 @@ export function BufferMiniChart() {
     revealSetting(d.fix.target);
   };
 
+  // geen enkel punt te tekenen (bij geen buffervolume te dimensioneren): de plaatshouder, met de reden zodra het
+  // raster voor deze invoer klaar is
+  const empty = g !== null && g.points.length === 0;
   const plateau = g?.plateau ?? null;
+  const endLabel = g?.endLabel ?? null;
   const top = MINI_CHART_PAD.top;
   const bottom = box.height - MINI_CHART_PAD.bottom;
   const first = g?.points[0];
@@ -228,6 +218,10 @@ export function BufferMiniChart() {
       >
         {status === 'failed' ? (
           <p className={css.placeholder}>{WHATIF_TEXTS.miniError}</p>
+        ) : empty ? (
+          <p className={css.placeholder}>
+            {status === 'ready' ? WHATIF_TEXTS.miniUnsizable : WHATIF_TEXTS.miniPending}
+          </p>
         ) : g ? (
           <>
             <svg
@@ -255,13 +249,29 @@ export function BufferMiniChart() {
                 />
               )}
               <path d={g.path} className={css.line} />
+              {/* verschoven stip (samenvallende stippen): verbindingslijn naar het punt op de lijn */}
+              {g.dots.map(
+                (d) =>
+                  d.anchorY !== null && (
+                    <line
+                      key={d.id}
+                      x1={d.x}
+                      x2={d.x}
+                      y1={d.anchorY}
+                      y2={d.y}
+                      className={css.dotLink}
+                      data-testid="dot-link"
+                    />
+                  ),
+              )}
+              <line x1={g.currentX} x2={g.currentX} y1={2} y2={box.height} className={css.current} />
+              {/* na de verticale lijn en met een rand in de kaartkleur: bij een kleine buffer loopt de lijn erachter */}
               {first && g.firstKw !== null && (
                 <text x={first.x + 4} y={top - 6} className={css.axisLabel}>
                   {/* P_th,min zonder buffer: het vertrekpunt V = 0 */}
                   {fmt(g.firstKw, 1)}
                 </text>
               )}
-              <line x1={g.currentX} x2={g.currentX} y1={2} y2={box.height} className={css.current} />
             </svg>
             {g.dots.map((d, i) => (
               <button
@@ -289,15 +299,18 @@ export function BufferMiniChart() {
             {plateau.label}
           </span>
         )}
+        {endLabel && status !== 'failed' && (
+          <span className={`${css.plateauNote} ${stale ? css.staleChart : ''}`}>{endLabel}</span>
+        )}
         <button
           type="button"
           className={`${u.btnLink} ${css.fullLink}`}
-          onClick={() => openFullSensitivity(setTab)}
+          onClick={() => showInDepth('gevoeligheid')}
         >
           {UI_LABELS.fullSensitivity}
           <span aria-hidden="true"> →</span>
         </button>
-        {manual && g && <span className={css.manualNote}>{WHATIF_TEXTS.miniManual}</span>}
+        {manual && g && !empty && <span className={css.manualNote}>{WHATIF_TEXTS.miniManual}</span>}
       </div>
     </div>
   );

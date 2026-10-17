@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Grafiekonderdelen: naam van de exportknoppen, smalle weergave met astitels boven de grafiek, gevoeligheidsgrafiek
 // die tijdens een herberekening het vorige raster laat staan, een foutmelding toont en een verre aansluiting niet
-// op de as zet; korte leads en hints per invoermethode (muis of aanraken) in Koude week, Jaar en Gevoeligheid.
+// op de as zet; korte leads en bedieningshints (muis) in Koude week, Jaar en Gevoeligheid.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import refJson from '../../src/concepts/peakshaving/data/referentiejaren.json';
@@ -237,21 +237,7 @@ describe('gevoeligheidsgrafiek', () => {
   });
 });
 
-/** matchMedia met een grove aanwijzer (aanraakscherm) of zonder (muis); jsdom kent geen matchMedia. */
-function setPointer(coarse: boolean): void {
-  window.matchMedia = ((query: string) => ({
-    matches: coarse && query.includes('pointer: coarse'),
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
-}
-
-describe('korte teksten en hints per invoermethode (UX-plan §7 #14–18)', () => {
+describe('korte teksten en bedieningshints (UX-plan §7 #14–18)', () => {
   let a: Analysis;
   beforeAll(() => {
     const climate = decodeReferenceYear(refJson as unknown as ReferenceYearsJson, 'T5');
@@ -260,37 +246,26 @@ describe('korte teksten en hints per invoermethode (UX-plan §7 #14–18)', () =
   beforeEach(() => {
     act(() => useStore.setState({ input: a.input, ranges: initial.ranges, analysis: a, scrubHour: null }));
   });
-  afterEach(() => {
-    delete (window as { matchMedia?: unknown }).matchMedia;
-  });
 
   const text = (): string => document.body.textContent ?? '';
 
-  it('Koude week: muis zoomt en klikt, aanraken tikt; de oude lange hint is weg', () => {
-    setPointer(false);
-    const { unmount } = render(<ColdWeekCharts />);
+  it('Koude week: één korte bedieningshint; de oude lange hint is weg', () => {
+    render(<ColdWeekCharts />);
     expect(
       screen.getByText('Sleep om te zoomen, klik om een uur te kiezen; ◀ ▶ schuift door het jaar.'),
     ).toBeTruthy();
     // het testanker van de intro blijft
     expect(screen.getByText(/Koudste week \(hoogste warmtevraag\)/)).toBeTruthy();
     expect(text()).not.toMatch(/Shift \+ scrollwiel|De panelen bewegen samen/);
-    unmount();
-
-    setPointer(true);
-    render(<ColdWeekCharts />);
-    expect(screen.getByText('Tik om een uur te kiezen; ◀ ▶ schuift door het jaar.')).toBeTruthy();
-    expect(text()).not.toMatch(/Sleep om te zoomen/);
   });
 
   it('Koude week: de printversie heeft geen bedieningshint', () => {
     render(<ColdWeekCharts print />);
-    expect(text()).not.toMatch(/Sleep om te zoomen|Tik om een uur te kiezen/);
+    expect(text()).not.toMatch(/Sleep om te zoomen/);
   });
 
-  it('Jaar: korte leads per grafiek en een x-as-hint per invoermethode', () => {
-    setPointer(false);
-    const { unmount } = render(<YearCharts />);
+  it('Jaar: korte leads per grafiek en een korte x-as-hint', () => {
+    render(<YearCharts />);
     for (const lead of [
       'Alle uren van het jaar, van hoog naar laag; boven een lijn is die aansluiting te klein (uren in de legenda).',
       'Warmtevraag per uur, van hoog naar laag, met wat de warmtepomp bij −10 °C levert.',
@@ -302,12 +277,6 @@ describe('korte teksten en hints per invoermethode (UX-plan §7 #14–18)', () =
       `Klimaatjaar ${a.climateShort}. Logaritmisch: de piekuren groot. Sleep om in te zoomen, dubbelklik om terug te gaan.`,
     );
     expect(text()).not.toMatch(/Elk punt is één uur|eerste paar honderd piekuren/);
-    unmount();
-
-    setPointer(true);
-    render(<YearCharts />);
-    expect(text()).toContain('Logaritmisch: de piekuren groot. Tik in een grafiek voor de waarden.');
-    expect(text()).not.toMatch(/dubbelklik/);
   });
 
   it('Gevoeligheid: korte lead, de leeswijzer ingeklapt onder "Hoe lees ik dit?"', () => {
@@ -337,29 +306,17 @@ describe('korte teksten en hints per invoermethode (UX-plan §7 #14–18)', () =
     act(() => useStore.setState({ sensitivity: grid('a') }));
     render(<SensitivityChart print />);
     expect(screen.queryByText('Hoe lees ik dit?')).toBeNull();
-    expect(screen.queryByText(/Klik in de grafiek|Tik in de grafiek/)).toBeNull();
+    expect(screen.queryByText(/Klik in de grafiek/)).toBeNull();
   });
 
-  it('Gevoeligheid: klikhint en uitleesregel per invoermethode', () => {
+  it('Gevoeligheid: klikhint en uitleesregel', () => {
     act(() => useStore.setState({ sensitivity: grid('a') }));
-    setPointer(false);
-    const { unmount } = render(<SensitivityChart />);
+    render(<SensitivityChart />);
     expect(screen.getByText('Klik in de grafiek om het buffervolume te kiezen.')).toBeTruthy();
     expect(
       screen.getByText(
         'Beweeg over de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
       ),
     ).toBeTruthy();
-    unmount();
-
-    setPointer(true);
-    render(<SensitivityChart />);
-    expect(screen.getByText('Tik in de grafiek om het buffervolume te kiezen.')).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Tik in de grafiek voor de overschrijding en de kleinste aansluiting per batterijgrootte.',
-      ),
-    ).toBeTruthy();
-    expect(text()).not.toMatch(/Klik in de grafiek|Beweeg over de grafiek/);
   });
 });

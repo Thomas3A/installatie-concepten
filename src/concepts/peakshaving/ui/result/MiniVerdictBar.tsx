@@ -1,17 +1,18 @@
-// Vaste balk onderaan (UX-plan B13, §2.4): het oordeel in één regel ("✕ Past niet · 101 uur · WP 10,6 kW"), op alle
-// breedtes, alleen zolang de kop van het oordeel uit beeld is. Eén knop scrolt terug naar het oordeel en zet de focus
-// op H2 "Resultaat". De pijl wijst naar het oordeel (↓ eronder bij een open Basis, ↑ erboven verder op de pagina).
-// Zolang de balk staat, krijgt de body de klasse `ps-mini-verdict`: ruimte onderaan (padding-bottom) en de variabele
-// --ps-bottom-bar, zodat de melding (toast) erboven kan staan.
+// Vaste balk onderaan (UX-plan B13): het oordeel in één regel ("✕ Past niet · 101 uur · WP 10,6 kW"), alleen zolang de
+// kop van het oordeel (icoon, kop en detailzin) uit beeld is: als je Basis invult en het oordeel nog onder de vouw
+// staat, of verder op de pagina in Verdieping. Eén knop scrolt terug naar het oordeel en zet de focus op H2
+// "Resultaat"; de pijl wijst naar het oordeel (↓ eronder, ↑ erboven). Zolang de balk staat, krijgt de body de klasse
+// `ps-mini-verdict`: ruimte onderaan (padding-bottom) en de variabele --ps-bottom-bar, zodat de melding (toast) erboven
+// kan staan en de footer er niet onder valt.
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store';
 import { UI_LABELS } from '../../texts';
 import { buildVerdict } from '../../view/verdict';
-import { prefersReducedMotion, useInView } from '../hooks';
+import { useInView } from '../hooks';
 import css from './Result.module.css';
-import { RESULT_HEADING_ID, VERDICT_HEAD_ID } from './VerdictCard';
+import { focusResult, VERDICT_HEAD_ID } from './VerdictCard';
 
-/** Hoogte van de balk [px] (zonder de veilige zone van iOS). */
+/** Hoogte van de balk [px] (gelijk aan --ps-bottom-bar in Result.module.css). */
 export const MINI_BAR_HEIGHT_PX = 52;
 /** Klasse op de body zolang de balk zichtbaar is. */
 export const MINI_BAR_BODY_CLASS = 'ps-mini-verdict';
@@ -63,19 +64,12 @@ export function MiniVerdictBar() {
 
   if (!visible || !verdict) return null;
 
-  const toResult = (): void => {
-    const heading = document.getElementById(RESULT_HEADING_ID);
-    if (!heading) return;
-    heading.scrollIntoView?.({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-    heading.focus({ preventScroll: true });
-  };
-
   return (
     <div className={`${css.miniBar} noPrint`} data-tone={verdict.tone} data-testid="mini-verdict">
       <button
         type="button"
         className={css.miniButton}
-        onClick={toResult}
+        onClick={() => focusResult()}
         aria-label={`${verdict.mini}. ${UI_LABELS.skipToResult}`}
       >
         <span className={css.icon} data-tone={verdict.tone} aria-hidden="true">

@@ -39,15 +39,6 @@
   padding-left: 1.3em;
   line-height: 1.45;
 }
-/* aanraakschermen: 44 px hoog aanraakvlak, dat over de witruimte boven en onder valt (geen extra afstand) */
-@media (pointer: coarse) {
-  .howTo > summary {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    margin: -12px 0;
-  }
-}
 /* klikhint en voortgang op dezelfde plek (gestapeld); de hoogte is die van de hoogste, dus vast */
 .statusRow {
   display: grid;
