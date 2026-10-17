@@ -19,6 +19,7 @@ import { PageHeader } from './shell/PageHeader';
 import { SkipLink } from './shell/SkipLink';
 import { SmallScreenNotice } from './shell/SmallScreenNotice';
 import { UndoToast } from './shell/UndoToast';
+import { Tour } from './tour/Tour';
 import { WhatIfPanel } from './whatif/WhatIfPanel';
 import { PrintView } from './PrintView';
 import p from './peakshaving.module.css';
@@ -143,6 +144,8 @@ export default function PeakshavingPage() {
       </section>
       <MiniVerdictBar />
       <UndoToast />
+      {/* rondleiding: niet modaal, start vanzelf bij een eerste bezoek of via de knop in de kop */}
+      <Tour />
       <PrintView />
     </main>
   );

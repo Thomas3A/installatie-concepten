@@ -326,10 +326,13 @@ function electricChart(a: Analysis, pal: Palette) {
   const limits = connectionLimits(a, pal);
   const extras: LegendExtra[] = limits.map((l) => {
     const [net, noBat, bare] = curves.map((c) => hoursAbove(c, l.limitKw));
+    // bij een andere aansluiting geteld in deze doorrekening (buffer, batterij en boiler laden tegen het huidige
+    // budget); het oordeel rekent die aansluiting opnieuw door en kan een uur verschillen: "≈"
+    const approx = l.current ? '' : '≈ ';
     const counts =
       net === noBat && noBat === bare
-        ? `${fmt(net, 0)} uur erboven (alle drie de krommen)`
-        : `uur erboven: ${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
+        ? `${approx}${fmt(net, 0)} uur erboven (alle drie de krommen)`
+        : `uur erboven: ${approx}${fmt(net, 0)} met maatregelen · ${fmt(noBat, 0)} zonder batterij · ${fmt(bare, 0)} zonder maatregelen`;
     return {
       label: `${l.current ? 'Huidige aansluiting ' : ''}${l.name} — ${counts}`,
       color: l.color,
@@ -366,14 +369,22 @@ function thermalChart(a: Analysis, pal: Palette) {
     lines.push({ value, color, dash, width: 1.8, text: `${short}: ${kw}`, textColor });
     extras.push({ label: `${legend} bij −10 °C: ${kw}`, color, dash, kind: 'line' });
   };
+  // het korte label noemt "bij −10 °C" waar het de WP noemt: anders lijkt "WP: 7,39 kW" het nominale vermogen
+  // (de tegel Warmtepomp toont 10,6 kW A7/W35)
   if (auto && volume <= 0) {
-    add(withoutBuffer, 'Benodigde WP (geen buffer)', 'WP zonder buffer', REFERENCE_GREY, [3, 3]);
+    add(withoutBuffer, 'Benodigde WP (geen buffer)', 'WP bij −10 °C', REFERENCE_GREY, [3, 3]);
   } else {
     add(withoutBuffer, 'Benodigde WP zonder buffer', 'zonder buffer', REFERENCE_GREY, [3, 3]);
     if (auto) {
       add(withBuffer, `Benodigde WP met buffer (${m3Text(volume)} m³)`, 'met buffer', pal.cold, [7, 4]);
     } else {
-      add(withBuffer, `Gekozen WP (${fmt(a.nominalKw, 1)} kW nominaal)`, 'gekozen WP', pal.cold, [7, 4]);
+      add(
+        withBuffer,
+        `Gekozen WP (${fmt(a.nominalKw, 1)} kW nominaal)`,
+        'gekozen WP bij −10 °C',
+        pal.cold,
+        [7, 4],
+      );
     }
   }
   const peak = q[0] ?? 0;

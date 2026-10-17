@@ -175,9 +175,13 @@ export function BufferMiniChart() {
   const dots = status === 'ready' && !manual;
   const volumeM3 = input.buffer.volumeM3;
   const grid = input.grid;
+  const batteryPowerManual = input.battery.powerKw !== null;
   const g = useMemo(
-    () => (rows ? miniChartGeometry(rows, ranges, { volumeM3, grid, dots }, box.width, box.height) : null),
-    [rows, ranges, volumeM3, grid, dots, box.width, box.height],
+    () =>
+      rows
+        ? miniChartGeometry(rows, ranges, { volumeM3, grid, dots, batteryPowerManual }, box.width, box.height)
+        : null,
+    [rows, ranges, volumeM3, grid, dots, batteryPowerManual, box.width, box.height],
   );
   const sides = g ? labelSides(g.dots, g.points, box.width, box.height) : [];
   // klikken kiest het dichtstbijzijnde rasterpunt; niet in een verouderd raster (andere punten dan de nieuwe)
@@ -280,6 +284,8 @@ export function BufferMiniChart() {
                 className={css.dot}
                 style={{ left: d.x, top: d.y }}
                 aria-label={d.ariaLabel}
+                // een stip ziet eruit als een markering in de grafiek: de tooltip zegt wat een klik doet
+                title={d.ariaLabel}
                 onClick={() => onDot(d)}
               >
                 <span className={SIDE_CLASS[sides[i] ?? 'right']} aria-hidden="true">

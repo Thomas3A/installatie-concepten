@@ -21,7 +21,8 @@ gevoeligheidsraster):
 
 Toestanden: **Basis open** (eerste bezoek, lege `localStorage`), **Basis ingeklapt** (`ps-basis-v1 = 'dicht'`) en
 **melding onderaan** (na de eerste knop bij het oordeel). De oude opzet kent alleen de eerste; de andere zijn daar
-"n.v.t.". Print en "Bekijk het resultaat" worden op 1440×900 gemeten.
+"n.v.t.". Print en "Bekijk het resultaat" worden op 1440×900 gemeten. In elke toestand staat `ps-rondleiding-v1` op
+`'gezien'`: gemeten wordt de pagina, niet de rondleiding die bij een eerste bezoek vanzelf start.
 
 ## Gebruik
 

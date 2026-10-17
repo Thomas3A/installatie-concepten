@@ -12,9 +12,10 @@ import { UI_LABELS, VERDICT_TEXTS, WHATIF_TEXTS } from '../texts';
 import { batteryOnStep, ceilToStep, cleanVolume } from './format';
 import {
   firstFitVolume,
+  gridModel,
   gridStatus,
   smallerOption,
-  smallestFitFor,
+  smallerRoute,
   type SensitivityState,
 } from './sensitivityFacts';
 import type { WhatIfFieldKey } from './types';
@@ -53,6 +54,11 @@ export interface Fix {
    */
   target: WhatIfFieldKey;
   apply: (i: PeakshavingInput) => PeakshavingInput;
+  /**
+   * de knop zet alleen een kleinere aansluiting waarop een batterij nodig is ("Probeer 1×25 A (met batterij)"): hij
+   * belooft geen 0 uur, maar dat het oordeel daarna de exacte kleinste batterij noemt (knop "{E} kWh batterij")
+   */
+  needsBattery?: true;
 }
 
 const same = (i: PeakshavingInput): PeakshavingInput => i;
@@ -101,12 +107,19 @@ export function bufferFix(volumeM3: number, withoutBattery: boolean): Fix {
   };
 }
 
-/** Batterij op `capacityKwh` (een stapwaarde van de schuif); `label` = knoptekst. */
-export function batteryFix(capacityKwh: number, label = VERDICT_TEXTS.fix.battery(capacityKwh)): Fix {
+/**
+ * Batterij op `capacityKwh` (een stapwaarde van de schuif); `label` = knoptekst. `resetsPower`: er is nu een
+ * handmatig batterijvermogen, dat de knop op automatisch (0,5 C) zet; de melding zegt dat dan.
+ */
+export function batteryFix(
+  capacityKwh: number,
+  label = VERDICT_TEXTS.fix.battery(capacityKwh),
+  resetsPower = false,
+): Fix {
   return {
     id: 'battery',
     label,
-    undoLabel: VERDICT_TEXTS.undo.battery(capacityKwh),
+    undoLabel: VERDICT_TEXTS.undo.battery(capacityKwh) + (resetsPower ? VERDICT_TEXTS.undo.powerAuto : ''),
     pending: false,
     target: 'battery',
     apply: withBattery(capacityKwh),
@@ -125,12 +138,12 @@ export function connectionFix(c: ConnectionAdvice, label = connectionText(c)): F
   };
 }
 
-/** Eén stap kleinere standaardaansluiting proberen (knop "◀ Probeer 1×25 A" bij de batterij). */
-export function tryConnectionFix(c: ConnectionDef): Fix {
+/** Kleinere aansluiting proberen (knop "◀ Probeer 1×25 A" bij de batterij). */
+export function tryConnectionFix(c: Pick<ConnectionAdvice, 'id' | 'label' | 'powerKw'>): Fix {
   return {
-    ...connectionFix({ id: c.id, label: c.label, powerKw: c.powerKw, exceedanceHours: NaN }),
+    ...connectionFix({ ...c, exceedanceHours: NaN }),
     id: 'trySmaller',
-    label: WHATIF_TEXTS.trySmaller(c.label),
+    label: WHATIF_TEXTS.trySmaller(connectionText(c)),
   };
 }
 
@@ -150,26 +163,46 @@ export function shareFix(pct: number): Fix {
 }
 
 /**
- * Kleinere aansluiting met buffer en batterij uit één rasterpunt. Het buffervolume blijft exact het rasterpunt (het
- * verband is niet monotoon, B10); de rasterbatterij gaat naar boven op de schuifstap (batteryOnStep), zodat knoptekst,
- * melding en schuif dezelfde waarde tonen.
+ * Kleinere aansluiting met de buffer van één rasterpunt en, met `gridCapacityKwh`, de rasterbatterij van dat punt.
+ * Het buffervolume blijft exact het rasterpunt (het verband is niet monotoon, B10); de rasterbatterij gaat naar boven
+ * op de schuifstap (batteryOnStep), zodat knoptekst, melding en schuif dezelfde waarde tonen. Zonder rasterbatterij
+ * (null: het punt past zonder batterij) blijft de batterij zoals hij is; meer batterij verlaagt de piek alleen.
  */
 export function smallerWithFix(
   c: ConnectionDef,
   volumeM3: number,
-  gridCapacityKwh: number,
+  gridCapacityKwh: number | null,
   ranges: Pick<Ranges, 'batteryStepKwh' | 'batteryMaxKwh'>,
 ): Fix {
   const v = cleanVolume(volumeM3);
-  const capacityKwh = batteryOnStep(gridCapacityKwh, ranges);
+  const capacityKwh = gridCapacityKwh === null ? null : batteryOnStep(gridCapacityKwh, ranges);
+  const kwh = capacityKwh ?? 0;
   return {
     id: 'smaller',
-    label: VERDICT_TEXTS.fix.trySmallerWith(c.label, v, capacityKwh),
-    undoLabel: VERDICT_TEXTS.undo.smaller(c.label, v, capacityKwh),
+    label: VERDICT_TEXTS.fix.trySmallerWith(c.label, v, kwh),
+    undoLabel: VERDICT_TEXTS.undo.smaller(c.label, v, kwh),
     pending: false,
     target: 'connectionStepper',
-    apply: (i) =>
-      withConnection({ id: c.id, powerKw: c.powerKw })(withBattery(capacityKwh)(withBuffer(v)(i))),
+    apply: (i) => {
+      const withV = withBuffer(v)(i);
+      return withConnection(c)(capacityKwh === null ? withV : withBattery(capacityKwh)(withV));
+    },
+  };
+}
+
+/**
+ * Kleinere aansluiting die een batterij nodig heeft: alleen de aansluiting, buffer en batterij blijven. Het oordeel
+ * noemt daarna de exacte kleinste batterij ("Wat helpt", "Kleinste batterij voor 0 uur"), niet de grovere
+ * rasterbatterij (het raster kent maar vier batterijgroottes).
+ */
+export function smallerNeedsBatteryFix(c: ConnectionDef): Fix {
+  return {
+    ...connectionFix(
+      { id: c.id, label: c.label, powerKw: c.powerKw, exceedanceHours: NaN },
+      VERDICT_TEXTS.fix.trySmallerBattery(c.label),
+    ),
+    id: 'smaller',
+    needsBattery: true,
   };
 }
 
@@ -243,7 +276,8 @@ export function helpFixes(a: Analysis, sens: SensitivityState | null, targetH: n
 
   // batterij: benodigde capaciteit naar boven afgerond op de schuifstap (B9), binnen het schuifbereik
   const e = batteryForZero(a);
-  if (e !== null && e > E + 1e-9 && e <= a.ranges.batteryMaxKwh + 1e-9) fixes.push(batteryFix(e));
+  if (e !== null && e > E + 1e-9 && e <= a.ranges.batteryMaxKwh + 1e-9)
+    fixes.push(batteryFix(e, undefined, input.battery.powerKw !== null));
 
   // aansluiting: de kleinste passende, als die groter is dan de huidige
   if (a.smallest.powerKw > a.connectionKw + 1e-9) fixes.push(connectionFix(a.smallest));
@@ -258,7 +292,9 @@ export function helpFixes(a: Analysis, sens: SensitivityState | null, targetH: n
 
 /**
  * "Kleinere aansluiting volstaat ook" (maximaal 1): exact uit het model als de kleinste passende aansluiting kleiner
- * is; anders uit het raster de eerstvolgende kleinere standaardaansluiting met buffer en batterij van één rasterpunt.
+ * is; anders uit het raster de eerstvolgende kleinere standaardaansluiting via smallerRoute: alleen buffer (hetzelfde
+ * punt als stip (b) in de mini-grafiek, of minder buffer dan nu), alleen de aansluiting als er een batterij nodig is
+ * (het oordeel noemt dan de exacte batterij), of buffer en rasterbatterij van stip (b).
  */
 export function smallerFixes(a: Analysis, sens: SensitivityState | null): Fix[] {
   const input = a.input;
@@ -270,6 +306,10 @@ export function smallerFixes(a: Analysis, sens: SensitivityState | null): Fix[] 
   const status = gridStatus(sens, input);
   if (status === 'pending') return [pendingFix('smaller', 'connectionStepper')];
   if (status !== 'ready' || !sens) return [];
-  const fit = smallestFitFor(sens.rows, c, input.buffer.volumeM3);
-  return fit ? [smallerWithFix(c, fit.volumeM3, fit.capacityKwh, a.ranges)] : [];
+  const route = smallerRoute(gridModel(sens, a.ranges), c, input.grid.heatPumpShare, input.buffer.volumeM3);
+  if (!route) return [];
+  if (route.kind === 'battery') return [smallerNeedsBatteryFix(c)];
+  return [
+    smallerWithFix(c, route.volumeM3, route.kind === 'bufferBattery' ? route.capacityKwh : null, a.ranges),
+  ];
 }

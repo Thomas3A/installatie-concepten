@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { sensitivityKey, type Analysis } from '../../src/concepts/peakshaving/model/analysis';
 import { createEngine } from '../../src/concepts/peakshaving/model/engine';
 import { normalizeInput } from '../../src/concepts/peakshaving/model/input';
-import { exceedanceKpis } from '../../src/concepts/peakshaving/model/kpis';
+import { connectionText, exceedanceKpis } from '../../src/concepts/peakshaving/model/kpis';
 import type { SensitivityRow } from '../../src/concepts/peakshaving/model/sizing';
 import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/types';
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
@@ -43,6 +43,17 @@ beforeAll(async () => {
     both: scenario('woning-buffer-batterij'),
     both25: variant('woning-buffer-batterij', (i) => void (i.grid.connection = '1x25')),
     small: variant('woning-basis', (i) => void (i.battery.capacityKwh = 0.5)),
+    smallManual: variant('woning-basis', (i) => void (i.battery = { capacityKwh: 0.5, powerKw: 0.15 })),
+    // 6 kW op 3×25 A: past ruim, de kleinste passende aansluiting is 1×35 A
+    small6: variant('woning-basis', (i) => {
+      i.building.designLoadKw = 6;
+      i.grid.connection = '3x25';
+    }),
+    // voorbeeld 3 op 1×25 A met 3 kWh: één schuifstap boven de behoefte
+    exact25: variant('woning-buffer-batterij', (i) => {
+      i.grid.connection = '1x25';
+      i.battery.capacityKwh = 3;
+    }),
     limited25: variant('woning-buffer-batterij', (i) => {
       i.grid.connection = '1x25';
       i.grid.mode = 'limited';
@@ -75,12 +86,42 @@ beforeAll(async () => {
 
 describe('effectregel buffer', () => {
   it('zonder buffer: nuttige opslag per m³', () => {
-    expect(bufferEffect(A.basis)).toEqual({ text: 'Geen buffer · 24,1 kWh per m³', plateau: null });
+    expect(bufferEffect(A.basis)).toEqual({
+      storage: 'Geen buffer · 24,1 kWh per m³',
+      sizing: null,
+      text: 'Geen buffer · 24,1 kWh per m³',
+      plateau: null,
+    });
   });
 
   it('met buffer: opslag, uren piekvermogen en warmtepomp zonder → met', () => {
     expect(bufferEffect(A.buffer, woningGrid)).toEqual({
+      storage: '12,0 kWh opslag ≈ 1,5 uur piekvermogen',
+      sizing: 'warmtepomp 10,6 → 9,4 kW',
       text: '12,0 kWh opslag ≈ 1,5 uur piekvermogen · warmtepomp 10,6 → 9,4 kW',
+      plateau: null,
+    });
+  });
+
+  it('tijdens het schuiven: het opslagdeel volgt de invoer direct, het warmtepompdeel komt uit de doorrekening', () => {
+    const live = (a: Analysis, volumeM3: number) => ({
+      input: { ...a.input, buffer: { ...a.input.buffer, volumeM3 } },
+      ranges: a.ranges,
+    });
+    // doorrekening nog zonder buffer, schuif op 0,50 m³: geen "Geen buffer" naast 0,50 en nog geen warmtepompdeel
+    expect(bufferEffect(A.basis, woningGrid, live(A.basis, 0.5))).toMatchObject({
+      text: '12,0 kWh opslag ≈ 1,5 uur piekvermogen',
+      sizing: null,
+    });
+    // doorrekening met 0,50 m³, schuif op 1,20 m³: opslag van 1,20 m³, warmtepomp van de vorige doorrekening
+    expect(bufferEffect(A.buffer, woningGrid, live(A.buffer, 1.2))).toMatchObject({
+      storage: '28,9 kWh opslag ≈ 3,6 uur piekvermogen',
+      sizing: 'warmtepomp 10,6 → 9,4 kW',
+      plateau: 'Meer buffer maakt de warmtepomp niet kleiner: een buffer overbrugt uren, geen dagen.',
+    });
+    // terug naar 0: geen warmtepompdeel van de vorige doorrekening achter "Geen buffer"
+    expect(bufferEffect(A.buffer, woningGrid, live(A.buffer, 0))).toMatchObject({
+      text: 'Geen buffer · 24,1 kWh per m³',
       plateau: null,
     });
   });
@@ -136,11 +177,45 @@ describe('effectregel batterij', () => {
   });
 
   it('batterij met effect: bruikbaar, vermogen en meterpiek zonder → met (alleen zonder begrenzer)', () => {
-    expect(batteryState(A.both25)).toEqual({
-      text: '4,5 kWh bruikbaar · 2,5 kW · meterpiek 2,92 → 2,30 kW',
+    expect(batteryState(A.limited25).text).toBe('4,5 kWh bruikbaar · 2,5 kW · 3,0 kWh is al genoeg');
+    expect(batteryState(A.exact25)).toEqual({
+      text: '2,7 kWh bruikbaar · 1,5 kW · meterpiek 2,92 → 2,30 kW',
       fix: null,
     });
-    expect(batteryState(A.limited25).text).toBe('4,5 kWh bruikbaar · 2,5 kW');
+  });
+
+  it('ruim grotere batterij dan nodig: "{E} kWh is al genoeg" met "Zet", die 0 uur houdt', async () => {
+    const s = batteryState(A.both25);
+    expect(s.text).toBe('4,5 kWh bruikbaar · 2,5 kW · meterpiek 2,92 → 2,30 kW · 3,0 kWh is al genoeg');
+    expect(s.fix).toMatchObject({ label: 'Zet', name: 'Zet op 3,0 kWh', undoLabel: 'Batterij op 3,0 kWh' });
+    const next = normalizeInput(s.fix!.apply(A.both25.input));
+    expect(next.battery).toEqual({ capacityKwh: 3, powerKw: null });
+    expect(exceedanceKpis(await analyzeInput(next)).exceedanceHours).toBe(0);
+    // één schuifstap boven de behoefte: geen opmerking
+    expect(batteryState(A.exact25).fix).toBeNull();
+  });
+
+  it('"◀ Probeer": past al een kleinere aansluiting zonder batterij, dan één stap daaronder (daar is er een nodig)', () => {
+    // 6 kW op 3×25 A: het oordeel zegt "Probeer 1×35 A"; op 1×40 A en 1×35 A doet een batterij niets
+    expect(connectionText(A.small6.smallest)).toBe('1×35 A');
+    const s = batteryState(A.small6);
+    expect(s.text).toBe('Niet nodig op 3×25 A. Een batterij helpt pas bij een kleinere aansluiting.');
+    expect(s.fix).toMatchObject({ id: 'trySmaller', label: 'Probeer 1×25 A' });
+    // met een batterij is de kleinste passende met die batterij berekend: die zelf, zoals de knop bij het oordeel
+    expect(connectionText(A.both.smallest)).toBe('1×25 A');
+    expect(batteryState(A.both).fix).toMatchObject({ id: 'trySmaller', label: 'Probeer 1×25 A' });
+  });
+
+  it('"Zet" bij een handmatig batterijvermogen: de melding zegt dat het vermogen automatisch wordt', () => {
+    const s = batteryState(A.smallManual);
+    expect(s.fix).toMatchObject({
+      name: 'Zet op 1,0 kWh',
+      undoLabel: 'Batterij op 1,0 kWh · vermogen automatisch (0,5 C)',
+    });
+    expect(normalizeInput(s.fix!.apply(A.smallManual.input)).battery).toEqual({
+      capacityKwh: 1,
+      powerKw: null,
+    });
   });
 
   it('niet te dimensioneren (kantoor, tijdconstante 80 h): geen advies op de terugvalwaarde, geen knop', () => {

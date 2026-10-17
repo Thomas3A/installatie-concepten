@@ -19,7 +19,8 @@ import {
   gridStatus,
   plateauStart,
   smallerOption,
-  smallestFitFor,
+  smallerRoute,
+  smallerTransition,
   transitionsOf,
   type SensitivityState,
 } from '../../src/concepts/peakshaving/view/sensitivityFacts';
@@ -90,18 +91,23 @@ describe('gevoeligheidsraster van de woning (8 kW, 1×35 A, 40 %)', () => {
     expect(knee.minKw).toBeCloseTo(8.717, 2);
   });
 
-  it('kleinste rasteroplossing voor 1×25 A vanaf het huidige buffervolume', () => {
-    const c = conn('1x25');
-    expect(smallestFitFor(sens.rows, c, 0.5)).toMatchObject({ index: 3, battery: 1, capacityKwh: 7.5 });
-    // vanaf 0 m³: al bij V = 0 met 15 kWh
-    expect(smallestFitFor(sens.rows, c, 0)).toMatchObject({
-      index: 0,
-      volumeM3: 0,
-      battery: 2,
-      capacityKwh: 15,
+  it('route naar een kleinere aansluiting: dezelfde als stip (b), nooit meer batterij dan nodig', () => {
+    const m = gridModel(sens, rangesOf(input));
+    const share = input.grid.heatPumpShare;
+    // vanaf 1×40 A naar 1×35 A: alleen buffer, 0,20 m³ (zoals stip (b) "1×35 A · 0,20 m³"), niet 7,5 kWh bij V = 0
+    expect(smallerRoute(m, conn('1x35'), share, 0)).toEqual({ kind: 'buffer', volumeM3: 0.2 });
+    expect(smallerTransition(transitionsOf(m, share), conn('1x35'))).toMatchObject({
+      volumeM3: 0.2,
+      batteries: [0],
     });
-    expect(fitsConnection(sens.rows[3]!, 1, c)).toBe(true);
-    expect(fitsConnection(sens.rows[3]!, 0, c)).toBe(false);
+    // vanaf 1×35 A naar 1×25 A: past zonder batterij nergens; met batterij al bij of onder de huidige buffer, dus
+    // alleen de aansluiting (het oordeel noemt daarna de exacte batterij) in plaats van 15 kWh of meer buffer
+    for (const v of [0, 0.2, 0.3, 1.05])
+      expect(smallerRoute(m, conn('1x25'), share, v), `V = ${v}`).toEqual({ kind: 'battery' });
+    expect(fitsConnection(sens.rows[3]!, 1, conn('1x25'))).toBe(true);
+    expect(fitsConnection(sens.rows[3]!, 0, conn('1x25'))).toBe(false);
+    // stip (b) voor 1×25 A: 7,5 kWh vanaf 0,60 m³
+    expect(smallerTransition(transitionsOf(m, share), conn('1x25'))).toMatchObject({ batteries: [1] });
   });
 });
 
@@ -174,6 +180,78 @@ describe('rasterhulpjes met een synthetisch raster', () => {
     expect(smallerOption({ connection: 'grootverbruik', contractedKw: 100 })?.id).toBe('3x80');
     expect(connectionIndex('grootverbruik')).toBe(CONNECTIONS.length);
     expect(connectionIndex('1x25')).toBe(0);
+  });
+
+  it('route uit een synthetisch raster: buffer tot en met de huidige, anders stip (b)', () => {
+    const sync = (rows: SensitivityRow[]) =>
+      gridModel({ key: 'k', rows, total: rows.length, done: true }, { bufferMaxM3: 0.6, batteryMaxKwh: 10 });
+    const c = conn('1x25');
+    // past zonder batterij bij 0,2 en vanaf 0,6 m³ (niet monotoon): bij 0,4 m³ terug naar 0,2, niet omhoog naar 0,6
+    const notMonotone = [
+      row(0, 10, [
+        [9, '1x35'],
+        [0, '1x35'],
+      ]),
+      row(0.2, 9, [
+        [0, '1x25'],
+        [0, '1x25'],
+      ]),
+      row(0.4, 8.5, [
+        [3, '1x35'],
+        [0, '1x25'],
+      ]),
+      row(0.6, 8.4, [
+        [0, '1x25'],
+        [0, '1x25'],
+      ]),
+    ];
+    expect(smallerRoute(sync(notMonotone), c, 0.4, 0.4)).toEqual({ kind: 'buffer', volumeM3: 0.2 });
+    expect(smallerRoute(sync(notMonotone), c, 0.4, 0.5)).toEqual({ kind: 'buffer', volumeM3: 0.2 });
+    // vanaf V = 0: het punt van stip (b) (begin van de passende reeks aan het eind)
+    expect(smallerRoute(sync(notMonotone), c, 0.4, 0)).toEqual({ kind: 'buffer', volumeM3: 0.6 });
+    // met batterij alleen boven de huidige buffer: buffer en rasterbatterij van stip (b)
+    const above = [
+      row(0, 10, [
+        [9, '1x35'],
+        [9, '1x35'],
+        [9, '1x35'],
+      ]),
+      row(0.2, 9, [
+        [9, '1x35'],
+        [9, '1x35'],
+        [0, '1x25'],
+      ]),
+      row(0.4, 8.5, [
+        [9, '1x35'],
+        [0, '1x25'],
+        [0, '1x25'],
+      ]),
+      row(0.6, 8.4, [
+        [9, '1x35'],
+        [0, '1x25'],
+        [0, '1x25'],
+      ]),
+    ];
+    expect(smallerRoute(sync(above), c, 0.4, 0)).toEqual({
+      kind: 'bufferBattery',
+      volumeM3: 0.4,
+      capacityKwh: 5,
+    });
+    // met batterij bij of onder de huidige buffer: alleen de aansluiting
+    expect(smallerRoute(sync(above), c, 0.4, 0.2)).toEqual({ kind: 'battery' });
+    // nergens passend, of een onvolledig raster: geen route
+    expect(smallerRoute(sync([row(0, 10, [[9, '1x35']]), row(0.2, 9, [[9, '1x35']])]), c, 0.4, 0)).toBeNull();
+    expect(
+      smallerRoute(
+        gridModel(
+          { key: 'k', rows: [above[0], null], total: 2, done: false },
+          { bufferMaxM3: 0.6, batteryMaxKwh: 10 },
+        ),
+        c,
+        0.4,
+        0,
+      ),
+    ).toBeNull();
   });
 
   it('grootverbruik telt nooit als passend', () => {

@@ -10,6 +10,7 @@ import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/type
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import {
   DOT_HIT_PX,
+  MINI_CHART_MIN_SPAN,
   MINI_CHART_PAD,
   miniChartGeometry,
   nearestRowVolume,
@@ -69,13 +70,28 @@ describe('geometrie bij de woning', () => {
     );
     expect(g.firstKw).toBeCloseTo(10.562, 2);
     expect(g.points).toHaveLength(13);
-    // hoogste punt boven, laagste onder
+    // hoogste punt boven; de y-as is minstens 20 % van het maximum hoog (10,6 → 8,45 kW), dus het laagste punt
+    // (8,7 kW, −17 %) net boven de onderrand
     const ys = g.points.map((p) => p.y);
     expect(Math.min(...ys)).toBeCloseTo(MINI_CHART_PAD.top, 9);
-    expect(Math.max(...ys)).toBeCloseTo(H - MINI_CHART_PAD.bottom, 9);
+    expect(g.minKw).toBeCloseTo((1 - MINI_CHART_MIN_SPAN) * g.maxKw, 9);
+    expect(Math.max(...ys)).toBeLessThan(H - MINI_CHART_PAD.bottom);
+    expect(Math.max(...ys)).toBeGreaterThan(H - MINI_CHART_PAD.bottom - 10);
     expect(g.path.startsWith('M8 ')).toBe(true);
     expect(g.path.match(/M/g)).toHaveLength(1);
     expect(g.dots).toEqual([]);
+  });
+
+  it('een bijna vlakke lijn (7,6 → 7,3 kW) blijft vlak: de y-as is minstens 20 % van het maximum hoog', () => {
+    const flat = rows.map((r, i) => ({ ...r, nominalKw: i === 0 ? 7.63 : 7.34 }));
+    const g = miniChartGeometry(flat, rangesOf(input), { volumeM3: 0, grid: input.grid, dots: false }, W, H);
+    expect(g.maxKw).toBeCloseTo(7.63, 9);
+    expect(g.minKw).toBeCloseTo(0.8 * 7.63, 9);
+    // de daling van 4 % beslaat ongeveer een vijfde van de hoogte, geen klif over de volle hoogte
+    const drop = g.points[1].y - g.points[0].y;
+    const height = H - MINI_CHART_PAD.bottom - MINI_CHART_PAD.top;
+    expect(drop / height).toBeCloseTo((7.63 - 7.34) / (0.2 * 7.63), 6);
+    expect(drop / height).toBeLessThan(0.2);
   });
 
   it('de verticale lijn volgt de invoer', () => {
@@ -107,10 +123,11 @@ describe('geometrie bij de woning', () => {
   it('twee stippen: 1×35 A vanaf 0,20 m³ en 1×25 A + 7,5 kWh vanaf 0,60 m³; de knoppen houden hun belofte', async () => {
     const g = miniChartGeometry(rows, rangesOf(input), { volumeM3: 0, grid: input.grid, dots: true }, W, H);
     expect(g.dots.map((d) => [d.id, d.label, d.ariaLabel])).toEqual([
-      ['current', '1×35 A', '1×35 A past vanaf 0,20 m³: zet buffer'],
+      // het label noemt het volume (de x-as heeft geen m³), de naam ook wat een klik doet
+      ['current', '1×35 A · 0,20 m³', '1×35 A past vanaf 0,20 m³: zet buffer'],
       [
         'smaller',
-        '1×25 A + 7,5 kWh',
+        '1×25 A + 7,5 kWh · 0,60 m³',
         '1×25 A + 7,5 kWh past vanaf 0,60 m³: zet buffer, batterij en aansluiting',
       ],
     ]);
@@ -165,10 +182,10 @@ describe('geometrie bij de woning', () => {
     const ranges = { bufferMaxM3: 2, batteryMaxKwh: 15, batteryStepKwh: 0.5 };
     const g = miniChartGeometry(grid, ranges, { volumeM3: 0, grid: input.grid, dots: true }, W, H);
     expect(g.dots.map((d) => [d.id, d.label, d.ariaLabel])).toEqual([
-      ['current', '1×35 A', '1×35 A past vanaf 0,10 m³: zet buffer'],
+      ['current', '1×35 A · 0,10 m³', '1×35 A past vanaf 0,10 m³: zet buffer'],
       [
         'smaller',
-        '1×25 A + 4,0 kWh',
+        '1×25 A + 4,0 kWh · 0,20 m³',
         '1×25 A + 4,0 kWh past vanaf 0,20 m³: zet buffer, batterij en aansluiting',
       ],
     ]);
@@ -176,6 +193,15 @@ describe('geometrie bij de woning', () => {
     expect(b.battery).toEqual({ capacityKwh: 4, powerKw: null });
     expect(b.buffer.volumeM3).toBe(0.2);
     expect(g.dots[1].fix.undoLabel).toBe('1×25 A met 0,20 m³ buffer en 4,0 kWh batterij');
+    // een handmatig batterijvermogen: geen stip (b), die zou het vermogen op automatisch zetten; (a) wel
+    const manual = miniChartGeometry(
+      grid,
+      ranges,
+      { volumeM3: 0, grid: input.grid, dots: true, batteryPowerManual: true },
+      W,
+      H,
+    );
+    expect(manual.dots.map((d) => d.id)).toEqual(['current']);
   });
 
   describe('samenvallende stippen (beide "vanaf 0,20 m³")', () => {
@@ -206,8 +232,8 @@ describe('geometrie bij de woning', () => {
         row(0.4, 5, ['1x35', '1x35', '1x25', '1x25']),
       ]);
       expect(g.dots.map((d) => [d.id, d.label, d.volumeM3])).toEqual([
-        ['current', '1×35 A', 0.2],
-        ['smaller', '1×25 A + 7,5 kWh', 0.2],
+        ['current', '1×35 A · 0,20 m³', 0.2],
+        ['smaller', '1×25 A + 7,5 kWh · 0,20 m³', 0.2],
       ]);
       const [a, b] = g.dots;
       expect(b.x).toBe(a.x);

@@ -223,23 +223,51 @@ export function smallerOption(grid: GridChoice): ConnectionDef | null {
 }
 
 /**
- * Kleinste rasteroplossing voor aansluiting `c`: de eerste rij met V ≥ `fromVolumeM3` waarin een batterij past, en
- * daarin de kleinste batterij (index j) waarmee de kleinste aansluiting binnen `c` valt. null als niets past.
+ * Stip (b) van de mini-grafiek: de overgang van aansluiting `c` met de kleinste batterij, bij gelijke batterij het
+ * kleinste buffervolume. De knop "Kleinere aansluiting volstaat ook" gebruikt hetzelfde punt (smallerRoute).
  */
-export function smallestFitFor(
-  rows: readonly (SensitivityRow | null)[],
+export function smallerTransition(ts: readonly Transition[], c: ConnectionDef): Transition | null {
+  return (
+    ts
+      .filter((t) => t.conn.id === c.id)
+      .sort((x, y) => x.batteries[0] - y.batteries[0] || x.volumeM3 - y.volumeM3)[0] ?? null
+  );
+}
+
+/** Route naar een kleinere aansluiting uit het raster (zie smallerRoute). */
+export type SmallerRoute =
+  /** alleen buffer: aansluiting en buffervolume zetten, de batterij blijft */
+  | { kind: 'buffer'; volumeM3: number }
+  /** alleen de aansluiting: buffer en batterij blijven; het volgende scherm noemt de exacte kleinste batterij */
+  | { kind: 'battery' }
+  /** buffer en rasterbatterij van één rasterpunt (hetzelfde punt als stip (b)) */
+  | { kind: 'bufferBattery'; volumeM3: number; capacityKwh: number };
+
+/**
+ * Route naar aansluiting `c` bij het huidige buffervolume `volumeM3`, zodat de knop dezelfde route noemt als de rest
+ * van het scherm en de batterij niet groter maakt dan nodig (het raster kent maar vier batterijen):
+ * 1. alleen buffer (rij zonder batterij): het grootste passende rasterpunt tot en met de huidige buffer, anders het
+ *    punt van stip (b) als die zonder batterij is. Nooit meer buffer dan nodig als een kleinere al past.
+ * 2. met batterij, als die bij een rasterpunt tot en met de huidige buffer past: alleen de aansluiting. Buffer en
+ *    batterij blijven staan; het oordeel noemt daarna de exacte kleinste batterij ("Wat helpt", "Kleinste batterij
+ *    voor 0 uur") in plaats van de grovere rasterbatterij.
+ * 3. anders het punt van stip (b): meer buffer met de kleinste rasterbatterij (geverifieerd: 0 uur).
+ * null als `c` nergens in het raster past.
+ */
+export function smallerRoute(
+  m: GridModel,
   c: ConnectionDef,
-  fromVolumeM3: number,
-): { index: number; volumeM3: number; battery: number; capacityKwh: number } | null {
-  const all = completeRows(rows);
+  share: number,
+  volumeM3: number,
+): SmallerRoute | null {
+  const all = completeRows(m.rows);
   if (!all) return null;
-  for (let i = 0; i < all.length; i++) {
-    const row = all[i];
-    if (row.volumeM3 < fromVolumeM3 - 1e-9) continue;
-    for (let j = 0; j < row.cells.length; j++) {
-      if (fitsConnection(row, j, c))
-        return { index: i, volumeM3: row.volumeM3, battery: j, capacityKwh: row.cells[j].capacityKwh };
-    }
-  }
-  return null;
+  const upTo = all.filter((r) => r.volumeM3 <= volumeM3 + 1e-9);
+  const bufferOnly = upTo.filter((r) => fitsConnection(r, 0, c)).pop();
+  if (bufferOnly) return { kind: 'buffer', volumeM3: bufferOnly.volumeM3 };
+  const t = smallerTransition(transitionsOf(m, share), c);
+  if (t && t.batteries[0] === 0) return { kind: 'buffer', volumeM3: t.volumeM3 };
+  if (upTo.some((r) => r.cells.some((_, j) => j > 0 && fitsConnection(r, j, c)))) return { kind: 'battery' };
+  const capacityKwh = t ? m.caps[t.batteries[0]] : undefined;
+  return t && capacityKwh !== undefined ? { kind: 'bufferBattery', volumeM3: t.volumeM3, capacityKwh } : null;
 }

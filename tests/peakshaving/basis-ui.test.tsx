@@ -477,6 +477,24 @@ describe('Basis ingeklapt: de strook', () => {
     expect(stripChips(input).find((c) => c.key === 'dhw')?.target).toBe('dhw');
   });
 
+  it('Meer instellingen afwijkend (naast het klimaatjaar): een chip "Meer instellingen · n aangepast"', () => {
+    const input = defaultInputOfKind('single');
+    expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
+    // alleen een ander klimaatjaar: dat heeft al een eigen chip
+    input.climateYear = 'T1';
+    expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
+    input.grid.allowedExceedanceH = 5;
+    input.heatPump.carnotEfficiency = 0.42;
+    const chip = stripChips(input).find((c) => c.key === 'moreSettings')!;
+    // zelfde telling als de kop van Meer instellingen in de open Basis (met het klimaatjaar)
+    expect(chip.value).toBe('Meer instellingen · 3 aangepast');
+    expect(chip.target).toBe('climate');
+    renderBasis();
+    act(() => st().loadInput(input, null));
+    collapse();
+    expect(chipNames()).toContain('Meer instellingen: 3 aangepast, wijzigen');
+  });
+
   it('één tabstop; pijltjes, Home en End verplaatsen de focus tussen de chips (rondgaand)', () => {
     renderBasis();
     collapse();

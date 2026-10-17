@@ -11,7 +11,13 @@ import type { SensitivityRow } from '../../src/concepts/peakshaving/model/sizing
 import type { PeakshavingInput } from '../../src/concepts/peakshaving/model/types';
 import { findScenario, SCENARIOS } from '../../src/concepts/peakshaving/scenarios';
 import { MESSAGE_TEXTS } from '../../src/concepts/peakshaving/texts';
-import { boilerLimitedByBudget, shareForPeak, type Fix } from '../../src/concepts/peakshaving/view/fixes';
+import { fmt } from '../../src/core/format';
+import {
+  batteryForZero,
+  boilerLimitedByBudget,
+  shareForPeak,
+  type Fix,
+} from '../../src/concepts/peakshaving/view/fixes';
 import { batteryState } from '../../src/concepts/peakshaving/view/levers';
 import { miniChartGeometry } from '../../src/concepts/peakshaving/view/miniChart';
 import { gridMatches, type SensitivityState } from '../../src/concepts/peakshaving/view/sensitivityFacts';
@@ -123,6 +129,15 @@ beforeAll(async () => {
     nieuwbouw35: variant('nieuwbouw', (i) => {
       i.grid.connection = '1x35';
     }),
+    // handmatig WP-vermogen met buffer: de doorrekening zonder maatregelen dimensioneert automatisch
+    manualBuffer: variant('woning-buffer', (i) => {
+      i.heatPump.sizingMode = 'manual';
+      i.heatPump.nominalKw = 12;
+    }),
+    // te kleine batterij: 0,01 kW boven het budget, afgerond 0 %
+    tinyOver: variant('woning-basis', (i) => {
+      i.battery.capacityKwh = 0.5;
+    }),
   };
   for (const [k, input] of Object.entries(inputs)) cases[k] = await caseOf(input);
 }, 240000);
@@ -157,7 +172,8 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(hp).toMatchObject({
       title: 'Warmtepomp',
       value: '10,6',
-      unit: 'kW',
+      // thermisch, naast de elektrische piek aan de meter en het budget
+      unit: 'kW th',
       line: 'A7/W35 · 7,4 kW bij −10 °C',
       tone: 'neutral',
       reference: null,
@@ -205,13 +221,14 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     expect(v.tiles[2].line).toBe('gelijk aan de huidige');
     expect(v.stressLine).toBe('Strenge winter (T1): 0 uur boven budget, 48 uur te koud.');
     expect(v.fixesLabel).toBe('Kleinere aansluiting volstaat ook');
-    expect(labels(v.fixes)).toEqual(['Probeer 1×25 A met 0,60 m³ buffer en 7,5 kWh batterij']);
-    // geverifieerd: 0 uur op 1×25 A
+    // 1×25 A past zonder batterij nergens, met batterij al bij 0,50 m³ of minder: alleen de aansluiting, het oordeel
+    // noemt daarna de exacte batterij (niet de grovere rasterbatterij of meer buffer)
+    expect(labels(v.fixes)).toEqual(['Probeer 1×25 A (met batterij)']);
+    expect(v.fixes[0].undoLabel).toBe('Aansluiting 1×25 A');
     const next = normalizeInput(v.fixes[0].apply(input));
     expect(next.grid.connection).toBe('1x25');
-    expect(next.buffer.volumeM3).toBe(0.6);
-    expect(next.battery).toEqual({ capacityKwh: 7.5, powerKw: null });
-    expect(await hoursAfter(input, v.fixes[0])).toBe(0);
+    expect(next.buffer.volumeM3).toBe(0.5);
+    await expectBatteryRoute('Probeer 1×25 A (met batterij)', input, v.fixes[0]);
     // meterbalk: schaduwstreep op de piek zonder maatregelen
     expect(v.meter.withoutLabel).toBe('zonder maatregelen 3,48 kW');
     expect(v.meter.shadowPos).toBeCloseTo(v.meter.shadowKw! / v.meter.maxKw, 9);
@@ -219,11 +236,28 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
 
   it('voorbeeld 3 (1 m³ + 5 kWh, 1×35 A): past, kleinere aansluiting exact uit het model', async () => {
     const { v, input } = cases.both;
-    expect(v.headline).toBe('Past op 1×35 A met 1,00 m³ buffer en 5,0 kWh batterij');
+    // de batterij doet hier niets (zonder batterij al 0 uur): geen eer in de kop
+    expect(v.headline).toBe('Past op 1×35 A met 1,00 m³ buffer');
     expect(v.detail).toBe('Piek aan de meter 2,95 kW, 0,27 kW (8 %) onder het budget van 3,22 kW.');
     expect(v.fixesLabel).toBe('Kleinere aansluiting volstaat ook');
     expect(labels(v.fixes)).toEqual(['Probeer 1×25 A']);
     expect(await hoursAfter(input, v.fixes[0])).toBe(0);
+  });
+
+  it('handmatig WP-vermogen: geen verwijzingen "zonder maatregelen" (die rekenen met een automatische WP)', () => {
+    const { v, a } = cases.manualBuffer;
+    // de doorrekening zonder maatregelen heeft een andere warmtepomp dan de knop "↺ Zonder maatregelen" geeft
+    expect(a.withoutMeasures.nominalKw).not.toBeCloseTo(12, 1);
+    expect(v.tiles.map((t) => t.reference)).toEqual([null, null, null]);
+    expect(v.meter.withoutLabel).toBeNull();
+    expect(v.meter.shadowKw).toBeNull();
+    expect(v.tiles[0]).toMatchObject({ title: 'Warmtepomp (handmatig)', value: '12,0', unit: 'kW th' });
+  });
+
+  it('een klein maar echt verschil rondt niet af op "0 %"', () => {
+    expect(cases.tinyOver.v.detail).toBe(
+      '2 uur per jaar boven het WP-budget van 3,22 kW, tot 0,01 kW (< 1 %) erboven.',
+    );
   });
 
   it('voorbeeld 3 op 1×25 A: de batterij schaaft af tot het budget; met begrenzer 11 uur te koud', () => {
@@ -393,13 +427,33 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
   });
 });
 
+/**
+ * "Probeer 1×25 A (met batterij)": alleen de aansluiting; daarna noemt het oordeel de exacte kleinste batterij als
+ * knop, binnen het schuifbereik, en die knop haalt 0 uur.
+ */
+async function expectBatteryRoute(what: string, input: PeakshavingInput, fix: Fix): Promise<void> {
+  const next = normalizeInput(fix.apply(input));
+  expect(next.buffer, what).toEqual(input.buffer);
+  expect(next.battery, what).toEqual(input.battery);
+  const after = await analyzeInput(next);
+  expect(exceedanceKpis(after).exceedanceHours, what).toBeGreaterThan(0);
+  const e = batteryForZero(after);
+  expect(e, what).not.toBeNull();
+  const chip = buildVerdict(after, null).fixes.find((f) => f.id === 'battery');
+  expect(chip?.label, what).toBe(`${fmt(e!, 1)} kWh batterij`);
+  expect(await hoursAfter(next, chip!), what).toBe(0);
+}
+
 /** Alle knoppen van een geval: die van het oordeel, "Zet" bij de batterij en de stippen; elk houdt zijn belofte. */
 async function expectPromisesKept({ input, a, sens, v }: Case): Promise<void> {
   const allowed = input.grid.allowedExceedanceH;
   const promises: { what: string; fix: Fix; maxHours: number }[] = [];
   // bij "binnen toegestaan" moet een knop echt helpen
   const verdictMax = v.status === 'withinAllowed' ? 0 : allowed;
-  for (const f of v.fixes) promises.push({ what: `oordeel: ${f.label}`, fix: f, maxHours: verdictMax });
+  for (const f of v.fixes) {
+    if (f.needsBattery) await expectBatteryRoute(`oordeel: ${f.label}`, input, f);
+    else promises.push({ what: `oordeel: ${f.label}`, fix: f, maxHours: verdictMax });
+  }
   // "Zet" belooft de kleinste batterij voor 0 uur; "◀ Probeer {kleiner}" belooft niets (probeer en kijk)
   const battery = batteryState(a).fix;
   if (battery && battery.id !== 'trySmaller')
@@ -456,16 +510,31 @@ describe('oordeel: elke knop doet wat hij belooft', () => {
     await expectPromisesKept(c);
   }, 60000);
 
-  it('nieuwbouw op 1×35 A: de rasterbatterij gaat naar boven op de schuifstap (3,75 → 4,0 kWh)', async () => {
+  it('nieuwbouw op 1×35 A: alleen buffer naar 1×25 A (zoals stip (b)), geen grovere rasterbatterij', async () => {
     const c = cases.nieuwbouw35;
     expect(c.a.ranges.batteryMaxKwh).toBe(15);
     expect(c.a.ranges.batteryStepKwh).toBe(0.5);
     expect(c.v.fixesLabel).toBe('Kleinere aansluiting volstaat ook');
-    expect(labels(c.v.fixes)).toEqual(['Probeer 1×25 A met 4,0 kWh batterij']);
-    expect(c.v.fixes[0].undoLabel).toBe('1×25 A met 4,0 kWh batterij');
+    // 1×25 A past ook zonder batterij vanaf 0,10 m³: niet "met 4,0 kWh batterij" (op 1×25 A is 1,5 kWh genoeg)
+    expect(labels(c.v.fixes)).toEqual(['Probeer 1×25 A met 0,10 m³ buffer']);
+    expect(c.v.fixes[0].undoLabel).toBe('1×25 A met 0,10 m³ buffer');
     const next = normalizeInput(c.v.fixes[0].apply(c.input));
-    expect(next.battery).toEqual({ capacityKwh: 4, powerKw: null });
+    expect(next.battery).toEqual(c.input.battery);
+    expect(next.buffer.volumeM3).toBe(0.1);
     expect(next.grid.connection).toBe('1x25');
+    const g = miniChartGeometry(
+      c.sens.rows,
+      c.a.ranges,
+      { volumeM3: 0, grid: c.input.grid, dots: true },
+      320,
+      96,
+    );
+    const dot = g.dots.find((d) => d.id === 'smaller')!;
+    expect(dot.label).toBe('1×25 A · 0,10 m³');
+    // zonder rasterbatterij: de stip zet buffer en aansluiting en laat de batterij zoals hij is
+    expect(dot.ariaLabel).toBe('1×25 A past vanaf 0,10 m³: zet buffer en aansluiting');
+    const withBattery = normalizeInput({ ...c.input, battery: { capacityKwh: 2, powerKw: null } });
+    expect(normalizeInput(dot.fix.apply(withBattery)).battery).toEqual({ capacityKwh: 2, powerKw: null });
     // elke waarde die een knop zet, ligt op de schuifstap
     for (const f of c.v.fixes) {
       const kwh = normalizeInput(f.apply(c.input)).battery.capacityKwh;
@@ -575,8 +644,14 @@ describe('oordeel: raster en modus', () => {
     expect(v.meter.shaved).toBeNull();
   });
 
-  it('T1 zelf gekozen: de stresstestregel zegt dat', async () => {
+  it('T1 zelf gekozen: de stresstestregel zegt dat, en bij automatisch WP-vermogen dat de WP op T1 is gedimensioneerd', async () => {
     const a = await analyzeInput(scenario('kantoor-t1'));
-    expect(buildVerdict(a, null).stressLine).toBe('Dit is al de stresstest (T1).');
+    expect(buildVerdict(a, null).stressLine).toBe(
+      'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.',
+    );
+    const manual = await analyzeInput(
+      normalizeInput({ ...a.input, heatPump: { ...a.input.heatPump, sizingMode: 'manual', nominalKw: 150 } }),
+    );
+    expect(buildVerdict(manual, null).stressLine).toBe('Dit is al de stresstest (T1).');
   });
 });

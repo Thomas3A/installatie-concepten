@@ -1,0 +1,172 @@
+/* Rondleiding (UX-plan §8, WP-H): een ring om het anker met een lichte dimming van de rest, en een niet-modale popover
+   ernaast. Ring en dimming vangen geen klikken af (pointer-events: none): de pagina blijft bruikbaar. Plaats en maat
+   zet Tour.tsx; tot die bekend zijn, blijven beide onzichtbaar (data-placed). Boven de balk onderaan (30) en de
+   melding (31), onder de skip-link (50). */
+
+.spot {
+  --tour-dim: rgba(16, 24, 32, 0.3);
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  /* ring in de accentkleur met een smalle lichte rand erbinnen, daarbuiten de dimming over de hele pagina */
+  box-shadow:
+    inset 0 0 0 1px var(--surface),
+    0 0 0 3px var(--accent),
+    0 0 0 200vmax var(--tour-dim);
+  visibility: hidden;
+}
+.spot[data-placed] {
+  visibility: visible;
+}
+
+.popover {
+  --tour-arrow: 24px;
+  position: fixed;
+  z-index: 41;
+  top: 0;
+  left: 0;
+  width: min(340px, calc(100vw - 24px));
+  padding: 12px 14px 12px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(10, 15, 20, 0.28);
+  visibility: hidden;
+}
+.popover[data-placed] {
+  visibility: visible;
+  animation: tourIn 140ms ease-out;
+}
+@keyframes tourIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* pijltje naar het anker: een gedraaid vierkantje op de rand die naar het anker wijst */
+.arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+.popover[data-side='right'] .arrow {
+  left: -7px;
+  top: calc(var(--tour-arrow) - 6px);
+  border-top-color: transparent;
+  border-right-color: transparent;
+}
+.popover[data-side='left'] .arrow {
+  right: -7px;
+  top: calc(var(--tour-arrow) - 6px);
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+.popover[data-side='bottom'] .arrow {
+  top: -7px;
+  left: calc(var(--tour-arrow) - 6px);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+.popover[data-side='top'] .arrow {
+  bottom: -7px;
+  left: calc(var(--tour-arrow) - 6px);
+  border-top-color: transparent;
+  border-left-color: transparent;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.05rem;
+}
+/* de kop krijgt de focus bij elke stap (tabIndex -1) zodat een schermlezer de stap voorleest; hij is niet te bedienen,
+   dus geen focusring (die leek op een invoerveld) */
+.title:focus,
+.title:focus-visible {
+  outline: none;
+}
+.counter {
+  flex: none;
+  color: var(--text-2);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.text {
+  margin: 0 0 12px;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+/* Overslaan links (stil), Vorige en Volgende of Klaar rechts */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skip {
+  appearance: none;
+  margin-right: auto;
+  /* raakvlak van minstens 24 px hoog, ook als tekstknop */
+  min-height: 28px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.skip:hover {
+  color: var(--text);
+}
+.prev,
+.next {
+  min-height: 32px;
+}
+/* zonder Overslaan (laatste stap) blijven Vorige en Klaar rechts */
+.prev:first-child,
+.next:first-child {
+  margin-left: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .spot {
+    --tour-dim: rgba(0, 0, 0, 0.5);
+  }
+  .popover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover[data-placed] {
+    animation: none;
+  }
+}
+
+@media print {
+  .spot,
+  .popover {
+    display: none !important;
+  }
+}

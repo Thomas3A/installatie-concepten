@@ -161,8 +161,13 @@ describe('Wat als?: effectregels (§5.2)', () => {
     );
 
     await load(scenarioInput('woning-buffer-batterij', (i) => void (i.grid.connection = '1x25')));
-    expect(batteryEffect()).toBe('4,5 kWh bruikbaar · 2,5 kW · meterpiek 2,92 → 2,30 kW');
-    expect(within(screen.getByTestId('battery-effect')).queryByRole('button')).toBeNull();
+    // 5 kWh is ruim meer dan nodig: de kleinste batterij voor 0 uur, met "Zet"
+    expect(batteryEffect()).toBe(
+      '4,5 kWh bruikbaar · 2,5 kW · meterpiek 2,92 → 2,30 kW · 3,0 kWh is al genoegZet',
+    );
+    expect(
+      within(screen.getByTestId('battery-effect')).getByRole('button', { name: 'Zet op 3,0 kWh' }),
+    ).toBeTruthy();
     expect(stepperText()).toBe('1×25 A · 5,75 kW · budget 2,30 kW (40 %)');
   });
 
@@ -200,17 +205,24 @@ describe('Wat als?: effectregels (§5.2)', () => {
     expect(panel().textContent).not.toContain('Batterij raakt leeg');
   });
 
-  it('tijdens het rekenen blijft de vorige regel staan (gedimd), daarna beweegt hij mee', async () => {
+  it('tijdens het rekenen volgt het opslagdeel de schuif direct; het warmtepompdeel komt na de doorrekening', async () => {
     render(<WhatIfPanel />);
     await load(scenarioInput('woning-basis'), 'woning-basis');
     act(() => st().update((i) => ({ ...i, buffer: { ...i.buffer, volumeM3: 0.5 } })));
-    // de schuif en het getalveld volgen direct, de effectregel pas na de doorrekening
+    // de schuif, het getalveld en het opslagdeel volgen direct (geen "Geen buffer" naast 0,50 m³); de warmtepomp pas
+    // na de doorrekening
     expect(bufferInput().value).toBe('0,50');
-    expect(bufferEffect()).toBe('Geen buffer · 24,1 kWh per m³');
-    expect(screen.getByTestId('buffer-effect').className).toMatch(/stale/);
+    expect(bufferEffect()).toBe('12,0 kWh opslag ≈ 1,5 uur piekvermogen');
     await settle(analysisDone, 'doorrekening met buffer');
     expect(bufferEffect()).toBe('12,0 kWh opslag ≈ 1,5 uur piekvermogen · warmtepomp 10,6 → 9,4 kW');
-    expect(screen.getByTestId('buffer-effect').className).not.toMatch(/stale/);
+    expect(screen.getByTestId('buffer-effect-sizing').className).not.toMatch(/stale/);
+    // verder schuiven: het warmtepompdeel van de vorige doorrekening blijft gedimd staan
+    act(() => st().update((i) => ({ ...i, buffer: { ...i.buffer, volumeM3: 1 } })));
+    expect(bufferEffect()).toBe('24,1 kWh opslag ≈ 3,0 uur piekvermogen · warmtepomp 10,6 → 9,4 kW');
+    expect(screen.getByTestId('buffer-effect-sizing').className).toMatch(/stale/);
+    await settle(analysisDone, 'doorrekening met 1 m³');
+    expect(bufferEffect()).toBe('24,1 kWh opslag ≈ 3,0 uur piekvermogen · warmtepomp 10,6 → 8,7 kW');
+    expect(screen.getByTestId('buffer-effect-sizing').className).not.toMatch(/stale/);
   });
 });
 
@@ -348,7 +360,9 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
     expect(within(panel()).getByText('8,7 kW vanaf 0,80 m³: meer helpt niet')).toBeTruthy();
     const dots = within(chart()).getAllByRole('button');
     expect(dots.map((b) => b.getAttribute('aria-label'))).toEqual([DOT_A, DOT_B]);
-    expect(dots.map((b) => b.textContent)).toEqual(['1×35 A', '1×25 A + 7,5 kWh']);
+    // het label noemt het volume (de x-as heeft geen m³); de tooltip zegt wat een klik doet
+    expect(dots.map((b) => b.textContent)).toEqual(['1×35 A · 0,20 m³', '1×25 A + 7,5 kWh · 0,60 m³']);
+    expect(dots.map((b) => b.title)).toEqual(dots.map((b) => b.getAttribute('aria-label')));
 
     // stip (a): buffer op 0,20 m³ met ongedaan maken; focus op de buffer
     act(() => fireEvent.click(screen.getByRole('button', { name: DOT_A })));
@@ -481,8 +495,8 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
     expect(Math.abs(parseFloat(b.style.top) - parseFloat(a.style.top))).toBeGreaterThanOrEqual(24);
     expect(within(chart()).getAllByTestId('dot-link')).toHaveLength(1);
     // elk label naast zijn eigen stip
-    expect(a.textContent).toBe('1×35 A');
-    expect(b.textContent).toBe('1×25 A + 7,5 kWh');
+    expect(a.textContent).toBe('1×35 A · 0,20 m³');
+    expect(b.textContent).toBe('1×25 A + 7,5 kWh · 0,20 m³');
 
     act(() => fireEvent.click(a));
     expect(st().input.buffer.volumeM3).toBe(0.2);
@@ -566,18 +580,22 @@ describe('Wat als?: mini-grafiek (§5.1)', () => {
 });
 
 describe('Wat als?: meldingen bij de hendels', () => {
-  it('"Buffer helpt niet verder" onder de buffer; meldingen van Opvallend niet in Wat als?', async () => {
-    useStore.setState({ autoSensitivity: true });
+  it('"Buffer helpt niet verder" onder de buffer, niet naast de regel vanaf het knikpunt; meldingen van Opvallend niet in Wat als?', async () => {
     render(<WhatIfPanel />);
     await load(scenarioInput('woning-basis', (i) => void (i.buffer.volumeM3 = 2)));
     const codes = st().analysis!.messages.map((m) => m.code);
     expect(codes).toContain('bufferPlateau');
     const buffer = panel().querySelector<HTMLElement>('[data-field="buffer"]')!;
+    // zonder raster geen regel vanaf het knikpunt: dan de melding
     expect(within(buffer).getByText('Buffer helpt niet verder')).toBeTruthy();
-    // effectregel vanaf het knikpunt
+    expect(bufferEffect()).not.toContain('Meer buffer');
+    // met raster de regel vanaf het knikpunt, en niet daaronder nog eens hetzelfde als melding
+    act(() => st().setAutoSensitivity(true));
+    await settle(gridDone, 'raster');
     expect(bufferEffect()).toContain(
       'Meer buffer maakt de warmtepomp niet kleiner: een buffer overbrugt uren, geen dagen.',
     );
+    expect(within(buffer).queryByText('Buffer helpt niet verder')).toBeNull();
     // meldingen van Opvallend (bijv. tapwater) staan niet bij de hendels
     for (const m of st().analysis!.messages)
       if (!['bufferPlateau', 'smallBufferDeltaT', 'batteryEmpty', 'batteryPower'].includes(m.code))

@@ -165,6 +165,29 @@ describe('store: eigen invoer en ongedaan maken', () => {
     expect(st().ownInput).toBeNull();
   });
 
+  it('terug naar de gebouwfunctie van de eigen invoer: die komt terug (niet de standaardwaarden), met ongedaan maken', () => {
+    const own = ownInput();
+    st().loadInput(own, null);
+    st().setKind('office');
+    expect(st().ownInput).toEqual(own);
+    // vanaf de ongewijzigde standaardinvoer van kantoor terug naar woning: de eigen woning, niet 8 kW
+    st().setKind('single');
+    expect(st().input).toEqual(own);
+    expect(st().scenarioId).toBeNull();
+    expect(st().ownInput).toBeNull();
+    expect(st().notice).toEqual({ kind: 'kind', text: 'Je eigen invoer teruggezet' });
+    // ongedaan maken: weer het kantoor, en de eigen invoer weer bewaard
+    st().undoLast();
+    expect(st().scenarioId).toBe('kantoor-basis');
+    expect(st().ownInput).toEqual(own);
+    // na een wijziging aan het kantoor gaat er iets verloren: dan gewoon de standaardwaarden (en het kantoor bewaard)
+    st().update((i) => ({ ...i, building: { ...i.building, designLoadKw: 120 } }));
+    const office = st().input;
+    st().setKind('single');
+    expect(st().scenarioId).toBe('woning-basis');
+    expect(st().ownInput).toEqual(office);
+  });
+
   it('gebouwfunctie wisselen vanaf een voorbeeld: geen bewaring en geen melding', () => {
     st().applyScenario('woning-buffer');
     st().setKind('multi');
@@ -414,6 +437,94 @@ describe('store: Basis open of dicht', () => {
     expect(s().tourStep).toBeNull();
     expect(storage.data.get('ps-rondleiding-v1')).toBe('gezien');
     expect(mod.tourSeen()).toBe(true);
+  });
+
+  it('rondleiding: elke start telt (ook vanuit stap 1); stoppen zonder "gezien" bewaart niets', async () => {
+    const storage = memoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    const mod = await freshStore();
+    const s = () => mod.useStore.getState();
+    s().startTour();
+    const run = s().tourRun;
+    s().startTour();
+    expect(s().tourStep).toBe(0);
+    expect(s().tourRun).toBe(run + 1);
+    s().endTour({ seen: false });
+    expect(s().tourStep).toBeNull();
+    expect(storage.data.has('ps-rondleiding-v1')).toBe(false);
+  });
+
+  it('rondleiding: een Basis die de rondleiding opende, klapt na afloop weer in, tenzij je hem zelf zette', async () => {
+    const storage = memoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    const mod = await freshStore();
+    const s = () => mod.useStore.getState();
+    s().setBasisOpen(false);
+    expect(storage.data.get('ps-basis-v1')).toBe('dicht');
+    // de rondleiding opent hem (niet bewaard) en klapt hem bij het afsluiten weer in
+    s().startTour();
+    s().openBasisForTour();
+    expect(s().basisOpen).toBe(true);
+    expect(storage.data.get('ps-basis-v1')).toBe('dicht');
+    s().endTour();
+    expect(s().basisOpen).toBe(false);
+    // ook bij stoppen zonder "gezien" (pagina verlaten)
+    s().startTour();
+    s().openBasisForTour();
+    s().endTour({ seen: false });
+    expect(s().basisOpen).toBe(false);
+    // zelf opengezet tijdens de rondleiding: blijft open (en bewaard)
+    s().startTour();
+    s().openBasisForTour();
+    s().setBasisOpen(true);
+    s().endTour();
+    expect(s().basisOpen).toBe(true);
+    expect(storage.data.get('ps-basis-v1')).toBe('open');
+    // al open vóór de rondleiding: blijft open
+    s().startTour();
+    s().openBasisForTour();
+    s().endTour();
+    expect(s().basisOpen).toBe(true);
+    // je werkt er nog in (keepBasis): blijft open
+    s().setBasisOpen(false);
+    s().startTour();
+    s().openBasisForTour();
+    s().endTour({ keepBasis: true });
+    expect(s().basisOpen).toBe(true);
+    expect(s().tourOpenedBasis).toBe(false);
+  });
+
+  it('rondleiding: zelf ingeklapt tijdens de rondleiding klapt hij in die ronde niet meer open', async () => {
+    const storage = memoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    const mod = await freshStore();
+    const s = () => mod.useStore.getState();
+    // buiten de rondleiding ingeklapt: geen rol
+    s().setBasisOpen(false);
+    expect(s().tourBasisClosed).toBe(false);
+    s().startTour();
+    s().openBasisForTour();
+    expect(s().basisOpen).toBe(true);
+    // "Bekijk het resultaat" tijdens de rondleiding: dicht, bewaard, en niet meer door de rondleiding geopend
+    s().setBasisOpen(false);
+    expect(s().tourBasisClosed).toBe(true);
+    expect(storage.data.get('ps-basis-v1')).toBe('dicht');
+    s().openBasisForTour();
+    expect(s().basisOpen).toBe(false);
+    // zelf weer open (Wijzig): de rondleiding mag hem weer gebruiken
+    s().setBasisOpen(true);
+    expect(s().tourBasisClosed).toBe(false);
+    s().setBasisOpen(false);
+    expect(s().tourBasisClosed).toBe(true);
+    // afsluiten en een nieuwe ronde: weer zoals altijd
+    s().endTour();
+    expect(s().tourBasisClosed).toBe(false);
+    expect(s().basisOpen).toBe(false);
+    s().startTour();
+    s().openBasisForTour();
+    expect(s().basisOpen).toBe(true);
+    s().endTour();
+    expect(s().basisOpen).toBe(false);
   });
 });
 

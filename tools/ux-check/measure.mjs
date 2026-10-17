@@ -28,6 +28,8 @@ const DEFAULT_VIEWPORTS = '1280x800,1440x900,1920x1080';
 /** Breedte waarop print, "Bekijk het resultaat" en de doelen uit §11 worden gemeten. */
 const MAIN_VIEWPORT = '1440x900';
 const STORAGE_BASIS = 'ps-basis-v1';
+/** De rondleiding geldt als gezien: gemeten wordt de pagina zelf, niet de popover die bij een eerste bezoek opent. */
+const STORAGE_TOUR = 'ps-rondleiding-v1';
 const MAX_TAB_STOPS = 250;
 
 const HELP = `UX-meting peakshaving (UX-plan §11), alleen desktop.
@@ -511,12 +513,13 @@ async function newPage(browser, vp, { collapsed }) {
     colorScheme: 'light',
   });
   await context.addInitScript(
-    ({ collapsed, key }) => {
+    ({ collapsed, key, tourKey }) => {
       // alleen bij het eerste laden van deze context: een schone start (eerste bezoek of terugkerend)
       try {
         if (!sessionStorage.getItem('ux-check')) {
           sessionStorage.setItem('ux-check', '1');
           localStorage.clear();
+          localStorage.setItem(tourKey, 'gezien');
           if (collapsed) localStorage.setItem(key, 'dicht');
         }
       } catch {
@@ -529,7 +532,7 @@ async function newPage(browser, vp, { collapsed }) {
         window.dispatchEvent(new Event('beforeprint'));
       };
     },
-    { collapsed, key: STORAGE_BASIS },
+    { collapsed, key: STORAGE_BASIS, tourKey: STORAGE_TOUR },
   );
   const page = await context.newPage();
   const errors = [];

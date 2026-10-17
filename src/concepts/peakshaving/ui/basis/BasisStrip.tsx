@@ -4,7 +4,7 @@
 // "{label}: {waarde}, wijzigen", bijvoorbeeld "Piekvermogen verwarming: 8,0 kW, wijzigen".
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { EMITTER_PRESETS } from '../../data/heatPumpCurves';
-import { climateShortName } from '../../model/climate';
+import { climateShortName, DEFAULT_CLIMATE_YEAR } from '../../model/climate';
 import { connectionLabel, connectionPowerKw, gridLimitKw } from '../../model/grid';
 import { buildingKind } from '../../model/input';
 import { buildingText, connectionText, designLoadText } from '../../model/kpis';
@@ -12,6 +12,7 @@ import type { PeakshavingInput } from '../../model/types';
 import { useStore } from '../../store';
 import { BASIS_TEXTS, STEP_TITLES, UI_LABELS } from '../../texts';
 import { kwDigitsFor } from '../../view/format';
+import { moreSettingsChanged } from '../../view/settingsDiff';
 import type { FieldKey } from '../../view/types';
 import { nightSetbackOn } from './fields';
 import s from './Basis.module.css';
@@ -23,13 +24,17 @@ export interface StripChip {
   label: string;
   /** zichtbare tekst */
   value: string;
+  /** waarde in de toegankelijke naam als die anders is dan de zichtbare tekst (zonder het label nog eens) */
+  nameValue?: string;
   /** veld dat de chip toont */
   target: FieldKey;
 }
 
 /**
  * Chips van de strook (puur): gebouw, piekvermogen ("kW/woning" bij meerdere woningen), stooklijn, tapwater of bij
- * kantoor gebruikstijden en nachtverlaging, aansluiting, budget en klimaatjaar.
+ * kantoor gebruikstijden en nachtverlaging, aansluiting, budget en klimaatjaar. Wijkt Meer instellingen af van de
+ * standaard op meer dan het klimaatjaar (dat heeft al een chip), dan ook "Meer instellingen · 3 aangepast": het oordeel
+ * kan van die verborgen waarden afhangen (toegestane uren, Carnot-rendement, …), ook na een deellink.
  */
 export function stripChips(input: PeakshavingInput): StripChip[] {
   const b = input.building;
@@ -96,6 +101,17 @@ export function stripChips(input: PeakshavingInput): StripChip[] {
     },
     { key: 'climate', label: 'Klimaatjaar', value: climateShortName(input.climateYear), target: 'climate' },
   );
+  const changed = moreSettingsChanged(input);
+  if (changed > (input.climateYear !== DEFAULT_CLIMATE_YEAR ? 1 : 0))
+    chips.push({
+      key: 'moreSettings',
+      label: UI_LABELS.moreSettings,
+      // zelfde tekst als de kop van Meer instellingen in de open Basis (telt het klimaatjaar mee)
+      value: UI_LABELS.moreSettingsSummary(changed),
+      nameValue: UI_LABELS.changed(changed),
+      // klapt Meer instellingen open, bovenaan (Klimaat)
+      target: 'climate',
+    });
   return chips;
 }
 
@@ -134,7 +150,7 @@ export function BasisStrip({ onEdit }: { onEdit: () => void }) {
             type="button"
             className={s.chip}
             tabIndex={i === current ? 0 : -1}
-            aria-label={BASIS_TEXTS.chipName(c.label, c.value)}
+            aria-label={BASIS_TEXTS.chipName(c.label, c.nameValue ?? c.value)}
             onFocus={() => setActive(i)}
             onClick={() => revealSetting(c.target)}
           >

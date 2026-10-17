@@ -280,7 +280,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(meter.querySelector('[class*="shaved"]')).toBeNull();
     expect(meter.querySelector('[class*="shadowMark"]')).toBeNull();
     // tegels
-    expect(tileText('Warmtepomp')).toBe('Warmtepomp | 10,6kW | A7/W35 · 7,4 kW bij −10 °C');
+    expect(tileText('Warmtepomp')).toBe('Warmtepomp | 10,6kW th | A7/W35 · 7,4 kW bij −10 °C');
     expect(tileText('Boven budget')).toBe('Boven budget | 101uur/jaar | 12 kWh/jaar');
     expect(tileText('Kleinste aansluiting')).toBe(
       'Kleinste aansluiting | 1×40 A | 1 stap groter dan de huidige',
@@ -305,12 +305,13 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(
       screen.getByText('Piek aan de meter 3,18 kW, 0,04 kW (1 %) onder het budget van 3,22 kW.'),
     ).toBeTruthy();
+    // op 1×25 A is een batterij nodig: alleen de aansluiting, het oordeel noemt daarna de exacte batterij
     expect(buttonNames(fixGroup('Kleinere aansluiting volstaat ook'))).toEqual([
-      'Probeer 1×25 A met 0,60 m³ buffer en 7,5 kWh batterij',
+      'Probeer 1×25 A (met batterij)',
     ]);
     expect(screen.queryByRole('group', { name: 'Wat helpt' })).toBeNull();
     expect(tileText('Warmtepomp')).toMatch(
-      /^Warmtepomp \| 9,4kW \| A7\/W35 · \d+,\d kW bij −10 °C \| zonder maatregelen 10,6 kW \(−1,2\)$/,
+      /^Warmtepomp \| 9,4kW th \| A7\/W35 · \d+,\d kW bij −10 °C \| zonder maatregelen 10,6 kW \(−1,2\)$/,
     );
     expect(tileText('Boven budget')).toBe(
       'Boven budget | 0uur/jaar | geen enkel uur | zonder maatregelen 101 uur',
@@ -330,7 +331,8 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
   it('voorbeeld 3: [Probeer 1×25 A]; op 1×25 A schaaft de batterij af en is het met begrenzer te koud (warn)', () => {
     show(cases.both);
     render(<VerdictCard />);
-    expect(screen.getByText('Past op 1×35 A met 1,00 m³ buffer en 5,0 kWh batterij')).toBeTruthy();
+    // de batterij doet op 1×35 A niets: geen eer in de kop
+    expect(screen.getByText('Past op 1×35 A met 1,00 m³ buffer')).toBeTruthy();
     expect(
       screen.getByText('Piek aan de meter 2,95 kW, 0,27 kW (8 %) onder het budget van 3,22 kW.'),
     ).toBeTruthy();
@@ -471,7 +473,7 @@ describe('Resultaat: andere toestanden', () => {
     render(<VerdictCard />);
     const t = tile('Warmtepomp (handmatig)');
     expect(t.getAttribute('data-tone')).toBe('warn');
-    expect(tileText('Warmtepomp (handmatig)')).toBe('Warmtepomp (handmatig) | 8,0kW | benodigd 10,6 kW');
+    expect(tileText('Warmtepomp (handmatig)')).toBe('Warmtepomp (handmatig) | 8,0kW th | benodigd 10,6 kW');
     expect(within(t).queryByRole('button')).toBeNull();
     // de andere tegels blijven neutraal
     expect(tile('Boven budget').getAttribute('data-tone')).toBe('neutral');
@@ -629,13 +631,15 @@ describe('Resultaat: gevolgregels', () => {
     expect(document.activeElement?.id).toBe('ps-tab-koude-week');
   });
 
-  it('T1 gekozen: "Dit is al de stresstest (T1)."', async () => {
+  it('T1 gekozen: "Dit is al de stresstest (T1)", met de warmtepomp op dit jaar gedimensioneerd', async () => {
     const input = scenarioInput('woning-basis', (i) => {
       i.climateYear = 'T1';
     });
     show({ input, a: await analyzeInput(input), sens: null });
     render(<VerdictCard />);
-    expect(screen.getByTestId('stress-line').textContent).toBe('Dit is al de stresstest (T1).');
+    expect(screen.getByTestId('stress-line').textContent).toBe(
+      'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.',
+    );
   });
 });
 
@@ -701,6 +705,26 @@ describe('ResultMore', () => {
     ]);
     show({ ...cases.basis, a: { ...cases.basis.a, messages: [msg('bufferPlateau')] } });
     expect(within(group).getByText('Geen bijzonderheden.')).toBeTruthy();
+  });
+
+  it('"Opvallend" bij een handmatig WP-vermogen: ook "niet te dimensioneren" (het oordeel rekent dan met het gekozen vermogen)', () => {
+    const a = cases.basis.a;
+    const manual = {
+      ...a,
+      input: { ...a.input, heatPump: { ...a.input.heatPump, sizingMode: 'manual' as const } },
+    };
+    show({ ...cases.basis, a: { ...manual, messages: [msg('sizingFailed'), msg('comfortLoss')] } });
+    render(<ResultMore />);
+    const group = screen.getByRole('group', { name: 'Opvallend' });
+    expect(Array.from(group.querySelectorAll('strong')).map((s) => s.textContent)).toEqual([
+      'Titel sizingFailed',
+      'Titel comfortLoss',
+    ]);
+    // automatisch: die melding is de toestand van het oordeel zelf
+    show({ ...cases.basis, a: { ...a, messages: [msg('sizingFailed'), msg('comfortLoss')] } });
+    expect(Array.from(group.querySelectorAll('strong')).map((s) => s.textContent)).toEqual([
+      'Titel comfortLoss',
+    ]);
   });
 
   it('robuustheidstabel: titel ongewijzigd, ingekorte toelichting', () => {

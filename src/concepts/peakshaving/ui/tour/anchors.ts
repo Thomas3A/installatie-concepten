@@ -1,8 +1,7 @@
-// Haken voor de rondleiding (UX-plan §8): de data-tour-attributen op de pagina. De rondleiding zelf volgt later;
-// tot die er is, blijft de knop "Rondleiding" verborgen.
+// Haken voor de rondleiding (UX-plan §8): de data-tour-attributen op de pagina. De rondleiding zelf staat in Tour.tsx.
 
 /** Knop "Rondleiding" en automatisch starten aan of uit. */
-export const TOUR_ENABLED = false;
+export const TOUR_ENABLED = true;
 
 /** Waarden van het attribuut data-tour. */
 export const TOUR_ANCHORS = {

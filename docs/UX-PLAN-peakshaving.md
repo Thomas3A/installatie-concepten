@@ -22,7 +22,11 @@ met het model nagerekend.
   "Waarom?"), de T1-regel heeft geen link "Robuustheid ▸" en de batterijknop heet "Zet". Details en de stand van de
   meetbare doelen: `docs/AANNAMES.md` › "Schermopbouw (werkbank)".
 - **Rondleiding:** wordt in deze ronde gebouwd (WP-H), als aparte commit nadat de indeling aan de acceptatiecriteria
-  voldoet. `TOUR_ENABLED` gaat dan aan.
+  voldoet. `TOUR_ENABLED` gaat dan aan. Afwijkend van §8: de titels hebben geen stapnummer ("Basis", "Resultaat",
+  "Wat als?"), stap 2 heet "WP-budget", de teksten van stap 1, 2 en 4 zijn verduidelijkt, de focus na afloop gaat
+  alleen na het toetsenbord naar de knop Rondleiding, de popover staat in de tabvolgorde direct na zijn anker en zit
+  vast aan het anker, en de Basis is verfijnd (na afloop, en als je hem zelf inklapt); zie `docs/AANNAMES.md` ›
+  "Rondleiding".
 
 ## 0. Werkwijze en branch
 
@@ -768,12 +772,12 @@ de norm is daar bijgesteld, met de reden).
 
 | Meting                                                                                     | Doel                                                                                                             | Stand (1440×900)                                       |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Woorden, 1440×900, Basis open                                                              | ≤ 230 en ≤ 40 % van de baseline                                                                                  | 228; 40 % (162) niet gehaald, bijgesteld: alleen ≤ 230 |
-| Woorden, 1440×900, ingeklapt                                                               | ≤ 180                                                                                                            | 210, bijgesteld: ≤ 215                                 |
+| Woorden, 1440×900, Basis open                                                              | ≤ 230 en ≤ 40 % van de baseline                                                                                  | 229; 40 % (162) niet gehaald, bijgesteld: alleen ≤ 230 |
+| Woorden, 1440×900, ingeklapt                                                               | ≤ 180                                                                                                            | 211, bijgesteld: ≤ 215                                 |
 | ~~Woorden, 390×844, open~~                                                                 | ~~≤ 120~~                                                                                                        | vervallen (alleen pc/laptop)                           |
 | ~~Woorden, 390×844, ingeklapt~~                                                            | ~~≤ 130~~                                                                                                        | vervallen                                              |
-| Zichtbare interactieve elementen bij laden, 1440×900 ingeklapt                             | ≤ 35 (baseline 38)                                                                                               | 37, bijgesteld: ≤ 38                                   |
-| Tabstops vanaf de bovenkant tot het eerste focusbare element in de oordeelkaart, ingeklapt | ≤ 15 (baseline 57)                                                                                               | 8                                                      |
+| Zichtbare interactieve elementen bij laden, 1440×900 ingeklapt                             | ≤ 35 (baseline 38)                                                                                               | 38 (met de knop Rondleiding), bijgesteld: ≤ 38         |
+| Tabstops vanaf de bovenkant tot het eerste focusbare element in de oordeelkaart, ingeklapt | ≤ 15 (baseline 57)                                                                                               | 9 (met de knop Rondleiding)                            |
 | Skip-link, Basis open                                                                      | Tabstop 2 of 3; activeren zet de focus op H2 "Resultaat"                                                         | tabstop 2, focus op H2                                 |
 | Scrolldiepte, 1440×900 open                                                                | Oordeelkop volledig in beeld en bufferschuif in beeld zonder scrollen                                            | gehaald                                                |
 | Scrolldiepte, 1440×900 ingeklapt                                                           | Oordeel, buffer- en batterijschuif en stapper in beeld zonder scrollen                                           | gehaald                                                |

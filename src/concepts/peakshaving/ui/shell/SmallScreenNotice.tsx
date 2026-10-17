@@ -4,6 +4,9 @@
 import { SMALL_SCREEN_NOTICE } from '../../texts';
 import css from './Shell.module.css';
 
+/** Telefoon of tablet: dezelfde mediaquery als .smallScreen in Shell.module.css (ook de rondleiding start dan niet). */
+export const SMALL_SCREEN_QUERY = '(max-width: 760px), (pointer: coarse) and (max-width: 1024px)';
+
 export function SmallScreenNotice() {
   return (
     <p role="note" className={`${css.smallScreen} noPrint`}>

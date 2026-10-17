@@ -7,10 +7,12 @@ import type { GridConnection, PeakshavingInput } from '../model/types';
 import { VERDICT_TEXTS, WHATIF_TEXTS } from '../texts';
 import { batteryOnStep, cleanVolume } from './format';
 import type { Fix } from './fixes';
-import { gridModel, plateauStart, smallerOption, transitionsOf } from './sensitivityFacts';
+import { gridModel, plateauStart, smallerOption, smallerTransition, transitionsOf } from './sensitivityFacts';
 
 /** Ruimte boven (labels) en onder de lijn [px]. */
 export const MINI_CHART_PAD = { top: 18, bottom: 6 } as const;
+/** Kleinste hoogte van de y-as als fractie van het maximum (0,2: van 10,6 kW tot hoogstens 8,48 kW). */
+export const MINI_CHART_MIN_SPAN = 0.2;
 /** Halve breedte van de schuifknop [px]: dezelfde inzet als de markeringen onder de schuif (controls.tsx). */
 export const SLIDER_INSET = 8;
 /**
@@ -47,6 +49,8 @@ export interface MiniChartContext {
   grid: Pick<GridConnection, 'connection' | 'contractedKw' | 'heatPumpShare'>;
   /** stippen tonen: alleen als het raster klaar is en bij de invoer hoort, bij automatisch WP-vermogen */
   dots: boolean;
+  /** handmatig batterijvermogen: geen stip (b), die zou het vermogen op automatisch (0,5 C) zetten */
+  batteryPowerManual?: boolean;
 }
 
 export interface MiniDot {
@@ -58,7 +62,7 @@ export interface MiniDot {
   /** punt op de lijn als de stip is verschoven (verbindingslijn), anders null */
   anchorY: number | null;
   volumeM3: number;
-  /** "1×35 A" of "1×25 A + 7,5 kWh" */
+  /** "1×35 A · 0,20 m³" of "1×25 A + 7,5 kWh · 0,60 m³" */
   label: string;
   /** naam van de knop: "1×35 A past vanaf 0,20 m³: zet buffer" */
   ariaLabel: string;
@@ -126,10 +130,11 @@ function dotFix(
     undoLabel: VERDICT_TEXTS.undo.smaller(conn.label, v, capacityKwh),
     pending: false,
     target: 'buffer',
-    // de rasterbatterij rekent met automatisch vermogen (0,5 C)
+    // de rasterbatterij rekent met automatisch vermogen (0,5 C); past de aansluiting zonder batterij, dan blijft de
+    // batterij zoals hij is (net als bij de knop "Kleinere aansluiting volstaat ook")
     apply: (i) => ({
       ...withBuffer(i),
-      battery: { capacityKwh, powerKw: null },
+      ...(capacityKwh > 0 ? { battery: { capacityKwh, powerKw: null } } : {}),
       grid: { ...i.grid, connection: conn.id },
     }),
   };
@@ -169,6 +174,9 @@ export function miniChartGeometry(
     lo -= 0.5;
     hi += 0.5;
   }
+  // minstens MINI_CHART_MIN_SPAN van het maximum hoog: een bijna vlakke lijn (7,6 → 7,3 kW) is dan geen klif over de
+  // volle hoogte, en een kleine stijging binnen het plateau geen steile helling
+  lo = Math.min(lo, hi - MINI_CHART_MIN_SPAN * Math.abs(hi));
   const top = MINI_CHART_PAD.top;
   const bottom = height - MINI_CHART_PAD.bottom;
   const yOf = (kw: number): number => bottom - ((kw - lo) / (hi - lo)) * (bottom - top);
@@ -228,38 +236,36 @@ export function miniChartGeometry(
     // (a) de huidige aansluiting zonder batterij
     const a = ts.find((t) => t.conn.id === current.grid.connection && t.batteries.includes(0));
     if (a) {
-      const label = a.conn.label;
+      const name = WHATIF_TEXTS.dotName(a.conn.label, 0);
       dots.push({
         id: 'current',
         x: sliderX(a.volumeM3, max, width),
         y: at(a.volumeM3),
         anchorY: null,
         volumeM3: a.volumeM3,
-        label,
-        ariaLabel: WHATIF_TEXTS.dotAria(label, a.volumeM3, false),
-        fix: dotFix('current', label, a.volumeM3, 0, a.conn),
+        label: WHATIF_TEXTS.dotLabel(name, a.volumeM3),
+        ariaLabel: WHATIF_TEXTS.dotAria(name, a.volumeM3, false, false),
+        fix: dotFix('current', name, a.volumeM3, 0, a.conn),
       });
     }
-    // (b) de eerstvolgende kleinere aansluiting met de kleinste rasterbatterij
-    const c = smallerOption(current.grid);
-    const b = c
-      ? ts
-          .filter((t) => t.conn.id === c.id)
-          .sort((x, y) => x.batteries[0] - y.batteries[0] || x.volumeM3 - y.volumeM3)[0]
-      : undefined;
+    // (b) de eerstvolgende kleinere aansluiting met de kleinste rasterbatterij (hetzelfde punt als de knop
+    // "Kleinere aansluiting volstaat ook"). Niet bij een handmatig batterijvermogen: de stip zet de batterij op
+    // automatisch vermogen (0,5 C), want daarmee rekent het raster.
+    const c = current.batteryPowerManual ? null : smallerOption(current.grid);
+    const b = c ? smallerTransition(ts, c) : null;
     if (b) {
       // rasterbatterij naar boven op de schuifstap: label, melding en schuif tonen dezelfde waarde
       const kwh = batteryOnStep(m.caps[b.batteries[0]] ?? 0, ranges);
-      const label = WHATIF_TEXTS.dotLabel(b.conn.label, kwh);
+      const name = WHATIF_TEXTS.dotName(b.conn.label, kwh);
       dots.push({
         id: 'smaller',
         x: sliderX(b.volumeM3, max, width),
         y: at(b.volumeM3),
         anchorY: null,
         volumeM3: b.volumeM3,
-        label,
-        ariaLabel: WHATIF_TEXTS.dotAria(label, b.volumeM3, true),
-        fix: dotFix('smaller', label, b.volumeM3, kwh, b.conn),
+        label: WHATIF_TEXTS.dotLabel(name, b.volumeM3),
+        ariaLabel: WHATIF_TEXTS.dotAria(name, b.volumeM3, true, kwh > 0),
+        fix: dotFix('smaller', name, b.volumeM3, kwh, b.conn),
       });
     }
     separateDots(dots, bottom);

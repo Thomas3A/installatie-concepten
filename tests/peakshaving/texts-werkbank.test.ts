@@ -76,6 +76,25 @@ describe('buffervolume in teksten', () => {
       'Probeer 1×25 A met 0,375 m³ buffer en 4,0 kWh batterij',
     );
     expect(WHATIF_TEXTS.dotAria('1×35 A', 0.125, false)).toBe('1×35 A past vanaf 0,125 m³: zet buffer');
+    expect(WHATIF_TEXTS.dotLabel('1×35 A', 0.125)).toBe('1×35 A · 0,125 m³');
+    expect(WHATIF_TEXTS.dotLabel(WHATIF_TEXTS.dotName('1×25 A', 7.5), 0.6)).toBe(
+      '1×25 A + 7,5 kWh · 0,60 m³',
+    );
     expect(WHATIF_TEXTS.miniPlateau(5.7, 0.375)).toBe('5,7 kW vanaf 0,375 m³: meer helpt niet');
+  });
+});
+
+describe('percentages in de detailzin', () => {
+  it('een klein maar echt verschil wordt "< 1 %", niet "0 %"', () => {
+    expect(VERDICT_TEXTS.margin(46.4, 0.2, 0.43, 46.6, 1)).toBe(
+      'Piek aan de meter 46,4 kW, 0,2 kW (< 1 %) onder het budget van 46,6 kW.',
+    );
+    expect(VERDICT_TEXTS.over(2, 3.22, 0.01, 0.3, 2)).toBe(
+      '2 uur per jaar boven het WP-budget van 3,22 kW, tot 0,01 kW (< 1 %) erboven.',
+    );
+    expect(VERDICT_TEXTS.over(101, 3.22, 0.26, 8.1, 2)).toBe(
+      '101 uur per jaar boven het WP-budget van 3,22 kW, tot 0,26 kW (8 %) erboven.',
+    );
+    expect(VERDICT_TEXTS.margin(3.18, 0.04, 1.2, 3.22, 2)).toContain('(1 %)');
   });
 });

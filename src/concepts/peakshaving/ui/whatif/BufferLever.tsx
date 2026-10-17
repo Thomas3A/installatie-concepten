@@ -1,5 +1,6 @@
 // Bufferhendel in Wat als? (UX-plan §5, §5.2): mini-grafiek, schuif "Buffervolume" met de markeringen 2 h / 4 h / 8 h,
-// de effectregel uit de doorrekening en de meldingen die bij de buffer horen.
+// de effectregel en de meldingen die bij de buffer horen. Het opslagdeel van de effectregel volgt de schuif direct;
+// het warmtepompdeel komt uit de doorrekening en is gedimd zolang er een nieuwe loopt.
 import { useMemo } from 'react';
 import { useStore } from '../../store';
 import { HELP, UI_LABELS, WHATIF_TEXTS } from '../../texts';
@@ -12,14 +13,15 @@ import { SeparatedText } from './SeparatedText';
 import css from './WhatIf.module.css';
 
 export function BufferLever() {
-  const volumeM3 = useStore((st) => st.input.buffer.volumeM3);
+  const input = useStore((st) => st.input);
+  const volumeM3 = input.buffer.volumeM3;
   const r = useStore((st) => st.ranges);
   const update = useStore((st) => st.update);
   const a = useStore((st) => st.analysis);
   const sens = useStore((st) => st.sensitivity);
-  // de effectregel hoort bij de vorige doorrekening zolang er een nieuwe loopt of die mislukte
+  // het warmtepompdeel hoort bij de vorige doorrekening zolang er een nieuwe loopt of die mislukte
   const stale = useStore((st) => st.busy || st.error !== null);
-  const effect = useMemo(() => (a ? bufferEffect(a, sens) : null), [a, sens]);
+  const effect = useMemo(() => (a ? bufferEffect(a, sens, { input, ranges: r }) : null), [a, sens, input, r]);
 
   return (
     <div className={css.lever} {...tourAnchor('buffer')} data-field="buffer">
@@ -35,11 +37,17 @@ export function BufferLever() {
         unit="m³"
         markers={r.bufferMarkersM3.map((m) => ({ value: m.value, label: WHATIF_TEXTS.markerHours(m.hours) }))}
         hint={
-          <span className={`${css.effect} ${stale ? css.stale : ''}`} data-testid="buffer-effect">
+          <span className={css.effect} data-testid="buffer-effect">
             {effect ? (
               <>
                 <span className={css.effectLine}>
-                  <SeparatedText text={effect.text} />
+                  <SeparatedText text={effect.storage} />
+                  {effect.sizing && (
+                    <span className={stale ? css.stalePart : undefined} data-testid="buffer-effect-sizing">
+                      {' · '}
+                      <SeparatedText text={effect.sizing} />
+                    </span>
+                  )}
                 </span>
                 {effect.plateau && <span className={css.effectLine}>{effect.plateau}</span>}
               </>
@@ -50,7 +58,12 @@ export function BufferLever() {
         }
         onChange={(v) => update((i) => ({ ...i, buffer: { ...i.buffer, volumeM3: v } }))}
       />
-      <Messages include={['bufferPlateau', 'smallBufferDeltaT']} compact hideEmpty />
+      {/* "Buffer helpt niet verder" zegt hetzelfde als de regel vanaf het knikpunt: niet allebei */}
+      <Messages
+        include={effect?.plateau ? ['smallBufferDeltaT'] : ['bufferPlateau', 'smallBufferDeltaT']}
+        compact
+        hideEmpty
+      />
     </div>
   );
 }

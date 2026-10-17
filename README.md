@@ -112,6 +112,8 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
 - **Wat als?:** de bufferschuif met een mini-grafiek van het benodigde WP-vermogen per buffervolume (met klikbare punten
   "past vanaf"), de batterij, een stapper voor de aansluiting en **Verfijnen** (WP-vermogen automatisch of handmatig,
   laadstrategie, batterijvermogen). **↺ Zonder maatregelen** zet buffer en batterij terug op 0.
+- **Rondleiding:** bij een eerste bezoek (niet via een deellink) loopt een korte rondleiding in vijf stappen langs Basis,
+  WP-budget, Resultaat, buffer en batterij met aansluiting; de knop **Rondleiding** in de kop start hem opnieuw.
 - **Verdieping:** de schakelaar _Zonder begrenzer_ / _Met begrenzer_ voor grafieken en kerngetallen, en de tabbladen
   _Schema_ (live schema van warmtepomp, buffer, boiler, gebouw, meterkast en batterij voor het gekozen uur), _Koude week_
   (drie gekoppelde grafieken met scrubber en afspelen), _Jaar_ (belastingduurkrommen en maandbalans), _Gevoeligheid_

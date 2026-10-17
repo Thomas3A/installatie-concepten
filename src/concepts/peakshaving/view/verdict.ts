@@ -137,11 +137,22 @@ function span(fromKw: number, toKw: number, maxKw: number): MeterSpan {
   return { fromKw, toKw, start: fromKw / maxKw, end: toKw / maxKw };
 }
 
+/**
+ * Verwijzingen "zonder maatregelen …" (tegels en schaduwstreep): alleen met buffer of batterij, en alleen bij
+ * automatisch WP-vermogen. De doorrekening zonder maatregelen dimensioneert de warmtepomp altijd automatisch; bij een
+ * handmatig vermogen zou de verwijzing een andere warmtepomp noemen dan de knop "↺ Zonder maatregelen" (die het
+ * handmatige vermogen houdt) en zou "(+1,4)" suggereren dat de maatregelen de warmtepomp groter maken.
+ */
+function showReferences(a: Analysis): boolean {
+  const measures = a.input.buffer.volumeM3 > 0 || a.input.battery.capacityKwh > 0;
+  return measures && a.input.heatPump.sizingMode === 'auto';
+}
+
 function meterModel(a: Analysis, d: number): MeterModel {
   const ex = exceedanceKpis(a);
   const peak = ex.pGridMaxKw;
   const budget = a.pLimitKw;
-  const measures = a.input.buffer.volumeM3 > 0 || a.input.battery.capacityKwh > 0;
+  const measures = showReferences(a);
   const without = a.withoutMeasures.kpis.pGridMaxKw;
   const noBattery = a.noBattery.pGridMaxKw;
   const shaved = a.main.mode === 'exceedance' && noBattery > peak + SHAVE_EPS_KW;
@@ -185,7 +196,7 @@ function tiles(a: Analysis): [Tile, Tile, Tile] {
   const ex = exceedanceKpis(a);
   const b = a.input.building;
   const auto = a.input.heatPump.sizingMode === 'auto';
-  const measures = a.input.buffer.volumeM3 > 0 || a.input.battery.capacityKwh > 0;
+  const measures = showReferences(a);
   const w = a.withoutMeasures;
   const needed = a.sizing.withBuffer;
   const failed = sizingFailed(a);
@@ -194,7 +205,8 @@ function tiles(a: Analysis): [Tile, Tile, Tile] {
     id: 'heatPump',
     title: auto ? t.heatPump : t.heatPumpManual,
     value: failed ? '–' : fmt(a.nominalKw, 1),
-    unit: 'kW',
+    // thermisch: naast "Piek aan de meter" en "budget" (elektrisch) zou "kW" doen denken dat 10,6 kW in 3,22 kW past
+    unit: VERDICT_TEXTS.tiles.heatPumpUnit,
     line: failed
       ? t.heatPumpNeeded(NaN)
       : auto
@@ -293,10 +305,20 @@ function detailOf(a: Analysis, status: VerdictStatus, d: number): string {
   }
 }
 
+/** De batterij is niet nodig: zonder batterij al geen uur boven het budget (de batterijregel zegt "Doet nu niets"). */
+function batteryIdle(a: Analysis): boolean {
+  const rb = a.requiredBattery;
+  return a.input.battery.capacityKwh > 0 && !!rb && rb.feasible && rb.capacityKwh === 0;
+}
+
 function headlineOf(a: Analysis, status: VerdictStatus): string {
   const h = VERDICT_TEXTS.headline;
   const conn = currentConnectionText(a);
-  const measures = VERDICT_TEXTS.measures(a.input.buffer.volumeM3, a.input.battery.capacityKwh);
+  // "met … en 5,5 kWh batterij" alleen als de batterij meetelt: een batterij die niets doet, krijgt geen eer
+  const measures = VERDICT_TEXTS.measures(
+    a.input.buffer.volumeM3,
+    batteryIdle(a) ? 0 : a.input.battery.capacityKwh,
+  );
   switch (status) {
     case 'sizingFailed':
       return h.sizingFailed;
@@ -336,7 +358,7 @@ export function buildVerdict(a: Analysis, sens: SensitivityState | null): Verdic
   const t1 = a.robustness.find((r) => r.climateId === 'T1');
   const stressLine =
     a.climateId === 'T1'
-      ? VERDICT_TEXTS.stressSelf
+      ? VERDICT_TEXTS.stressSelf(a.input.heatPump.sizingMode === 'auto')
       : t1
         ? VERDICT_TEXTS.stress(t1.exceedanceHours, t1.comfortLossHours)
         : null;

@@ -7,6 +7,7 @@ import { sensitivityKey, type Analysis } from './model/analysis';
 import { climateInSentence, COLD_WEEK_HOURS } from './model/climate';
 import type { EngineResponse } from './model/engine';
 import {
+  buildingKind,
   normalizeInput,
   rangesOf,
   switchKind,
@@ -51,6 +52,8 @@ export interface Notice {
 export interface UndoEntry {
   input: PeakshavingInput;
   scenarioId: string | null;
+  /** bewaarde eigen invoer van vóór de stap, als de stap die heeft teruggezet (wissel naar zijn gebouwfunctie) */
+  ownInput?: PeakshavingInput;
 }
 
 interface State {
@@ -83,13 +86,28 @@ interface State {
   openedFromLink: boolean;
   /** stap van de rondleiding (0…), null = niet actief */
   tourStep: number | null;
+  /** telt elke start van de rondleiding: opnieuw starten in stap 1 toont die stap opnieuw (scrollen en focus) */
+  tourRun: number;
+  /**
+   * de rondleiding heeft een ingeklapte Basis opengeklapt (alleen UI-toestand); bij het afsluiten klapt hij weer in,
+   * tenzij je hem intussen zelf open of dicht hebt gezet
+   */
+  tourOpenedBasis: boolean;
+  /**
+   * je klapte de Basis tijdens deze rondleiding zelf in ("Bekijk het resultaat"): stappen in het ingeklapte paneel
+   * worden overgeslagen en de rondleiding klapt hem niet meer open (tot je hem zelf weer opent)
+   */
+  tourBasisClosed: boolean;
   /** rondleiding mag vanzelf starten bij een eerste bezoek (uit in de tests) */
   tourAutoStart: boolean;
   // acties
   update: (fn: (i: PeakshavingInput) => PeakshavingInput) => void;
   setDesignLoad: (kw: number) => void;
   setUse: (use: BuildingUse) => void;
-  /** één woning, meerdere woningen of kantoor: standaardinvoer van die keuze (klimaatjaar blijft) */
+  /**
+   * één woning, meerdere woningen of kantoor: standaardinvoer van die keuze (klimaatjaar blijft). Is er bewaarde eigen
+   * invoer van die keuze en staat er nu een ongewijzigd voorbeeld, dan komt de eigen invoer terug.
+   */
   setKind: (kind: BuildingKind) => void;
   /** aantal woningen op de warmtepomp; piekvermogen, tapwater, buffer en batterij schalen mee */
   setDwellings: (n: number) => void;
@@ -132,8 +150,16 @@ interface State {
   setAutoSensitivity: (on: boolean) => void;
   startTour: () => void;
   setTourStep: (n: number) => void;
-  /** rondleiding sluiten (Overslaan of Klaar) en als gezien bewaren */
-  endTour: () => void;
+  /**
+   * Basis openklappen voor een stap van de rondleiding: niet bewaard en na afloop weer ingeklapt. Niet als je hem in
+   * deze ronde zelf inklapte (tourBasisClosed).
+   */
+  openBasisForTour: () => void;
+  /**
+   * rondleiding sluiten. Standaard (Overslaan, Klaar, Esc) als gezien bewaren; `seen` = false bewaart niets (pagina
+   * verlaten, geen stap te tonen). Een Basis die de rondleiding opende, klapt weer in, behalve met `keepBasis`.
+   */
+  endTour: (opts?: { seen?: boolean; keepBasis?: boolean }) => void;
 }
 
 let client: EngineClient | null = null;
@@ -318,6 +344,9 @@ export const useStore = create<State>((set, get) => ({
   autoSensitivity: import.meta.env.MODE !== 'test',
   openedFromLink: false,
   tourStep: null,
+  tourRun: 0,
+  tourOpenedBasis: false,
+  tourBasisClosed: false,
   tourAutoStart: import.meta.env.MODE !== 'test',
 
   update: (fn) => {
@@ -348,6 +377,24 @@ export const useStore = create<State>((set, get) => ({
     const switched = switchKind(st.input, kind);
     // dezelfde keuze nogmaals: niets wijzigen (het scenario blijft dan ook staan)
     if (switched === st.input) return;
+    // terug naar de gebouwfunctie van de bewaarde eigen invoer, vanaf een ongewijzigd voorbeeld of standaardinvoer
+    // (er gaat dus niets verloren): de eigen invoer terugzetten in plaats van de standaardwaarden, met één stap terug
+    const saved = st.ownInput;
+    if (saved && st.scenarioId !== null && buildingKind(saved.building) === kind) {
+      const back = withMode(saved, st.input.grid.mode);
+      set({
+        input: back,
+        ranges: rangesOf(back),
+        scenarioId: exampleIdOf(back),
+        scrubHour: null,
+        ownInput: null,
+        // ongedaan maken zet ook de bewaarde eigen invoer terug ("↩ Je eigen invoer (bewaard)")
+        undo: { input: st.input, scenarioId: st.scenarioId, ownInput: saved },
+        notice: { kind: 'kind', text: TOAST_TEXTS.ownInputRestored },
+      });
+      schedule();
+      return;
+    }
     // de bedrijfsmodus is een weergavekeuze en blijft staan
     const next = withMode(switched, st.input.grid.mode);
     // over eigen invoer heen: die bewaren, met één stap terug en een melding "… · Ongedaan maken"
@@ -441,7 +488,13 @@ export const useStore = create<State>((set, get) => ({
   },
   endPrint: () => set({ printing: false }),
   setBasisOpen: (open, persist = true) => {
-    set({ basisOpen: open });
+    // open of dicht gezet buiten de rondleiding om: na afloop niet meer terugzetten; dicht tijdens de rondleiding: die
+    // klapt hem in deze ronde niet meer open
+    set((st) => ({
+      basisOpen: open,
+      tourOpenedBasis: false,
+      tourBasisClosed: !open && st.tourStep !== null,
+    }));
     if (persist) writeKey(STORAGE_KEYS.basis, open ? 'open' : 'dicht');
   },
   revealSetting: (target) => {
@@ -482,8 +535,9 @@ export const useStore = create<State>((set, get) => ({
       scenarioId: undo.scenarioId,
       undo: null,
       notice: null,
-      // terug naar de eigen invoer van vóór een gebouwfunctiewissel: die hoeft niet meer bewaard
-      ownInput: ownInput === undo.input ? null : ownInput,
+      // terug naar de eigen invoer van vóór een gebouwfunctiewissel: die hoeft niet meer bewaard; een teruggezette
+      // eigen invoer is na ongedaan maken weer bewaard
+      ownInput: undo.ownInput ?? (ownInput === undo.input ? null : ownInput),
     });
     computeNow();
   },
@@ -492,11 +546,22 @@ export const useStore = create<State>((set, get) => ({
     set({ autoSensitivity: on });
     if (on) requestSensitivity();
   },
-  startTour: () => set({ tourStep: 0 }),
+  startTour: () => set((st) => ({ tourStep: 0, tourRun: st.tourRun + 1, tourBasisClosed: false })),
   setTourStep: (n) => set({ tourStep: n }),
-  endTour: () => {
-    set({ tourStep: null });
-    writeKey(STORAGE_KEYS.tour, 'gezien');
+  openBasisForTour: () => {
+    const { basisOpen, tourBasisClosed } = get();
+    if (!basisOpen && !tourBasisClosed) set({ basisOpen: true, tourOpenedBasis: true });
+  },
+  endTour: ({ seen = true, keepBasis = false } = {}) => {
+    const { tourOpenedBasis, basisOpen } = get();
+    // de Basis weer zoals vóór de rondleiding (dicht); de bewaarde keuze is niet veranderd
+    set({
+      tourStep: null,
+      tourOpenedBasis: false,
+      tourBasisClosed: false,
+      basisOpen: tourOpenedBasis && !keepBasis ? false : basisOpen,
+    });
+    if (seen) writeKey(STORAGE_KEYS.tour, 'gezien');
   },
 }));
 

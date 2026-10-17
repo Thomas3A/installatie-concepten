@@ -173,7 +173,8 @@
   }
 }
 
-/* ---- telefoon of tablet: alleen een korte melding bovenaan; de pagina eronder blijft gewoon scrollbaar */
+/* ---- telefoon of tablet: alleen een korte melding bovenaan; de pagina eronder blijft gewoon scrollbaar. Dezelfde
+   mediaquery staat als SMALL_SCREEN_QUERY in SmallScreenNotice.tsx (daar start de rondleiding niet vanzelf). */
 .smallScreen {
   display: none;
 }

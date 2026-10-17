@@ -63,7 +63,8 @@
   min-height: 1.2em;
   transition: opacity 0.1s;
 }
-.effect.stale {
+.effect.stale,
+.stalePart {
   opacity: 0.55;
   transition: opacity 0.1s 150ms;
 }
@@ -298,10 +299,8 @@
   display: block;
   align-self: center;
   text-align: center;
+  /* gewone uitvoertekst, geen vlak of rand: tussen ◀ en ▶ zou dat op een (derde) knop lijken */
   padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-2);
   font-size: 0.88rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
