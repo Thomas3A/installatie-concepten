@@ -18,6 +18,7 @@ import { batteryUsableEnergy } from '../../model/battery';
 import { COMFORT_MARGIN_K, HOURS_PER_YEAR } from '../../model/building';
 import { COLD_WEEK_HOURS, formatHour, hourInfo, MONTH_SHORT, WEEKDAY_SHORT } from '../../model/climate';
 import { useSelectedHour, useStore } from '../../store';
+import { usePointerCoarse } from '../hooks';
 import {
   hatchToZero,
   hourSplits,
@@ -53,6 +54,11 @@ const PURPLE = '#8b5cf6';
 const CYAN = '#0891b2';
 // gebied onder 0 % in paneel 3 voor de comfortverliesmarkeringen
 const PCT_MIN = -14;
+/** Bediening in één regel, per invoermethode (UX-plan §7 #16); aanraken kent geen sleep-zoom. */
+const HINT = {
+  mouse: 'Sleep om te zoomen, klik om een uur te kiezen; ◀ ▶ schuift door het jaar.',
+  touch: 'Tik om een uur te kiezen; ◀ ▶ schuift door het jaar.',
+} as const;
 
 interface Palette {
   text: string;
@@ -167,6 +173,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
   const setScrubHour = useStore((st) => st.setScrubHour);
   const selected = useSelectedHour();
   const pal = usePalette();
+  const coarse = usePointerCoarse();
   const derived = useMemo(() => (analysis ? derive(analysis) : null), [analysis]);
 
   const boxRef = useRef<HTMLDivElement>(null);
@@ -529,12 +536,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
           </div>
         )}
       </div>
-      {!print && (
-        <p className={c.hint}>
-          Sleep in een grafiek om in te zoomen, schuif met ◀ ▶ of Shift + scrollwiel door het jaar en klik
-          om een uur te kiezen. De panelen bewegen samen.
-        </p>
-      )}
+      {!print && <p className={c.hint}>{coarse ? HINT.touch : HINT.mouse}</p>}
       <div className={c.panels}>
         <section className={c.panel} aria-label="Warmte">
           <h3>Warmte</h3>

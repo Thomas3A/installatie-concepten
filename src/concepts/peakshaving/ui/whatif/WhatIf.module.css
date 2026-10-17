@@ -1,0 +1,385 @@
+/* Wat als? (UX-plan §5): hendels voor buffer, batterij en aansluiting, de mini-grafiek en Verfijnen. */
+
+/* het paneel zelf is de container (zonder eigen rand of opvulling): "620 px paneelbreedte" is dan de echte breedte */
+.panel {
+  container: whatif / inline-size;
+  min-width: 0;
+}
+.card {
+  margin-bottom: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  /* vaste hoogte: de knop "Zonder maatregelen" verschijnt en verdwijnt zonder dat de hendels verspringen */
+  min-height: 32px;
+  margin-bottom: 10px;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.15rem;
+}
+.reset {
+  min-height: 28px;
+}
+.resetIcon {
+  margin-right: 4px;
+}
+
+/* ---- hendels: onder elkaar; vanaf 620 px paneelbreedte buffer links, batterij en stapper rechts */
+.levers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@container whatif (min-width: 620px) {
+  .levers {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: start;
+  }
+}
+.lever {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+}
+/* doel van een knop of chip: niet onder de vaste balk onderaan of tegen de rand van het venster */
+.panel :is(input, button, [tabindex]) {
+  scroll-margin-block: 72px;
+}
+
+/* ---- effectregels onder de hendels: bewegen pas mee na de doorrekening; tijdens het rekenen na 150 ms gedimd */
+.effect {
+  display: block;
+  min-height: 1.2em;
+  transition: opacity 0.1s;
+}
+.effect.stale {
+  opacity: 0.55;
+  transition: opacity 0.1s 150ms;
+}
+.effectLine {
+  display: block;
+}
+.fixBtn {
+  margin-left: 6px;
+  min-height: 24px;
+  vertical-align: baseline;
+  font-size: 0.8rem;
+}
+.arrow {
+  margin-right: 4px;
+}
+
+/* ---- mini-grafiek boven de bufferschuif */
+.mini {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.miniTitle {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+/* de hoogte bepaalt de grafiek (gemeten): 96 px, op de telefoon 80 px */
+.plot {
+  position: relative;
+  height: 96px;
+}
+@media (max-width: 639px) {
+  .plot {
+    height: 80px;
+  }
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.clickable {
+  cursor: pointer;
+}
+.staleChart {
+  opacity: 0.45;
+}
+.line {
+  fill: none;
+  stroke: #e8892b;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.current {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.plateauFill {
+  fill: var(--surface-2);
+}
+.hatch {
+  stroke: var(--text-2);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+.axisLabel {
+  font-size: 10.5px;
+  fill: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* stip "toereikend vanaf": een knop met een raakvlak van 24 px (44 px bij aanraking) rond een stip van 10 px */
+.dot {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ok);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.dot::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px var(--surface);
+  transition: transform 0.1s;
+}
+.dot:hover::before,
+.dot:focus-visible::before {
+  transform: scale(1.3);
+}
+.dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.dotLabel {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 9px);
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.dotLabelLeft {
+  left: auto;
+  right: calc(50% + 9px);
+}
+/* boven of onder de stip: het label begint (of eindigt) 4 px naast het midden */
+.dotLabelAbove {
+  top: auto;
+  bottom: calc(50% + 8px);
+  left: calc(50% - 4px);
+  transform: none;
+}
+.dotLabelAbove.dotLabelLeft {
+  left: auto;
+  right: calc(50% - 4px);
+}
+.dotLabelBelow {
+  top: calc(50% + 8px);
+  left: calc(50% - 4px);
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot::before {
+    transition: none;
+  }
+}
+.placeholder {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-2);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 0 8px;
+}
+.miniFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 10px;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.plateauNote {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 8px;
+  border: 1px solid var(--border);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-2) 0 2px,
+    color-mix(in srgb, var(--text-2) 35%, transparent) 2px 3px
+  );
+}
+.fullLink {
+  margin-left: auto;
+  min-height: 24px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.manualNote {
+  flex-basis: 100%;
+}
+
+/* ---- aansluitingsstapper: één bediening, geen veldlabel "Aansluitwaarde" (dat blijft uniek in de Basis) */
+.stepper {
+  display: grid;
+  gap: 3px;
+  border-radius: 6px;
+}
+.stepper:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.stepperLabel {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.stepperRow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.stepBtn {
+  flex: none;
+  min-width: 36px;
+  min-height: 32px;
+  padding: 4px 8px;
+}
+.stepBtn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.stepperText {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  align-self: center;
+  text-align: center;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* ---- Verfijnen */
+.refine {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.refine > summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.refine > summary::-webkit-details-marker {
+  display: none;
+}
+.refine > summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--text-2);
+}
+.refine[open] > summary::before {
+  content: '▾';
+}
+.badge {
+  font-weight: 500;
+  color: var(--text-2);
+}
+.badgeChanged {
+  color: var(--accent);
+  font-weight: 650;
+}
+.refineBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+}
+/* naast elkaar zodra er ruimte is; elke kolom breed genoeg voor de knoppen "Automatisch | Handmatig" */
+@container whatif (min-width: 620px) {
+  .refineBody {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    align-items: start;
+  }
+}
+.stack {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+/* knoppengroepen zo breed als hun knoppen */
+.refineBody [role='group'] {
+  justify-self: start;
+}
+
+/* ---- aanraakvlakken van minstens 44 px bij een grove aanwijzer (telefoon, tablet) */
+@media (pointer: coarse) {
+  .dot {
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+  }
+  .stepBtn,
+  .reset,
+  .fixBtn,
+  .fullLink {
+    min-height: 44px;
+  }
+  .stepBtn {
+    min-width: 44px;
+  }
+  .refine > summary {
+    min-height: 44px;
+  }
+}

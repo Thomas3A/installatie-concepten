@@ -9,6 +9,45 @@
 .lead {
   margin: 0 0 4px;
 }
+/* "Hoe lees ik dit?": leeswijzer onder de lead, standaard ingeklapt, met een ▸/▾-marker */
+.howTo {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.howTo > summary {
+  display: inline-block;
+  cursor: pointer;
+  list-style: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+.howTo > summary::-webkit-details-marker {
+  display: none;
+}
+.howTo > summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--text-2);
+}
+.howTo[open] > summary::before {
+  content: '▾';
+}
+.howTo ul {
+  margin: 4px 0 0;
+  padding-left: 1.3em;
+  line-height: 1.45;
+}
+/* aanraakschermen: 44 px hoog aanraakvlak, dat over de witruimte boven en onder valt (geen extra afstand) */
+@media (pointer: coarse) {
+  .howTo > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -12px 0;
+  }
+}
 /* klikhint en voortgang op dezelfde plek (gestapeld); de hoogte is die van de hoogste, dus vast */
 .statusRow {
   display: grid;

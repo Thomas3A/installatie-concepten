@@ -1,25 +1,55 @@
-// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3).
+// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3). Ingeklapt in ResultMore, op
+// papier open (data-print-open). De link "Robuustheid ▸" in het oordeel opent de tabel met openRobustness(): een
+// DOM-gebeurtenis op window, zodat het oordeel geen ref of storeveld nodig heeft.
+import { useEffect, useRef } from 'react';
 import { fmt } from '../../../../core/format';
 import { climateShortName } from '../../model/climate';
 import { useStore } from '../../store';
-import { MODE_LABELS } from '../../texts';
+import { ROBUSTNESS_NOTE } from '../../texts';
 import { ScrollRegion } from '../../../../ui/ScrollRegion';
 import u from '../../../../ui/ui.module.css';
+import { prefersReducedMotion } from '../hooks';
 import p from '../peakshaving.module.css';
+
+/** Gebeurtenis (op window) die de robuustheidstabel openklapt, in beeld scrolt en de focus op de titel zet. */
+export const OPEN_ROBUSTNESS_EVENT = 'ps:open-robustness';
+
+/** Robuustheidstabel openen en erheen scrollen (doet niets als de tabel er niet is). */
+export function openRobustness(): void {
+  window.dispatchEvent(new Event(OPEN_ROBUSTNESS_EVENT));
+}
 
 export function RobustnessTable({ open = false }: { open?: boolean }) {
   const analysis = useStore((st) => st.analysis);
+  const ref = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const onOpen = (): void => {
+      const details = ref.current;
+      if (!details) return;
+      details.open = true;
+      details.scrollIntoView?.({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+      details.querySelector('summary')?.focus({ preventScroll: true });
+    };
+    window.addEventListener(OPEN_ROBUSTNESS_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ROBUSTNESS_EVENT, onOpen);
+  }, []);
+
   if (!analysis) return null;
   const rows = analysis.robustness;
   return (
-    <details className={u.acc} open={open} data-print-open="">
+    // `open` alleen als begintoestand; daarna beslist de gebruiker (of openRobustness)
+    <details
+      ref={ref}
+      className={u.acc}
+      open={open || undefined}
+      data-print-open=""
+      style={{ scrollMarginTop: 12 }}
+    >
       <summary>Robuustheid: zelfde configuratie in andere klimaatjaren</summary>
       <div className={u.accBody}>
         <p className={u.hint} style={{ margin: 0 }}>
-          WP-vermogen vast op {fmt(analysis.nominalKw, 1)} kW (A7/W35). Piek aan de meter, SCOP en
-          elektriciteit in de gekozen modus ({MODE_LABELS[analysis.main.mode]}). <em>Overschrijding</em>: uren
-          boven het WP-budget zonder begrenzer. <em>Comfortverlies</em>: uren meer dan 0,5 K onder het
-          setpoint als de aansluiting begrenst.
+          {ROBUSTNESS_NOTE(analysis.nominalKw)}
         </p>
         <ScrollRegion className={`${u.tableWrap} ${p.robustWrap}`} label="Robuustheid per klimaatjaar">
           {/* koppen met zachte afbreekstreepjes (\u00ad): ze breken af in plaats van de tabel te verbreden */}

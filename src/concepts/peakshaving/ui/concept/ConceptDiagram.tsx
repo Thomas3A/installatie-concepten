@@ -1,7 +1,8 @@
-// Tabblad Concept (spec §8): schematische, live weergave van het concept in het uur dat met de scrubber is gekozen
+// Tabblad Schema (spec §8): schematische, live weergave van het concept in het uur dat met de scrubber is gekozen
 // (standaard het uur met de hoogste piek aan de meter in de koude week). Net, meterkast, batterij, buitenunit,
 // boiler, buffervat en gebouw met bewegende deeltjes op leidingen en kabels; de scrubber staat eronder.
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+// De deeltjes staan stil buiten beeld en bij prefers-reduced-motion (UX-plan §6).
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { fmt } from '../../../../core/format';
 import { scrollRegionProps, useOverflowX } from '../../../../ui/ScrollRegion';
 import type { Analysis } from '../../model/analysis';
@@ -9,6 +10,7 @@ import { formatHour } from '../../model/climate';
 import { buildingKind } from '../../model/input';
 import { useSelectedHour, useStore } from '../../store';
 import { Scrubber } from '../charts/Scrubber';
+import { useInView, useReducedMotion } from '../hooks';
 import {
   BUILDING,
   conceptLayout,
@@ -52,6 +54,10 @@ import c from './Concept.module.css';
 
 /** Periode van het stippelpatroon van de deeltjes [eenheden] (zie Concept.module.css). */
 const DASH_PERIOD = { pipe: 14, cable: 16 } as const;
+/** Korte uitleg boven het schema (UX-plan §7 #17). */
+const INTRO = 'Wat de installatie doet in het gekozen uur, standaard het piekuur van de koude week.';
+/** Marge rond het beeld waarbinnen de deeltjes al (of nog) bewegen: geen stilstand vlak bij de rand. */
+const IN_VIEW_MARGIN = '64px';
 
 // ---------------------------------------------------------------- samenvatting voor schermlezers
 
@@ -122,6 +128,17 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
   // smaller dan de minimale breedte van het schema scrolt de figuur: dan focusbaar en benoemd (toetsenbord)
   const [figEl, setFigEl] = useState<HTMLElement | null>(null);
   const figScrolls = useOverflowX(figEl);
+  // de deeltjes bewegen alleen in beeld en zonder voorkeur voor minder beweging
+  const [viewRef, inView] = useInView<HTMLElement>({ rootMargin: IN_VIEW_MARGIN });
+  const reducedMotion = useReducedMotion();
+  const animate = inView && !reducedMotion;
+  const figRef = useCallback(
+    (el: HTMLElement | null) => {
+      setFigEl(el);
+      viewRef(el);
+    },
+    [viewRef],
+  );
 
   // alles wat alleen van de analyse afhangt: posities, paden, schaal, referenties en de vaste tekening
   const fixed = useMemo(() => {
@@ -169,7 +186,7 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
     flowSpeed(powers[p.id], p.kind === 'cable' ? fixed.refs.electricRefKw : fixed.refs.thermalRefKw),
   );
 
-  // deeltjes: een lichte requestAnimationFrame-lus verschuift het stippelpatroon (niet bij bewegingsarm)
+  // deeltjes: een lichte requestAnimationFrame-lus verschuift het stippelpatroon (alleen als `animate`)
   const dotEls = useRef<(SVGPathElement | null)[]>([]);
   const speedRef = useRef<number[]>(speeds);
   useEffect(() => {
@@ -177,11 +194,13 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
   });
   const nPaths = fixed.paths.length;
   const kinds = useMemo(() => fixed.paths.map((p) => p.kind), [fixed]);
+  // verschuiving per pad over een pauze heen bewaren: na de pauze lopen de deeltjes verder zonder sprong
+  const offsetsRef = useRef<Float64Array>(new Float64Array(0));
   useEffect(() => {
+    if (!animate) return;
     if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') return;
-    const mq =
-      typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    const offsets = new Float64Array(nPaths);
+    if (offsetsRef.current.length !== nPaths) offsetsRef.current = new Float64Array(nPaths);
+    const offsets = offsetsRef.current;
     let raf = 0;
     let last = 0;
     const frame = (now: number): void => {
@@ -198,23 +217,9 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
       }
       raf = window.requestAnimationFrame(frame);
     };
-    const start = (): void => {
-      if (raf) return;
-      last = 0;
-      raf = window.requestAnimationFrame(frame);
-    };
-    const stop = (): void => {
-      if (raf) window.cancelAnimationFrame(raf);
-      raf = 0;
-    };
-    const sync = (): void => (mq?.matches ? stop() : start());
-    sync();
-    mq?.addEventListener?.('change', sync);
-    return () => {
-      stop();
-      mq?.removeEventListener?.('change', sync);
-    };
-  }, [nPaths, kinds]);
+    raf = window.requestAnimationFrame(frame);
+    return () => window.cancelAnimationFrame(raf);
+  }, [animate, nPaths, kinds]);
 
   const { layout, paths, chevrons, scale, kind } = fixed;
   const input = analysis.input;
@@ -222,8 +227,9 @@ function ConceptSvg({ analysis, hour }: { analysis: Analysis; hour: number }) {
 
   return (
     <figure
-      ref={setFigEl}
+      ref={figRef}
       className={c.figure}
+      data-animation={animate ? 'running' : 'paused'}
       {...scrollRegionProps(figScrolls, 'Conceptschema (horizontaal scrollbaar)')}
     >
       <svg
@@ -290,11 +296,7 @@ export function ConceptDiagram() {
   const h = ready ? Math.min(Math.max(hour, analysis.coldWeek.from), analysis.coldWeek.to - 1) : 0;
   return (
     <div className={c.wrap}>
-      <p className={c.intro}>
-        Schema van het concept in het gekozen uur: wat de warmtepomp, het buffervat, de batterij en de
-        meterkast op dat moment doen. Kies het uur met de scrubber of speel de koude week af; de deeltjes
-        bewegen sneller naarmate er meer vermogen door een leiding of kabel gaat.
-      </p>
+      <p className={c.intro}>{INTRO}</p>
       {ready ? (
         <ConceptSvg analysis={analysis} hour={h} />
       ) : (

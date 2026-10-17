@@ -10,6 +10,7 @@ import { HOURS_PER_YEAR } from '../../model/building';
 import { MONTH_SHORT } from '../../model/climate';
 import { limitFromConnection } from '../../model/grid';
 import { useStore } from '../../store';
+import { usePointerCoarse } from '../hooks';
 import css from './YearCharts.module.css';
 
 type XMode = 'log' | 'lin';
@@ -33,6 +34,19 @@ const OFF_SCALE_FACTOR = 2;
 const BUFFER_COLOR = '#e8892b';
 const DHW_COLOR = '#8b5cf6';
 const REFERENCE_GREY = '#9ca3af';
+
+/** Korte uitleg per grafiek (UX-plan §7 #18). */
+const LEAD = {
+  electric:
+    'Alle uren van het jaar, van hoog naar laag; boven een lijn is die aansluiting te klein (uren in de legenda).',
+  thermal: 'Warmtevraag per uur, van hoog naar laag, met wat de warmtepomp bij −10 °C levert.',
+  monthly: 'Warmte per bron en elektriciteit per maand; de lijn is de SCOP.',
+} as const;
+/** Bediening per invoermethode: aanraken kent geen sleep-zoom, wel de waarden onder de vinger. */
+const HINT = {
+  mouse: 'Sleep om in te zoomen, dubbelklik om terug te gaan.',
+  touch: 'Tik in een grafiek voor de waarden.',
+} as const;
 
 // ---------------------------------------------------------------- thema
 
@@ -453,6 +467,7 @@ const monthTick = (v: number, plotWidthPx: number): string => {
 
 function YearChartsView({ a }: { a: Analysis }) {
   const dark = useDarkScheme();
+  const coarse = usePointerCoarse();
   const [xMode, setXMode] = useState<XMode>('log');
   // `dark` als afhankelijkheid: bij een ander kleurschema de themakleuren opnieuw lezen
   const pal = useMemo(palette, [dark]);
@@ -488,19 +503,14 @@ function YearChartsView({ a }: { a: Analysis }) {
           </button>
         </div>
         <span className={ui.hint}>
-          Klimaatjaar {a.climateShort}. Logaritmisch toont de eerste paar honderd piekuren groot; sleep in een
-          grafiek om in te zoomen, dubbelklik om terug te gaan.
+          Klimaatjaar {a.climateShort}. Logaritmisch: de piekuren groot. {coarse ? HINT.touch : HINT.mouse}
         </span>
       </div>
 
       <div className={ui.chartGrid}>
         <div className={`${ui.chartBox} ${css.wide} ${css.wrapLegend}`}>
           <h3>Jaarbelastingduurkromme elektrisch (warmtepompgroep)</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Elk punt is één uur van het jaar, gesorteerd van hoog naar laag; waar een kromme boven een
-            horizontale lijn ligt, is die aansluiting in die uren te klein — het aantal uren staat in de
-            legenda.
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.electric}</p>
           <UPlotChart
             data={elec.data}
             series={elec.series}
@@ -524,11 +534,7 @@ function YearChartsView({ a }: { a: Analysis }) {
 
         <div className={`${ui.chartBox} ${css.wrapLegend}`}>
           <h3>Jaarbelastingduurkromme thermisch</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Ideale warmtevraag van het gebouw per uur, gesorteerd van hoog naar laag; de lijnen tonen wat de
-            benodigde warmtepomp bij −10 °C levert — met buffer mag die lager liggen, omdat de buffer de
-            piekuren opvangt.
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.thermal}</p>
           <UPlotChart
             data={therm.data}
             series={therm.series}
@@ -552,10 +558,7 @@ function YearChartsView({ a }: { a: Analysis }) {
 
         <div className={`${ui.chartBox} ${css.noCursorPoints}`}>
           <h3>Maandbalans</h3>
-          <p className={`${ui.hint} ${css.lead}`}>
-            Per maand links de geleverde warmte, gestapeld naar bron, en rechts de elektriciteit van de
-            warmtepomp; de lijn is de SCOP van die maand (rechter as).
-          </p>
+          <p className={`${ui.hint} ${css.lead}`}>{LEAD.monthly}</p>
           <UPlotChart
             data={month.data}
             series={month.series}
