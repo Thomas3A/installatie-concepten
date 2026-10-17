@@ -12,6 +12,11 @@ met het model nagerekend.
 - **Aanspreekvorm:** waar de tekst de gebruiker aanspreekt, is dat **je/jouw** (informeel), nooit u/uw. Lees elke
   "u"/"uw" in de voorbeeldteksten hieronder als "je"/"jouw". Waar het kan, blijft de tekst onpersoonlijk, zoals de
   bestaande teksten.
+- **Alleen pc/laptop:** de tool is bedoeld voor een browser op een pc of laptop (vanaf 1024 px breed). Er wordt niets
+  voor de telefoon ontworpen, afgesteld of getest: de telefoonschetsen (§2.4), telefoonbreekpunten, aanraakvarianten,
+  de bottom sheet van de rondleiding en alle meetpunten op 390 px vervallen. Op een telefoon of tablet staat bovenaan
+  alleen een korte melding dat de tool beter op een pc of laptop werkt; de pagina eronder blijft gewoon scrollbaar en
+  de gebruiker beslist zelf. Gemeten en gecontroleerd wordt op 1280×800, 1440×900 en 1920×1080.
 - **Rondleiding:** wordt in deze ronde gebouwd (WP-H), als aparte commit nadat de indeling aan de acceptatiecriteria
   voldoet. `TOUR_ENABLED` gaat dan aan.
 
