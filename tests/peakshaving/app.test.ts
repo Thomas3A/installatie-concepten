@@ -9,7 +9,7 @@ import {
 } from '../../src/concepts/peakshaving/data/climateStats';
 import { defaultInput } from '../../src/concepts/peakshaving/data/defaults';
 import { analyze } from '../../src/concepts/peakshaving/model/analysis';
-import { REFERENCE_YEARS } from '../../src/concepts/peakshaving/model/climate';
+import { REFERENCE_YEARS, type ReferenceYearName } from '../../src/concepts/peakshaving/model/climate';
 import { createEngine, type EngineResponse } from '../../src/concepts/peakshaving/model/engine';
 import { normalizeInput } from '../../src/concepts/peakshaving/model/input';
 import { SCENARIOS } from '../../src/concepts/peakshaving/scenarios';
@@ -89,7 +89,7 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
       'kantoor-basis',
       'kantoor-buffer',
       'kantoor-buffer-batterij',
-      'kantoor-t1',
+      'kantoor-winter1979',
     ]);
     for (const s of SCENARIOS) {
       expect(s.title.length).toBeGreaterThan(10);
@@ -100,7 +100,7 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
 
   const run = (id: string) => {
     const input = SCENARIOS.find((s) => s.id === id)!.build();
-    const year = input.climateYear === 'T1' ? refYear('T1') : refYear('T5');
+    const year = refYear(input.climateYear as ReferenceYearName);
     return analyze(input, year, { robustnessYears: [year] });
   };
 
@@ -159,10 +159,18 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
   it('7 · kantoor met 10 m³ buffer en 100 kWh batterij: 0 uur overschrijding', () => {
     expect(run('kantoor-buffer-batterij').main.kpis.exceedanceHours).toBe(0);
   });
-  it('8 · stresstest T1 met 20 m³ buffer: een groter WP-vermogen dan in T5', () => {
-    const t1 = run('kantoor-t1');
-    expect(t1.climateId).toBe('T1');
-    expect(t1.nominalKw).toBeGreaterThan(run('kantoor-buffer').nominalKw);
+  it('8 · stresstest strenge winter 1978/79 met 20 m³ buffer: groter WP-vermogen en uren boven 3×80 A', () => {
+    const w = run('kantoor-winter1979');
+    const base = run('kantoor-buffer');
+    expect(w.climateId).toBe('winter1979');
+    expect(w.input.buffer.volumeM3).toBe(20);
+    expect(SCENARIOS.find((s) => s.id === 'kantoor-winter1979')!.title).toBe(
+      'Kantoor 100 kW — stresstest strenge winter 1978/79 met 20 m³ buffer',
+    );
+    // zelfde kantoor, zelfde buffer: alleen het klimaatjaar verschilt
+    expect({ ...w.input, climateYear: base.input.climateYear }).toEqual(base.input);
+    expect(w.nominalKw).toBeGreaterThan(base.nominalKw);
+    expect(w.main.kpis.exceedanceHours).toBeGreaterThan(base.main.kpis.exceedanceHours);
   });
 });
 

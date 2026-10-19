@@ -691,8 +691,8 @@ describe('revealSetting van elders', () => {
 describe('voorbeeld in de regel', () => {
   it('elk voorbeeld met een korte titel', () => {
     renderBasis();
-    act(() => st().applyScenario('kantoor-t1'));
-    const sc = findScenario('kantoor-t1')!;
+    act(() => st().applyScenario('kantoor-winter1979'));
+    const sc = findScenario('kantoor-winter1979')!;
     expect(
       screen.getByText(`Ingevuld met voorbeeld „${sc.shortTitle}”. Pas het aan naar je eigen gebouw.`),
     ).toBeTruthy();

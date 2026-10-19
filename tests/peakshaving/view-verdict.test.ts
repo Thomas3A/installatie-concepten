@@ -645,7 +645,7 @@ describe('oordeel: raster en modus', () => {
   });
 
   it('T1 zelf gekozen: de stresstestregel zegt dat, en bij automatisch WP-vermogen dat de WP op T1 is gedimensioneerd', async () => {
-    const a = await analyzeInput(scenario('kantoor-t1'));
+    const a = await analyzeInput(normalizeInput({ ...scenario('kantoor-buffer'), climateYear: 'T1' }));
     expect(buildVerdict(a, null).stressLine).toBe(
       'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.',
     );

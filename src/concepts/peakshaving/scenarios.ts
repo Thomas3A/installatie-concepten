@@ -138,13 +138,14 @@ export const SCENARIOS: Scenario[] = [
     }),
   },
   {
-    id: 'kantoor-t1',
-    title: 'Kantoor 100 kW — stresstest T1 met 20 m³ buffer',
-    shortTitle: 'Kantoor 100 kW · stresstest T1, 20 m³ buffer',
+    id: 'kantoor-winter1979',
+    title: 'Kantoor 100 kW — stresstest strenge winter 1978/79 met 20 m³ buffer',
+    shortTitle: 'Kantoor 100 kW · stresstest 1978/79, 20 m³ buffer',
     group: 'office',
-    description: 'Hetzelfde kantoor in het zeer strenge ontwerpjaar T1: hoe robuust is de keuze?',
+    description:
+      'Het kantoor met 20 m³ buffer in de strenge winter van 1978/79 (≈ 1× per 25 jaar): hoe robuust is de keuze?',
     build: office((i) => {
-      i.climateYear = 'T1';
+      i.climateYear = 'winter1979';
       i.buffer.volumeM3 = 20;
     }),
   },
