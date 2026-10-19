@@ -198,19 +198,20 @@ export const FOOTER_CLIMATE =
   'Klimaatdata: KNMI De Bilt (open data); referentiejaren zijn een reconstructie, geen officiële NEN 5060-data.';
 export const CLIMATE_RECONSTRUCTION =
   'Reconstructie op basis van KNMI De Bilt; geen officiële NEN 5060-data.';
-/** Korte noot onder de statistiekregel in Meer instellingen › Klimaat. */
-export const CLIMATE_NOTE_SHORT =
-  'T5 = gebruikelijk ontwerpjaar · T1 = stresstest · ★ = aanbevolen stressjaar.';
+/** Toelichting onder de statistiekregel in Meer instellingen › Klimaat (spec §4.3), plus de betekenis van ★. */
+export const CLIMATE_NOTE =
+  'Dimensioneer op T1 (strenge winter, 1 %-ontwerpjaar) en controleer met de stresstest 1978/79. T5 toont een gemiddelde winter, het energiejaar is bedoeld voor jaarverbruik en SCOP. Herhalingstijden zijn empirisch uit 1951–2025 en in het huidige klimaat eerder langer. ★ = aanbevolen stresstestjaar.';
 /**
- * Optietekst van de referentiejaren in de keuzelijst Klimaatjaar: zonder "(≈ NEN 5060:2018 …)", want dat staat al in
- * de groepskop ("Referentiejaren (reconstructie NEN 5060:2018)"); zo past de gekozen optie in de kolom.
+ * Optietekst van de referentiejaren in de keuzelijst Klimaatjaar (spec §4.3). De NEN-jaren zonder
+ * "(≈ NEN 5060:2018 …)", want dat staat al in de groepskop ("Referentiejaren (reconstructie NEN 5060:2018)");
+ * zo past de gekozen optie in de kolom.
  */
 export const CLIMATE_OPTION_LABELS = {
-  T5: 'Ontwerpjaar T5 — gematigd streng',
-  T1: 'Ontwerpjaar T1 — zeer streng',
+  T1: 'Ontwerpjaar T1 — strenge winter',
+  T5: 'Ontwerpjaar T5 — gemiddelde winter',
   energie: 'Energiejaar — langjarig gemiddeld',
-  winter1979: 'Stresstest strenge winter 1978/79',
-  winter1963: 'Stresstest extreme winter 1962/63',
+  winter1979: 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)',
+  winter1963: 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)',
 } as const;
 
 /** Tabbladen van Verdieping, in deze volgorde; Schema (`concept`) is het standaardtabblad. */

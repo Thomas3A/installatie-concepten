@@ -3,8 +3,14 @@ import { HOURS_PER_YEAR } from './building';
 import type { ClimateYear, ClimateYearId } from './types';
 
 export type ReferenceYearName = 'energie' | 'T5' | 'T1' | 'winter1979' | 'winter1963';
-/** Volgorde van de keuzelijst: de drie NEN-reconstructies, dan de twee stresstestjaren. */
-export const REFERENCE_YEARS: readonly ReferenceYearName[] = ['T5', 'T1', 'energie', 'winter1979', 'winter1963'];
+/** Volgorde van de keuzelijst (spec §4.3): de drie NEN-reconstructies, dan de twee stresstestjaren. */
+export const REFERENCE_YEARS: readonly ReferenceYearName[] = [
+  'T1',
+  'T5',
+  'energie',
+  'winter1979',
+  'winter1963',
+];
 /** Stresstestjaren: T1 met het werkelijke stookseizoen nov–mrt van een strenge winter (spec §4.1). */
 export const STRESS_TEST_YEARS: readonly ReferenceYearName[] = ['winter1979', 'winter1963'];
 export const DEFAULT_CLIMATE_YEAR: ReferenceYearName = 'T5';
@@ -60,9 +66,10 @@ export interface RealYearsJson {
   T: Record<string, number[]>;
 }
 
+/** Labels van de keuzelijst (spec §4.3). */
 export const REFERENCE_YEAR_LABELS: Record<ReferenceYearName, string> = {
-  T5: 'Ontwerpjaar T5 — gematigd streng (≈ NEN 5060:2018 ref T5)',
-  T1: 'Ontwerpjaar T1 — zeer streng (≈ NEN 5060:2018 ref T1)',
+  T1: 'Ontwerpjaar T1 — strenge winter (≈ NEN 5060:2018 ref T1)',
+  T5: 'Ontwerpjaar T5 — gemiddelde winter (≈ NEN 5060:2018 ref T5)',
   energie: 'Energiejaar — langjarig gemiddeld (≈ NEN 5060:2018 energie)',
   winter1979: 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)',
   winter1963: 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)',

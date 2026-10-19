@@ -3,6 +3,7 @@
 import refJson from '../data/referentiejaren.json';
 import { analyze, sensitivityAxes, type Analysis } from './analysis';
 import {
+  DEFAULT_CLIMATE_YEAR,
   decodeRealYear,
   decodeReferenceYear,
   isReferenceYear,
@@ -85,7 +86,7 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
   async function climate(id: ClimateYearId): Promise<ClimateYear> {
     if (isReferenceYear(id)) return reference(id);
     const year = realYearOf(id);
-    if (year === null) return reference('T5');
+    if (year === null) return reference(DEFAULT_CLIMATE_YEAR);
     let y = realYears.get(year);
     if (!y) {
       // een mislukte download niet onthouden: het volgende verzoek probeert opnieuw

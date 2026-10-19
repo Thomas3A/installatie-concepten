@@ -23,6 +23,7 @@ import {
   RECOMMENDED_STRESS_YEARS,
   REFERENCE_YEAR_LABELS,
   REFERENCE_YEARS,
+  STRESS_TEST_YEARS,
   WEEKDAY_SHORT,
   type ClimateStats,
   type ReferenceYearName,
@@ -156,11 +157,16 @@ describe('referentiejaren: decoderen (spec §9.2)', () => {
   }
 
   it('volgorde van de keuzelijst en default (spec §4.3)', () => {
-    expect(REFERENCE_YEARS).toEqual(['T5', 'T1', 'energie', 'winter1979', 'winter1963']);
+    expect(REFERENCE_YEARS).toEqual(['T1', 'T5', 'energie', 'winter1979', 'winter1963']);
     expect(DEFAULT_CLIMATE_YEAR).toBe('T5');
-    expect(REFERENCE_YEAR_LABELS.T5).toContain('T5');
-    expect(REFERENCE_YEAR_LABELS.T1).toContain('T1');
-    expect(REFERENCE_YEAR_LABELS.energie).toContain('Energiejaar');
+    expect(REFERENCE_YEAR_LABELS).toEqual({
+      T1: 'Ontwerpjaar T1 — strenge winter (≈ NEN 5060:2018 ref T1)',
+      T5: 'Ontwerpjaar T5 — gemiddelde winter (≈ NEN 5060:2018 ref T5)',
+      energie: 'Energiejaar — langjarig gemiddeld (≈ NEN 5060:2018 energie)',
+      winter1979: 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)',
+      winter1963: 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)',
+    });
+    expect(STRESS_TEST_YEARS).toEqual(['winter1979', 'winter1963']);
   });
 
   it('weigert een reeks die geen 8760 waarden heeft', () => {
@@ -185,7 +191,6 @@ describe('referentiejaren: maandgemiddelden (spec §4.1, §9.2)', () => {
         );
       }
     });
-
   }
 
   for (const name of NAMES) {
@@ -200,7 +205,9 @@ describe('referentiejaren: maandgemiddelden (spec §4.1, §9.2)', () => {
     it(`${name}: geen NEN-tabel; april t/m oktober uit dezelfde bronmaanden als T1`, () => {
       const meta = REF_JSON.meta.jaren[name];
       expect(meta.maandgemiddelde_T_NEN5060_2018).toBeNull();
-      expect(meta.bronjaar_per_maand.slice(3, 10)).toEqual(REF_JSON.meta.jaren.T1.bronjaar_per_maand.slice(3, 10));
+      expect(meta.bronjaar_per_maand.slice(3, 10)).toEqual(
+        REF_JSON.meta.jaren.T1.bronjaar_per_maand.slice(3, 10),
+      );
       // midden in die maanden (buiten de overgangen van 16 uur) is het weer uur voor uur dat van T1
       const own = REF_JSON.data[name].T;
       const t1 = REF_JSON.data.T1.T;
@@ -439,7 +446,9 @@ describe('werkelijke jaren 1951–2025 (spec §4.2, §9.2)', () => {
   });
 
   it('aanbevolen stressjaren: gelijk aan meta.aanbevolen_stresstest en in de reeks (spec §4.3)', () => {
-    expect([...RECOMMENDED_STRESS_YEARS]).toEqual([1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012]);
+    expect([...RECOMMENDED_STRESS_YEARS]).toEqual([
+      1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012,
+    ]);
     expect([...RECOMMENDED_STRESS_YEARS]).toEqual(REAL_JSON.meta.aanbevolen_stresstest);
     expect(REAL_JSON.meta.aanbevolen_stresstest).toContain(1963);
     expect(REAL_JSON.meta.aanbevolen_stresstest).toContain(1979);
@@ -610,11 +619,31 @@ describe('klimaatjaar-id’s', () => {
   });
 
   it('isValidClimateYearId', () => {
-    for (const id of ['T5', 'T1', 'energie', 'winter1979', 'winter1963', 'knmi-1951', 'knmi-2012', 'knmi-2025']) {
+    for (const id of [
+      'T5',
+      'T1',
+      'energie',
+      'winter1979',
+      'winter1963',
+      'knmi-1951',
+      'knmi-2012',
+      'knmi-2025',
+    ]) {
       expect(isValidClimateYearId(id), id).toBe(true);
     }
     // T2 bestaat niet meer in NEN 5060:2018 (spec §4.1)
-    for (const id of ['T2', 't5', 'Energie', 'Winter1979', 'knmi-1950', 'knmi-2026', 'knmi-', '2012', '', 'knmi-2012 ']) {
+    for (const id of [
+      'T2',
+      't5',
+      'Energie',
+      'Winter1979',
+      'knmi-1950',
+      'knmi-2026',
+      'knmi-',
+      '2012',
+      '',
+      'knmi-2012 ',
+    ]) {
       expect(isValidClimateYearId(id), JSON.stringify(id)).toBe(false);
     }
     for (const v of [2012, null, undefined, {}, ['T5']]) expect(isValidClimateYearId(v)).toBe(false);

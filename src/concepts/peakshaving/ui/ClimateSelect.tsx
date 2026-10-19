@@ -1,22 +1,30 @@
-// Keuzelijst klimaatjaar (spec §4.3), met de statistiek van het gekozen jaar als tooltip en in een regel eronder.
+// Keuzelijst klimaatjaar (spec §4.3), met de omschrijving en statistiek van het gekozen jaar als tooltip en de
+// statistiek in een regel eronder.
 // ClimateField en ClimateStats staan in Meer instellingen › Klimaat (UX-plan §3.2).
 import { useId } from 'react';
 import { fmt } from '../../../core/format';
 import { Field } from '../../../ui/fields';
-import { REAL_YEAR_STATS, REFERENCE_YEAR_STATS, type ClimateStatsSummary } from '../data/climateStats';
+import {
+  REAL_YEAR_STATS,
+  REFERENCE_YEAR_DESCRIPTIONS,
+  REFERENCE_YEAR_STATS,
+  type ClimateStatsSummary,
+} from '../data/climateStats';
 import {
   climateShortName,
   isReferenceYear,
+  isStressTestYear,
   REAL_YEAR_FIRST,
   REAL_YEAR_LAST,
   realYearId,
   realYearOf,
   RECOMMENDED_STRESS_YEARS,
   REFERENCE_YEARS,
+  type ReferenceYearName,
 } from '../model/climate';
 import type { ClimateYearId } from '../model/types';
 import { useStore } from '../store';
-import { CLIMATE_NOTE_SHORT, CLIMATE_OPTION_LABELS, CLIMATE_RECONSTRUCTION } from '../texts';
+import { CLIMATE_NOTE, CLIMATE_OPTION_LABELS, CLIMATE_RECONSTRUCTION } from '../texts';
 import u from '../../../ui/ui.module.css';
 import b from './basis/Basis.module.css';
 
@@ -45,21 +53,41 @@ const REAL_YEARS = Array.from(
   (_, i) => REAL_YEAR_FIRST + i,
 );
 
-/** Tooltip van de keuzelijst: de statistiek van het gekozen jaar en de reconstructiezin. */
+/** Tooltip van een referentiejaar: de omschrijving (meta.jaren.<naam>.omschrijving) en de statistiekregel. */
+export function referenceYearTitle(y: ReferenceYearName): string {
+  return `${REFERENCE_YEAR_DESCRIPTIONS[y]}. ${statsLine(REFERENCE_YEAR_STATS[y])}`;
+}
+
+/** Tooltip van de keuzelijst: omschrijving en statistiek van het gekozen jaar en de reconstructiezin. */
 function selectTitle(id: ClimateYearId): string {
+  if (isReferenceYear(id)) return `${referenceYearTitle(id)}. ${CLIMATE_RECONSTRUCTION}`;
   const stats = statsOf(id);
   return stats ? `${statsLine(stats)}. ${CLIMATE_RECONSTRUCTION}` : CLIMATE_RECONSTRUCTION;
 }
 
-/** Alle 80 klimaatjaren: vijf referentiejaren en de werkelijke jaren (★ = aanbevolen stresstest), elk met tooltip. */
+function ReferenceOption({ y }: { y: ReferenceYearName }) {
+  return (
+    <option value={y} title={referenceYearTitle(y)}>
+      {CLIMATE_OPTION_LABELS[y]}
+    </option>
+  );
+}
+
+/**
+ * Alle 80 klimaatjaren (spec §4.3): drie NEN-referentiejaren, twee stresstestjaren en de werkelijke jaren
+ * (★ = aanbevolen stresstest), elk met tooltip.
+ */
 function ClimateOptions() {
   return (
     <>
       <optgroup label="Referentiejaren (reconstructie NEN 5060:2018)">
-        {REFERENCE_YEARS.map((y) => (
-          <option key={y} value={y} title={statsLine(REFERENCE_YEAR_STATS[y])}>
-            {CLIMATE_OPTION_LABELS[y]}
-          </option>
+        {REFERENCE_YEARS.filter((y) => !isStressTestYear(y)).map((y) => (
+          <ReferenceOption key={y} y={y} />
+        ))}
+      </optgroup>
+      <optgroup label="Stresstest strenge winter (T1 met een werkelijk stookseizoen)">
+        {REFERENCE_YEARS.filter(isStressTestYear).map((y) => (
+          <ReferenceOption key={y} y={y} />
         ))}
       </optgroup>
       <optgroup label="Werkelijk jaar KNMI De Bilt (stresstest met echt weer)">
@@ -103,7 +131,7 @@ export function ClimateField() {
 }
 
 /**
- * Statistiek van het gekozen klimaatjaar ("Klimaatjaar T5: T gem. …") en de noot van één regel, onder het veld
+ * Statistiek van het gekozen klimaatjaar ("Klimaatjaar T1: T gem. …") en de toelichting van spec §4.3, onder het veld
  * Klimaatjaar. De reconstructiezin staat in de tooltip en in de footer.
  */
 export function ClimateStats() {
@@ -114,7 +142,7 @@ export function ClimateStats() {
       <p id={STATS_ID}>
         <strong>Klimaatjaar {climateShortName(id)}:</strong> {stats ? statsLine(stats) : '–'}
       </p>
-      <p>{CLIMATE_NOTE_SHORT}</p>
+      <p>{CLIMATE_NOTE}</p>
     </div>
   );
 }
