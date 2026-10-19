@@ -352,9 +352,9 @@ describe('Meer instellingen', () => {
     renderBasis();
     expect(summaryText()).toBe('Meer instellingen · standaardwaarden');
     act(() => {
-      fireEvent.change(field('Klimaatjaar'), { target: { value: 'T1' } });
+      fireEvent.change(field('Klimaatjaar'), { target: { value: 'T5' } });
     });
-    expect(st().input.climateYear).toBe('T1');
+    expect(st().input.climateYear).toBe('T5');
     expect(summaryText()).toBe('Meer instellingen · 1 aangepast');
     typeAndBlur(field('Ontwerpbuitentemperatuur'), '−12');
     expect(summaryText()).toBe('Meer instellingen · 2 aangepast');
@@ -368,7 +368,7 @@ describe('Meer instellingen', () => {
     expect(summaryText()).toBe('Meer instellingen · 1 aangepast');
   });
 
-  it('klimaat: alle 80 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T5:"', () => {
+  it('klimaat: alle 80 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T1:"', () => {
     renderBasis();
     const select = screen.getByLabelText('Klimaatjaar') as HTMLSelectElement;
     expect(select.options).toHaveLength(80);
@@ -406,9 +406,10 @@ describe('Meer instellingen', () => {
     expect(Array.from(select.options).some((o) => o.textContent?.startsWith('1997 ★'))).toBe(true);
     expect(select.getAttribute('aria-describedby')).toBe('ps-klimaat-statistiek');
     const stats = (): string => document.getElementById('ps-klimaat-statistiek')?.textContent ?? '';
-    expect(stats()).toMatch(/^Klimaatjaar T5: /);
-    expect(stats()).toContain('1.202 uur < 0 °C');
-    expect(select.title).toContain('1.202 uur < 0 °C');
+    expect(stats()).toMatch(/^Klimaatjaar T1: /);
+    expect(stats()).toContain('1.395 uur < 0 °C');
+    expect(select.title).toContain('1.395 uur < 0 °C');
+    expect(select.title).toMatch(/^Ontwerpjaar T1, 1 % \(≈ NEN 5060:2018 ref T1\); winter streng/);
     expect(screen.getByText(CLIMATE_NOTE)).toBeTruthy();
     expect(CLIMATE_NOTE).toContain(
       'Dimensioneer op T1 (strenge winter, 1 %-ontwerpjaar) en controleer met de stresstest 1978/79.',
@@ -452,7 +453,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Warm tapwater: tapwater 10 kWh/dag, wijzigen',
       'Aansluitwaarde: 1×35 A, wijzigen',
       'Aandeel voor warmtepomp: limiet 3,22 kW · 40 %, wijzigen',
-      'Klimaatjaar: T5, wijzigen',
+      'Klimaatjaar: T1, wijzigen',
     ]);
     const toolbar = screen.getByRole('toolbar', { name: 'Basis' });
     expect(
@@ -466,7 +467,7 @@ describe('Basis ingeklapt: de strook', () => {
       'tapwater 10 kWh/dag',
       '1×35 A',
       'limiet 3,22 kW · 40 %',
-      'T5',
+      'T1',
     ]);
   });
 
@@ -497,7 +498,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Nachtverlaging: nachtverlaging, wijzigen',
       'Aansluitwaarde: 3×80 A, wijzigen',
       'Aandeel voor warmtepomp: limiet 27,7 kW · 50 %, wijzigen',
-      'Klimaatjaar: T5, wijzigen',
+      'Klimaatjaar: T1, wijzigen',
     ]);
     expect(screen.queryByText(/per woning/)).toBeNull();
     expect(screen.getByRole('toolbar').textContent).not.toMatch(/woning/);
@@ -520,7 +521,7 @@ describe('Basis ingeklapt: de strook', () => {
     const input = defaultInputOfKind('single');
     expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
     // alleen een ander klimaatjaar: dat heeft al een eigen chip
-    input.climateYear = 'T1';
+    input.climateYear = 'T5';
     expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
     input.grid.allowedExceedanceH = 5;
     input.heatPump.carnotEfficiency = 0.42;
@@ -599,7 +600,7 @@ describe('Basis ingeklapt: de strook', () => {
     renderBasis();
     collapse();
     expect(moreDetails().open).toBe(false);
-    click(screen.getByRole('button', { name: 'Klimaatjaar: T5, wijzigen' }));
+    click(screen.getByRole('button', { name: 'Klimaatjaar: T1, wijzigen' }));
     expect(st().basisOpen).toBe(true);
     expect(moreDetails().open).toBe(true);
     expect(document.activeElement).toBe(field('Klimaatjaar'));

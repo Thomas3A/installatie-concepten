@@ -202,7 +202,9 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   doorrekening mee (zie "Schermopbouw (werkbank)"), met een cache op de invoer waarvan het raster afhangt (dus niet op
   buffer, batterij en WP-vermogen).
 - **Deelbare link:** `#/peakshaving?c=…` bevat alleen de afwijkingen van de standaard van de gebouwfunctie (woning of
-  kantoor; bij meerdere woningen de woningstandaard, zie "Meerdere woningen"), plus een versienummer (`v: 1`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
+  kantoor; bij meerdere woningen de woningstandaard, zie "Meerdere woningen"), plus een versienummer (`v: 2`). Een link met een nieuwer versienummer wordt geweigerd; onzinwaarden worden begrensd.
+  Versie 2 hoort bij het standaardklimaatjaar T1; een link van versie 1 (of zonder versie) zonder klimaatjaar bedoelde
+  de toenmalige standaard en opent dus in T5.
 - **Footer:** de klimaatzin van spec §0.1 staat alleen op de pagina's van dit concept (veld `disclaimer` in de registry).
 
 ### Grafieken
@@ -323,6 +325,14 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   aan `meta.aanbevolen_stresstest`.
 - **Voorbeeld 8** heet nu `kantoor-winter1979` (was `kantoor-t1`). Deelbare links vergelijken de invoer, niet het id, en
   blijven dus werken.
+- **Standaardklimaatjaar T1** (spec §4.3, was T5), ook voor meerdere woningen en een ongeldig klimaatjaar in een link.
+  De voorbeelden bouwen op de standaardinvoer en rekenen dus in T1, de startpagina (voorbeeld 1) ook. Hun configuratie
+  volgt spec §10 ongewijzigd; de beschrijvingen zijn op de T1-uitkomsten herschreven, want in T1 halen vijf voorbeelden
+  hun T5-belofte niet meer (bijvoorbeeld kantoor met 20 m³ buffer: 41 uur boven 3×80 A bij 50 %, zelfs met 40 m³ nog
+  30 uur). De orde van grootte van spec §9.6 (T5) wordt per voorbeeld apart getest.
+- **Geverifieerde uitkomsten van het UX-plan** (§4.5, "Strenge winter (T1): 111 uur …" enzovoort) zijn in T5
+  doorgerekend. De tests die de oordeel-, hendel- en rasterlogica met die uitkomsten controleren, zetten het klimaatjaar
+  daarom expliciet op T5; alleen de stresstestregel noemt nu de getallen van 1978/79.
 
 ### Meerdere woningen (buiten de spec)
 
@@ -348,14 +358,16 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
   zou het tapwater de warmtepomp domineren (89 kW voor 50 kW piekvermogen). De collectieve installatie heeft een eigen
   aansluiting van 3×35 A, waarvan 80 % voor warmtepomp + batterij; de rest is voor pompen, ventilatie en algemene
   ruimten. De woningen hebben elk een eigen aansluiting die hier niet meetelt. Alle overige waarden zijn die van de
-  woning (spec §3), klimaatjaar T5.
-- **Waarom 3×35 A en 80 %:** zo laat het standaardgeval, net als bij de ene woning, de rol van de buffer zien (T5):
+  woning (spec §3), klimaatjaar T1 (de standaard, spec §4.3).
+- **Waarom 3×35 A en 80 %** (gekozen toen T5 de standaard was): zo laat het standaardgeval, net als bij de ene woning,
+  de rol van de buffer zien (T5):
   zonder maatregelen wordt de warmtepomp 65,8 kW, is de piek aan de meter 21,6 kW tegen een WP-limiet van 19,4 kW, zijn er
   121 uur overschrijding en is 3×40 A de kleinste passende aansluiting. Met 1 m³ buffer wordt de warmtepomp 63,6 kW en
   blijft de piek aan de meter met 0 uur binnen 3×35 A. Alle 121 uren zonder maatregelen zijn uren waarin de
   boiler wordt bijgeladen ('s ochtends om 8 en 's avonds om 19 uur). Met 2 m³ buffer is er weer 1 uur overschrijding: de
   warmtepomp wordt dan kleiner gedimensioneerd (61,2 kW) en bij het bijladen van de boiler op een koude avond raakt de
-  buffer net leeg (19,5 kW tegen 19,4 kW); met 20 kWh batterij erbij is het weer 0 uur.
+  buffer net leeg (19,5 kW tegen 19,4 kW); met 20 kWh batterij erbij is het weer 0 uur. In T1 wordt de warmtepomp zonder
+  maatregelen zo'n 80 kW (160 uur boven de limiet, 3×50 A) en met 1 m³ buffer 75 kW (15 uur, 3×40 A).
 - **Aantal woningen wijzigen:** het gebouw groeit met dezelfde woningen mee. Piekvermogen, tapwaterbehoefte en boilervat
   schalen met nieuw/oud aantal, en via het piekvermogen (zie "Piekvermogen wijzigen") ook buffer, batterij (capaciteit en
   een handmatig vermogen) en een handmatig WP-vermogen; de waarden per woning blijven zo gelijk. De aansluiting blijft
@@ -373,7 +385,8 @@ woongebouw (of een rij woningen) met één collectieve warmtepomp, collectief bo
 - **Hint bij één woning:** boven 20 kW piekvermogen toont de keuze "woning" de hint "Groot voor één woning" met de
   verwijzing naar meerdere woningen. Het is alleen een wegwijzer; de invoer wordt niet begrensd.
 - **Deelbare link:** het aantal woningen staat in de link als afwijking van de woningstandaard (één woning); het
-  versienummer blijft 1. Een oudere link zonder aantal woningen opent als één woning.
+  versienummer bleef daarvoor 1 (sinds de klimaatupdate 2, zie "Deelbare link"). Een oudere link zonder aantal woningen
+  opent als één woning.
 - **Scenario's:** naast de acht van spec §10 zijn er twee met meerdere woningen: "10 woningen op één warmtepomp — 50 kW,
   3×35 A, zonder maatregelen" en "… met 1 m³ buffer". Ze staan in de lijst direct na de vier woningscenario's (nummers 5
   en 6; de kantoorscenario's worden 7–10).
@@ -513,12 +526,13 @@ scrollbaar. Onder 1024 px valt de werkbank terug op één kolom, zonder verdere 
   terugvalwaarde; kop en detailzin zeggen dan al dat de warmtepomp niet te dimensioneren is.
 - **Boven de limiet:** zijn er uren boven de limiet met samen minder dan 0,5 kWh, dan zegt de tegel "< 1 kWh/jaar" in
   plaats van "0 kWh/jaar".
-- **Stresstest (T1)** is een regel zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart. Is T1 zelf
-  gekozen, dan zegt de regel bij automatisch WP-vermogen "Dit is al de stresstest (T1); de warmtepomp is op dit jaar
-  gedimensioneerd.": de regel "Strenge winter (T1): … uur te koud" bij T5 gold voor de warmtepomp van T5, en die van T1
-  is groter (het vermogen bij T5 zelf noemen vraagt een extra doorrekening). De regel heeft geen eigen toon: bij een
-  automatisch op T5 gedimensioneerde warmtepomp is er in T1 bijna altijd comfortverlies (in alle negen T5-voorbeelden),
-  dus een waarschuwing zou er altijd staan.
+- **Stresstest (1978/79)** is een regel zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart.
+  Sinds de klimaatupdate is T1 het ontwerpjaar en de strenge winter 1978/79 de controle (spec §4.3), dus de regel komt
+  uit de robuustheidsrij winter1979: "Strenge winter 1978/79: … uur boven de limiet, … uur te koud." (eerder: T1). Is
+  1978/79 zelf gekozen, dan zegt de regel bij automatisch WP-vermogen "Dit is al de stresstest (1978/79); de warmtepomp
+  is op dit jaar gedimensioneerd.": de regel bij een ander jaar gold voor de warmtepomp van dat jaar (het vermogen zelf
+  noemen vraagt een extra doorrekening). De regel heeft geen eigen toon: bij een automatisch gedimensioneerde warmtepomp
+  is er in de strengere winter bijna altijd comfortverlies, dus een waarschuwing zou er altijd staan.
 - **Opvallend** toont bij een handmatig WP-vermogen ook "Warmtepomp niet te dimensioneren" (met "De berekening gebruikt
   het handmatig gekozen WP-vermogen."): het oordeel rekent dan met het gekozen vermogen en is geen "niet te
   dimensioneren", dus anders stond die melding nergens.

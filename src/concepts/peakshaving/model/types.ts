@@ -91,7 +91,7 @@ export interface GridConnection {
   mode: OperatingMode;
 }
 
-/** 'energie' | 'T5' | 'T1' of een werkelijk jaar 'knmi-1997'. */
+/** 'energie' | 'T5' | 'T1' | 'winter1979' | 'winter1963' of een werkelijk jaar 'knmi-1997'. */
 export type ClimateYearId = string;
 
 export interface ClimateYear {

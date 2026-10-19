@@ -503,7 +503,7 @@ export const BASIS_TEXTS = {
   dhwHint: (dailyKwh: number, tankL: number, perDwelling: boolean): string =>
     `${fmtKwhPerDay(dailyKwh)} kWh/dag${perDwelling ? ' per woning' : ''} · boiler ${fmt(tankL, 0)} l`,
   // Waarden van de chips in de ingeklapte strook (§2.3). Gebouw ("Woning", "10 woningen", "Kantoor"), piekvermogen
-  // ("8,0 kW", bij meerdere woningen "50,0 kW (5,0 kW/woning)"), aansluiting en klimaatjaar ("T5") hebben al een tekst
+  // ("8,0 kW", bij meerdere woningen "50,0 kW (5,0 kW/woning)"), aansluiting en klimaatjaar ("T1") hebben al een tekst
   // in het model: buildingText, designLoadText en connectionText (model/kpis.ts) en climateShortName (model/climate.ts).
   /** "tapwater 10 kWh/dag"; bij meerdere woningen per woning: "tapwater 6,0 kWh/dag per woning" */
   chipDhw: (dailyKwh: number, perDwelling = false): string =>
@@ -712,16 +712,17 @@ export const VERDICT_TEXTS = {
     `Met begrenzer: ${hours === 0 ? 'geen uur' : `${fmt(hours, 0)} uur`} te koud (laagste ${fmt(minIndoorC, 1)} °C)` +
     (dhwShortfallH > 0 ? ` · ${fmt(dhwShortfallH, 0)} uur tapwatertekort` : '') +
     '.',
+  /** stresstest (spec §4.3): dimensioneren op T1, controleren met de strenge winter 1978/79 */
   stress: (exceedanceH: number, comfortLossH: number): string =>
-    `Strenge winter (T1): ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
+    `Strenge winter 1978/79: ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
   /**
-   * T1 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op T1 gedimensioneerd: dat zeggen, want de regel
-   * "Strenge winter (T1): … uur te koud" bij T5 gold voor de (kleinere) warmtepomp van T5.
+   * 1978/79 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op dat jaar gedimensioneerd: dat zeggen, want de
+   * regel "Strenge winter 1978/79: … uur te koud" bij een ander jaar gold voor de warmtepomp van dat jaar.
    */
   stressSelf: (autoSized: boolean): string =>
     autoSized
-      ? 'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.'
-      : 'Dit is al de stresstest (T1).',
+      ? 'Dit is al de stresstest (1978/79); de warmtepomp is op dit jaar gedimensioneerd.'
+      : 'Dit is al de stresstest (1978/79).',
 } as const;
 
 /** Hendels in Wat als? (§5): effectregels, stapper, mini-grafiek en Verfijnen. */

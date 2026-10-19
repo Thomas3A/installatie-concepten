@@ -41,8 +41,10 @@ const gridDone = (): boolean => {
   return !!s && s.done && s.key === sensitivityKey(st().input);
 };
 
+// De geverifieerde uitkomsten van het UX-plan (§4.5) zijn in ontwerpjaar T5 doorgerekend; de voorbeelden rekenen
+// sinds de klimaatupdate standaard in T1, dus hier expliciet T5.
 function scenarioInput(id: string, patch?: (i: PeakshavingInput) => void): PeakshavingInput {
-  const i = findScenario(id)!.build();
+  const i = { ...findScenario(id)!.build(), climateYear: 'T5' };
   patch?.(i);
   return normalizeInput(i);
 }

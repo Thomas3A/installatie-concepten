@@ -13,7 +13,7 @@ export const REFERENCE_YEARS: readonly ReferenceYearName[] = [
 ];
 /** Stresstestjaren: T1 met het werkelijke stookseizoen nov–mrt van een strenge winter (spec §4.1). */
 export const STRESS_TEST_YEARS: readonly ReferenceYearName[] = ['winter1979', 'winter1963'];
-export const DEFAULT_CLIMATE_YEAR: ReferenceYearName = 'T5';
+export const DEFAULT_CLIMATE_YEAR: ReferenceYearName = 'T1';
 export const REAL_YEAR_FIRST = 1951;
 export const REAL_YEAR_LAST = 2025;
 /** Aanbevolen stresstests met echt weer (spec §4.3; gelijk aan meta.aanbevolen_stresstest). */

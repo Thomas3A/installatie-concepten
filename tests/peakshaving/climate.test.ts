@@ -159,7 +159,7 @@ describe('referentiejaren: decoderen (spec §9.2)', () => {
 
   it('volgorde van de keuzelijst en default (spec §4.3)', () => {
     expect(REFERENCE_YEARS).toEqual(['T1', 'T5', 'energie', 'winter1979', 'winter1963']);
-    expect(DEFAULT_CLIMATE_YEAR).toBe('T5');
+    expect(DEFAULT_CLIMATE_YEAR).toBe('T1');
     expect(REFERENCE_YEAR_LABELS).toEqual({
       T1: 'Ontwerpjaar T1 — strenge winter (≈ NEN 5060:2018 ref T1)',
       T5: 'Ontwerpjaar T5 — gemiddelde winter (≈ NEN 5060:2018 ref T5)',

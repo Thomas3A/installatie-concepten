@@ -95,10 +95,10 @@ function description(input: HTMLInputElement): string {
 
 describe('store: meerdere woningen', () => {
   it('setKind: standaardinvoer van de keuze, klimaatjaar blijft; dezelfde keuze wijzigt niets', () => {
-    act(() => st().setClimateYear('T1'));
+    act(() => st().setClimateYear('T5'));
     act(() => st().setKind('multi'));
     const m = st().input;
-    expect(m.climateYear).toBe('T1');
+    expect(m.climateYear).toBe('T5');
     expect(m.building.use).toBe('residential');
     expect(m.building.dwellings).toBe(10);
     expect(m.building.designLoadKw).toBe(50);
@@ -118,7 +118,7 @@ describe('store: meerdere woningen', () => {
     expect(st().input.building.use).toBe('residential');
     expect(st().input.building.dwellings).toBe(1);
     expect(st().input.building.designLoadKw).toBe(8);
-    expect(st().input.climateYear).toBe('T1');
+    expect(st().input.climateYear).toBe('T5');
 
     // nogmaals "Woning" bij een ongewijzigd scenario: invoer en scenario blijven
     act(() => st().applyScenario('woning-basis'));
@@ -128,7 +128,7 @@ describe('store: meerdere woningen', () => {
     expect(st().scenarioId).toBe('woning-basis');
   });
 
-  it('setKind herkent het scenario van de standaardinvoer (klimaatjaar T5)', () => {
+  it('setKind herkent het scenario van de standaardinvoer (klimaatjaar T1)', () => {
     act(() => st().setKind('multi'));
     expect(st().scenarioId).toBe('woningen-basis');
     act(() => st().setKind('office'));

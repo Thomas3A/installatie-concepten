@@ -106,10 +106,10 @@ piek aan de meter (kleinere aansluiting), en dat een buffer uren overbrugt, geen
   [`docs/AANNAMES.md`](docs/AANNAMES.md)).
 - **Resultaat:** een oordeel in één zin ("Past op 1×35 A met 0,50 m³ buffer"), een meterbalk (piek aan de meter tegen
   de WP-limiet, met het deel dat de batterij afschaaft) en drie tegels: Warmtepomp, Boven de limiet en Kleinste
-  aansluiting. Daaronder de gevolgen met begrenzer en in een strenge winter (T1), en knoppen "Wat helpt" of "Kleinere
-  aansluiting volstaat ook" die een buffer, batterij, aandeel of aansluiting zetten, elk met ongedaan maken. Onder de
-  kaart staan Opvallend, **Alle kerngetallen** (de acht KPI-kaarten) en **Robuustheid** (energiejaar, T5, T1 en de
-  stresstestjaren 1978/79 en 1962/63).
+  aansluiting. Daaronder de gevolgen met begrenzer en in de strenge winter van 1978/79 (stresstest), en knoppen "Wat
+  helpt" of "Kleinere aansluiting volstaat ook" die een buffer, batterij, aandeel of aansluiting zetten, elk met
+  ongedaan maken. Onder de kaart staan Opvallend, **Alle kerngetallen** (de acht KPI-kaarten) en **Robuustheid**
+  (energiejaar, T5, T1 en de stresstestjaren 1978/79 en 1962/63).
 - **Wat als?:** de bufferschuif met een mini-grafiek van het benodigde WP-vermogen per buffervolume (met klikbare punten
   "past vanaf"), de batterij, een stapper voor de aansluiting en **Verfijnen** (WP-vermogen automatisch of handmatig,
   laadstrategie, batterijvermogen). **↺ Zonder maatregelen** zet buffer en batterij terug op 0.

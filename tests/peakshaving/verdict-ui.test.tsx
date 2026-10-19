@@ -50,8 +50,10 @@ async function gridOf(input: PeakshavingInput): Promise<SensitivityState> {
   return { key, rows, total, done: true };
 }
 
+// De geverifieerde uitkomsten van het UX-plan (§4.5) zijn in ontwerpjaar T5 doorgerekend; de voorbeelden rekenen
+// sinds de klimaatupdate standaard in T1, dus hier expliciet T5.
 function scenarioInput(id: string, patch?: (i: PeakshavingInput) => void): PeakshavingInput {
-  const i = findScenario(id)!.build();
+  const i = { ...findScenario(id)!.build(), climateYear: 'T5' };
   patch?.(i);
   return normalizeInput(i);
 }
@@ -292,7 +294,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(limiter.textContent).toBe('Met begrenzer: geen uur te koud (laagste 19,5 °C).toon in grafieken');
     // zonder eigen link: de robuustheidstabel staat direct onder de oordeelkaart
     expect(screen.getByTestId('stress-line').textContent).toBe(
-      'Strenge winter (T1): 111 uur boven de limiet, 40 uur te koud.',
+      'Strenge winter 1978/79: 106 uur boven de limiet, 95 uur te koud.',
     );
     expect(within(screen.getByTestId('stress-line')).queryByRole('button')).toBeNull();
   });
@@ -324,7 +326,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
     expect(meter.querySelector('[class*="shadowMark"]')).not.toBeNull();
     expect(screen.getByText('zonder maatregelen 3,48 kW')).toBeTruthy();
     expect(screen.getByTestId('stress-line').textContent).toMatch(
-      /^Strenge winter \(T1\): 0 uur boven de limiet, 48 uur te koud\./,
+      /^Strenge winter 1978\/79: 0 uur boven de limiet, 135 uur te koud\./,
     );
   });
 
@@ -373,7 +375,7 @@ describe('Resultaat: geverifieerde uitkomsten (§4.5) letterlijk', () => {
       /^!Met begrenzer: 115 uur te koud \(laagste 15,2 °C\)\./,
     );
     expect(screen.getByTestId('stress-line').textContent).toMatch(
-      /^Strenge winter \(T1\): 424 uur boven de limiet, 157 uur te koud\./,
+      /^Strenge winter 1978\/79: 479 uur boven de limiet, 140 uur te koud\./,
     );
     expect(screen.getByText('limiet 27,7 kW')).toBeTruthy();
   });
@@ -631,14 +633,14 @@ describe('Resultaat: gevolgregels', () => {
     expect(document.activeElement?.id).toBe('ps-tab-koude-week');
   });
 
-  it('T1 gekozen: "Dit is al de stresstest (T1)", met de warmtepomp op dit jaar gedimensioneerd', async () => {
+  it('1978/79 gekozen: "Dit is al de stresstest (1978/79)", met de warmtepomp op dit jaar gedimensioneerd', async () => {
     const input = scenarioInput('woning-basis', (i) => {
-      i.climateYear = 'T1';
+      i.climateYear = 'winter1979';
     });
     show({ input, a: await analyzeInput(input), sens: null });
     render(<VerdictCard />);
     expect(screen.getByTestId('stress-line').textContent).toBe(
-      'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.',
+      'Dit is al de stresstest (1978/79); de warmtepomp is op dit jaar gedimensioneerd.',
     );
   });
 });

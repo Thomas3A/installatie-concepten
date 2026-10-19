@@ -31,7 +31,8 @@ let input: PeakshavingInput;
 let sens: SensitivityState;
 
 beforeAll(async () => {
-  input = normalizeInput(findScenario('woning-basis')!.build());
+  // geverifieerde uitkomsten van het UX-plan (§4.5): in ontwerpjaar T5 doorgerekend
+  input = normalizeInput({ ...findScenario('woning-basis')!.build(), climateYear: 'T5' });
   const rows: SensitivityRow[] = [];
   const key = sensitivityKey(input);
   await createEngine().handle({ type: 'sensitivity', id: 1, key, input }, (m) => {

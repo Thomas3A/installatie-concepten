@@ -41,7 +41,7 @@ describe('standaardinvoer meerdere woningen', () => {
     expect(i.grid.connection).toBe('3x35');
     expect(i.grid.connection).toBe(MULTI_DEFAULT_CONNECTION);
     expect(i.grid.heatPumpShare).toBe(MULTI_DEFAULT_SHARE);
-    expect(i.climateYear).toBe('T5');
+    expect(i.climateYear).toBe('T1');
     // alleen aantal, piekvermogen, tapwater en aansluiting wijken af van één woning
     const one = defaultInput('residential');
     expect({ ...i.building, dwellings: 1, designLoadKw: 8, dhw: one.building.dhw }).toEqual(one.building);
@@ -240,7 +240,7 @@ describe('deelbare link met meerdere woningen', () => {
     const json = JSON.parse(
       atob(encodeInput(multi()).replace(/-/g, '+').replace(/_/g, '/')),
     ) as PeakshavingInput & { v: number };
-    expect(json.v).toBe(1);
+    expect(json.v).toBe(2);
     expect(json.building.dwellings).toBe(10);
   });
   it('een ongewijzigd scenario met meerdere woningen wordt herkend, een gewijzigd aantal niet', () => {

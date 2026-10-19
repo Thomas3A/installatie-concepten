@@ -6,8 +6,13 @@ import { normalizeInput } from './model/input';
 import type { BuildingUse, PeakshavingInput } from './model/types';
 import { SCENARIOS } from './scenarios';
 
-/** Versie van het linkformaat; verhoog bij een niet-compatibele wijziging van de invoer. */
-export const SHARE_VERSION = 1;
+/**
+ * Versie van het linkformaat; verhoog bij een niet-compatibele wijziging van de invoer.
+ * 2: standaardklimaatjaar T1 (was T5). Een link van versie 1 zonder klimaatjaar bedoelde T5.
+ */
+export const SHARE_VERSION = 2;
+/** Standaardklimaatjaar van links van versie 1. */
+const V1_CLIMATE_YEAR = 'T5';
 export const SHARE_ROUTE = '/peakshaving';
 
 export function encodeInput(input: PeakshavingInput): string {
@@ -28,6 +33,9 @@ export function decodeInput(code: string): PeakshavingInput | null {
     const use: BuildingUse = b && b.use === 'office' ? 'office' : 'residential';
     const rest: { [k: string]: Json } = { ...p };
     delete rest.v;
+    // versie 1 nam het verschil met de toenmalige standaard: zonder klimaatjaar was dat T5
+    if ((typeof p.v !== 'number' || p.v < 2) && rest.climateYear === undefined)
+      rest.climateYear = V1_CLIMATE_YEAR;
     return normalizeInput(jsonMerge(defaultInput(use) as unknown as Json, rest));
   } catch {
     return null;

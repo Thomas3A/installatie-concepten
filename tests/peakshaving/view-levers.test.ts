@@ -26,7 +26,10 @@ async function analyzeInput(input: PeakshavingInput): Promise<Analysis> {
   return a!;
 }
 
-const scenario = (id: string): PeakshavingInput => normalizeInput(findScenario(id)!.build());
+// De geverifieerde uitkomsten van het UX-plan (§4.5) zijn in ontwerpjaar T5 doorgerekend; de voorbeelden rekenen
+// sinds de klimaatupdate standaard in T1, dus hier expliciet T5.
+const scenario = (id: string): PeakshavingInput =>
+  normalizeInput({ ...findScenario(id)!.build(), climateYear: 'T5' });
 function variant(id: string, patch: (i: PeakshavingInput) => void): PeakshavingInput {
   const i = scenario(id);
   patch(i);
