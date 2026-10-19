@@ -7,7 +7,7 @@ from peakshaving_ref import *
 
 pad, out_dir = sys.argv[1], sys.argv[2]
 os.makedirs(out_dir, exist_ok=True)
-jaren = {n: laad_referentiejaar(pad, n) for n in ("energie", "T5", "T1")}
+jaren = {n: laad_referentiejaar(pad, n) for n in ("energie", "T5", "T1", "winter1979", "winter1963")}
 
 def rnd(d):
     return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in d.items()}
@@ -44,6 +44,9 @@ for jaar in ("T5",):
     case("W6 woning 8kW, WP 8kW, buffer 2 m3, 1x35A", gbw, Warmtepomp(8.0), Buffer(2.0), Batterij(0.0), Elektra(0.230*35, 0.40), kl, sizing=True)
 case("W7 woning 8kW, WP 8kW, geen buffer (T1)", gbw, Warmtepomp(8.0), Buffer(0.0), Batterij(0.0), elw, jaren["T1"], sizing=True)
 case("W8 woning 8kW, WP 8kW, geen buffer (energie)", gbw, Warmtepomp(8.0), Buffer(0.0), Batterij(0.0), elw, jaren["energie"], sizing=True)
+case("W9 woning 8kW, WP 8kW, geen buffer (winter1979)", gbw, Warmtepomp(8.0), Buffer(0.0), Batterij(0.0), elw, jaren["winter1979"], sizing=True)
+case("W10 woning 8kW, WP 8kW, buffer 1 m3 (winter1979)", gbw, Warmtepomp(8.0), Buffer(1.0), Batterij(0.0), elw, jaren["winter1979"], sizing=True)
+case("W11 woning 8kW, WP 8kW, geen buffer (winter1963)", gbw, Warmtepomp(8.0), Buffer(0.0), Batterij(0.0), elw, jaren["winter1963"], sizing=True)
 
 # ---- Kantoor 100 kW ----
 gbk = kantoor_defaults(100.0)
@@ -54,6 +57,8 @@ case("K2 kantoor 100kW, WP 100kW, buffer 10 m3", gbk, Warmtepomp(100.0), Buffer(
 case("K3 kantoor 100kW, WP 70kW, buffer 10 m3 + batterij 50 kWh", gbk, Warmtepomp(70.0), Buffer(10.0), Batterij(50.0), elk, kl)
 case("K4 kantoor 100kW, WP 70kW, buffer 10 m3 + batterij 50 kWh (hard)", gbk, Warmtepomp(70.0), Buffer(10.0), Batterij(50.0), elk, kl, hard=True)
 case("K5 kantoor 100kW, WP 100kW, geen buffer (T1)", gbk, Warmtepomp(100.0), Buffer(0.0), Batterij(0.0), elk, jaren["T1"], sizing=True)
+case("K6 kantoor 100kW, WP 100kW, geen buffer (winter1979)", gbk, Warmtepomp(100.0), Buffer(0.0), Batterij(0.0), elk, jaren["winter1979"], sizing=True)
+case("K7 kantoor 100kW, WP 100kW, buffer 20 m3 (winter1963)", gbk, Warmtepomp(100.0), Buffer(20.0), Batterij(0.0), elk, jaren["winter1963"], sizing=True)
 
 # ---- gevoeligheid: P_th_min en kleinste aansluiting als functie van buffer (woning, T5) ----
 sweep = []
