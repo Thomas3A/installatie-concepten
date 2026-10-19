@@ -20,16 +20,30 @@ DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
 VARS = ["T", "U", "FH", "Q"]
 
+T1_SEL = [1997, 1996, 2005, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 2010, 2010]
 SELECTIE = {
+    # reconstructie NEN 5060:2018 (maandselectie op gepubliceerde maandgemiddelden, basisperiode 1996-2015)
     "energie": [2001, 2004, 2004, 2002, 2000, 2011, 2008, 2001, 2011, 2010, 2003, 2003],
     "T5":      [2013, 1996, 2013, 1996, 2006, 2011, 2013, 1997, 1999, 2001, 1999, 2009],
-    "T1":      [1997, 1996, 2005, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 2010, 2010],
+    "T1":      T1_SEL,
+    # stresstestjaren: T1 met het complete werkelijke stookseizoen nov-mrt van een strenge winter (KNMI 1951-2025)
+    "winter1979": [1979, 1979, 1979] + T1_SEL[3:10] + [1978, 1978],   # strenge winter 1978/79
+    "winter1963": [1963, 1963, 1963] + T1_SEL[3:10] + [1962, 1962],   # extreme winter 1962/63
 }
 NEN_TABEL = {
     "energie": [2.64, 4.96, 5.90, 9.34, 14.72, 16.11, 18.04, 18.48, 15.64, 10.42, 7.98, 4.00],
     "T1":      [-1.24, 0.51, 6.57, 13.05, 14.93, 16.69, 22.31, 19.28, 15.68, 11.41, 5.83, -1.15],
     "T5":      [1.98, 0.51, 2.45, 9.38, 14.50, 16.13, 19.18, 20.56, 17.37, 14.21, 6.68, 2.24],
+    "winter1979": None, "winter1963": None,
 }
+OMSCHRIJVING = {
+    "energie": "Energiejaar, langjarig gemiddeld (≈ NEN 5060:2018 energie)",
+    "T5": "Ontwerpjaar T5, 5 % (≈ NEN 5060:2018 ref T5); winter gemiddeld",
+    "T1": "Ontwerpjaar T1, 1 % (≈ NEN 5060:2018 ref T1); winter streng (Dec 2010, Jan 1997, Feb 1996)",
+    "winter1979": "Stresstest strenge winter 1978/79 (koudste week −10 °C; ≈ 1× per 25 jaar in 1951–2025); overige maanden T1",
+    "winter1963": "Stresstest extreme winter 1962/63 (twee maanden vorst, Hellmann 346; ≈ 1× per eeuw); overige maanden T1",
+}
+REAL_START, REAL_END = 1951, 2025
 
 def is_leap(y):
     return y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)
@@ -101,8 +115,9 @@ def build_year(sel):
 def stats(T):
     T = np.asarray(T)
     d = T.reshape(365, 24).mean(axis=1)
-    def coldest(hours):
-        c = np.convolve(T, np.ones(hours) / hours, mode="valid")
+    def coldest(hours):  # cyclisch: een venster mag over de jaargrens dec->jan lopen
+        Tc = np.concatenate([T, T[:hours - 1]])
+        c = np.convolve(Tc, np.ones(hours) / hours, mode="valid")
         i = int(np.argmin(c)); return float(c[i]), i
     gd18 = float(np.sum(np.clip(18.0 - d, 0, None)))
     gd15 = float(np.sum(np.clip(15.5 - d, 0, None)))
@@ -128,6 +143,7 @@ for name, sel in SELECTIE.items():
     T = yr[:, 0]
     mm = [round(float(T[s:e].mean()), 2) for s, e in zip(np.cumsum([0] + [d * 24 for d in DAYS])[:-1], np.cumsum([d * 24 for d in DAYS]))]
     meta["jaren"][name] = {
+        "omschrijving": OMSCHRIJVING[name],
         "bronjaar_per_maand": sel,
         "maandgemiddelde_T": mm,
         "maandgemiddelde_T_NEN5060_2018": NEN_TABEL[name],
@@ -151,7 +167,7 @@ for name, sel in SELECTIE.items():
                     w.writerow([h, m + 1, d + 1, u, wd, f"{T[h]:.1f}", int(round(yr[h,1])), f"{yr[h,2]:.1f}", int(round(yr[h,3])), sel[m]])
                     h += 1
     print(name, "maandgem:", mm)
-    print("   NEN   :", NEN_TABEL[name])
+    if NEN_TABEL[name]: print("   NEN   :", NEN_TABEL[name])
     print("   stats :", meta["jaren"][name]["statistiek"])
 
 with open(os.path.join(out_dir, "referentiejaren.json"), "w") as f:
@@ -159,8 +175,8 @@ with open(os.path.join(out_dir, "referentiejaren.json"), "w") as f:
 
 # werkelijke jaren (alleen T, 0,1 °C, 8760 uur; 29 feb weggelaten), met weekdag van 1 jan
 import datetime as dt
-real = {"meta": {"bron": "KNMI uurgegevens station 260 De Bilt, werkelijke jaren, alleen T [0,1 °C], 29 feb weggelaten, tijdas MET", "startWeekdag": {}}, "T": {}}
-for y in range(1991, 2026):
+real = {"meta": {"bron": "KNMI uurgegevens station 260 De Bilt, werkelijke jaren, alleen T [0,1 °C], 29 feb weggelaten, tijdas MET", "aanbevolen_stresstest": [1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012], "startWeekdag": {}}, "T": {}}
+for y in range(REAL_START, REAL_END + 1):
     arr = npz[str(y)][:, 0]
     if is_leap(y):
         a, b = month_bounds(y)[1]
@@ -170,7 +186,7 @@ for y in range(1991, 2026):
     real["meta"]["startWeekdag"][str(y)] = dt.date(y, 1, 1).isoweekday()
     st = stats(arr)
     real["meta"].setdefault("statistiek", {})[str(y)] = st
-with open(os.path.join(out_dir, "knmi-debilt-1991-2025.json"), "w") as f:
+with open(os.path.join(out_dir, f"knmi-debilt-{REAL_START}-{REAL_END}.json"), "w") as f:
     json.dump(real, f, separators=(",", ":"))
 
 # overzichtstabel werkelijke jaren
@@ -180,6 +196,6 @@ with open(os.path.join(out_dir, "statistiek_jaren.csv"), "w", newline="") as f:
     w.writerow(["jaar"] + keys)
     for name in SELECTIE:
         w.writerow([f"ref_{name}"] + [meta["jaren"][name]["statistiek"][k] for k in keys])
-    for y in range(1991, 2026):
+    for y in range(REAL_START, REAL_END + 1):
         w.writerow([y] + [real["meta"]["statistiek"][str(y)][k] for k in keys])
 print("klaar:", os.listdir(out_dir))

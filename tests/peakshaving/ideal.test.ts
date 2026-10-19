@@ -148,10 +148,23 @@ describe('coldestWeekStart (port van koudste_week)', () => {
     expect(coldestWeekStart(q, flatYear(0).T)).toBe(0);
   });
 
-  it('net als in de Python is het laatst mogelijke startuur 8592 niet kandidaat (range(0, 8760 − 168))', () => {
+  it('cyclisch, net als in de Python (range(8760)): startuur 8592 en later zijn kandidaat (spec §4.4)', () => {
     const q = new Float64Array(HOURS_PER_YEAR);
     for (let t = HOURS_PER_YEAR - COLD_WEEK_HOURS; t < HOURS_PER_YEAR; t++) q[t] = 1;
-    // het venster vanaf 8592 bevat alle vraag, maar de Python stopt bij startuur 8591
-    expect(coldestWeekStart(q, flatYear(0).T)).toBe(HOURS_PER_YEAR - COLD_WEEK_HOURS - 1);
+    // het venster vanaf 8592 bevat alle vraag
+    expect(coldestWeekStart(q, flatYear(0).T)).toBe(HOURS_PER_YEAR - COLD_WEEK_HOURS);
+    // vraag van 30 december tot en met 5 januari (168 uur): het venster loopt over de jaargrens
+    q.fill(0);
+    for (let t = HOURS_PER_YEAR - 48; t < HOURS_PER_YEAR; t++) q[t] = 1;
+    for (let t = 0; t < 120; t++) q[t] = 1;
+    expect(coldestWeekStart(q, flatYear(0).T)).toBe(HOURS_PER_YEAR - 48);
+  });
+
+  it('winter1979 met de woning- en kantoordefaults: de koude week begint op 31 december 00:00 (uur 8736)', () => {
+    const climate = refYear('winter1979');
+    for (const b of [residentialBuilding(), officeBuilding()]) {
+      const q = computeIdealDemand(b, climate, buildSchedule(b, climate.startWeekday));
+      expect(coldestWeekStart(q, climate.T), b.use).toBe(8736);
+    }
   });
 });

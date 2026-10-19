@@ -109,7 +109,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
       'Met 99 % van het benodigde WP-vermogen ontstaat het comfortverlies vooral in de koude week. Die valt in een koude periode van {days} dagen met gemiddeld {meanT} °C. De maat van de warmtepomp wordt dus bepaald door een aaneengesloten koude periode, niet door een enkel piekuur.',
     ],
     solutions: [
-      'Vergelijk met het energiejaar en met T1 in de robuustheidstabel.',
+      'Vergelijk de klimaatjaren in de robuustheidstabel, ook de stresstest 1978/79.',
       'Een grotere buffer helpt hier maar beperkt; een bijstookelement kan de laatste kW leveren.',
     ],
   },
@@ -198,17 +198,20 @@ export const FOOTER_CLIMATE =
   'Klimaatdata: KNMI De Bilt (open data); referentiejaren zijn een reconstructie, geen officiële NEN 5060-data.';
 export const CLIMATE_RECONSTRUCTION =
   'Reconstructie op basis van KNMI De Bilt; geen officiële NEN 5060-data.';
-/** Korte noot onder de statistiekregel in Meer instellingen › Klimaat. */
-export const CLIMATE_NOTE_SHORT =
-  'T5 = gebruikelijk ontwerpjaar · T1 = stresstest · ★ = aanbevolen stressjaar.';
+/** Toelichting onder de statistiekregel in Meer instellingen › Klimaat (spec §4.3), plus de betekenis van ★. */
+export const CLIMATE_NOTE =
+  'Dimensioneer op T1 (strenge winter, 1 %-ontwerpjaar) en controleer met de stresstest 1978/79. T5 toont een gemiddelde winter, het energiejaar is bedoeld voor jaarverbruik en SCOP. Herhalingstijden zijn empirisch uit 1951–2025 en in het huidige klimaat eerder langer. ★ = aanbevolen stresstestjaar.';
 /**
- * Optietekst van de referentiejaren in de keuzelijst Klimaatjaar: zonder "(≈ NEN 5060:2018 …)", want dat staat al in
- * de groepskop ("Referentiejaren (reconstructie NEN 5060:2018)"); zo past de gekozen optie in de kolom.
+ * Optietekst van de referentiejaren in de keuzelijst Klimaatjaar (spec §4.3). De NEN-jaren zonder
+ * "(≈ NEN 5060:2018 …)", want dat staat al in de groepskop ("Referentiejaren (reconstructie NEN 5060:2018)");
+ * zo past de gekozen optie in de kolom.
  */
 export const CLIMATE_OPTION_LABELS = {
-  T5: 'Ontwerpjaar T5 — gematigd streng',
-  T1: 'Ontwerpjaar T1 — zeer streng',
+  T1: 'Ontwerpjaar T1 — strenge winter',
+  T5: 'Ontwerpjaar T5 — gemiddelde winter',
   energie: 'Energiejaar — langjarig gemiddeld',
+  winter1979: 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)',
+  winter1963: 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)',
 } as const;
 
 /** Tabbladen van Verdieping, in deze volgorde; Schema (`concept`) is het standaardtabblad. */
@@ -372,10 +375,14 @@ export const EXPLAIN: ExplainSection[] = [
     id: 'klimaat',
     title: '8. Klimaatjaren',
     body: [
-      'NEN 5060:2018 bevat referentiejaren voor De Bilt die zijn samengesteld uit werkelijke kalendermaanden uit 1996–2015: het **energiejaar** (langjarig gemiddeld, voor jaarverbruik en SCOP) en de ontwerpjaren **T5** en **T1** (5 % en 1 % overschrijdingskans, voor pieken). De officiële uurdata zijn niet vrij beschikbaar.',
-      'Deze tool gebruikt daarom een **reconstructie** uit open KNMI-uurdata van De Bilt: per maand is de werkelijke maand gekozen waarvan het maandgemiddelde overeenkomt met de gepubliceerde maandgemiddelden van NEN 5060:2018 (binnen 0,05 K), met vloeiende overgangen over 16 uur. Het jaar begint op een maandag, in MET zonder zomertijd, zonder 29 februari. Het is geen officiële NEN 5060-data.',
+      'NEN 5060:2018 bevat referentiejaren voor De Bilt die zijn samengesteld uit werkelijke kalendermaanden uit 1996–2015: het **energiejaar** (langjarig gemiddeld, voor jaarverbruik en SCOP) en de ontwerpjaren **T5** en **T1** (5 % en 1 % overschrijdingskans). Ze zijn gemaakt voor temperatuuroverschrijding en koellast; hoe streng hun winter is, is een bijproduct. De officiële uurdata zijn niet vrij beschikbaar.',
+      'Vergeleken met alle 74 stookseizoenen van De Bilt sinds 1951 heeft **T1** een strenge winter: december 2010, januari 1997 en februari 1996, koudste week −7,6 °C, ongeveer plaats 8 van 74. Dat is goed voor piekvragen van 1 tot 3 dagen. **T5** heeft een gemiddelde winter (koudste week −4,2 °C), het energiejaar een zachte (−2,5 °C). Een winter als 1955/56, 1962/63, 1978/79 of 1986/87, met een koudste week van −9 tot −10 °C en vorst die weken aanhoudt, zit niet in 1996–2015. Juist die duur bepaalt het plateau in de gevoeligheidsgrafiek: de warmtepomp moet dagen tot weken het gemiddelde zelf leveren.',
+      'Deze tool gebruikt een **reconstructie** uit open KNMI-uurdata van De Bilt: per maand is de werkelijke maand gekozen waarvan het maandgemiddelde overeenkomt met de gepubliceerde maandgemiddelden van NEN 5060:2018 (binnen 0,05 K), met vloeiende overgangen over 16 uur. Het jaar begint op een maandag, in MET zonder zomertijd, zonder 29 februari, en wordt cyclisch doorgerekend: december loopt door in januari. Het is geen officiële NEN 5060-data.',
       '$$\\overline{T}_{maand,reconstructie} - \\overline{T}_{maand,NEN} \\le 0{,}05\\ \\mathrm{K}$$',
-      'Daarnaast zijn de werkelijke jaren 1991–2025 beschikbaar als stresstest met echt weer (bijvoorbeeld januari 1997, december 2010, februari 2012). De koude week in de grafieken is de week met de hoogste warmtevraag, niet per se de koudste week.',
+      'De twee **stresstestjaren** zijn het T1-jaar met het complete werkelijke stookseizoen (1 november t/m 31 maart) van een strenge winter, zodat het weer in dat seizoen aaneengesloten en echt is. **1978/79**: koudste week −10,2 °C (31 december – 6 januari), T min −16,7 °C, Hellmann-getal 206; in 1951–2025 ongeveer eens per 25 jaar. **1962/63**: Hellmann-getal 346, de strengste winter sinds 1830, twee maanden aaneengesloten vorst; ordegrootte eens per eeuw. Het Hellmann-getal telt de vorst van een stookseizoen op over de daggemiddelden onder 0 °C:',
+      '$$H = \\sum_{d:\\ \\overline{T}_d < 0} \\left| \\overline{T}_d \\right|$$',
+      'De herhalingstijden zijn geteld in 1951–2025. Door de opwarming zijn zulke winters nu zeldzamer, dus in het huidige klimaat is de herhalingstijd eerder langer. Dimensioneer op T1 en controleer met de stresstest 1978/79; 1962/63 laat zien wat een uitzonderlijke winter doet.',
+      'Daarnaast zijn de **werkelijke jaren 1951–2025** beschikbaar als stresstest met echt weer (alleen temperatuur, met de echte weekdagen); ★ markeert de aanbevolen jaren 1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010 en 2012. De koude week in de grafieken is de week met de hoogste warmtevraag, niet per se de koudste week, en mag over de jaargrens lopen.',
     ],
   },
   {
@@ -496,7 +503,7 @@ export const BASIS_TEXTS = {
   dhwHint: (dailyKwh: number, tankL: number, perDwelling: boolean): string =>
     `${fmtKwhPerDay(dailyKwh)} kWh/dag${perDwelling ? ' per woning' : ''} · boiler ${fmt(tankL, 0)} l`,
   // Waarden van de chips in de ingeklapte strook (§2.3). Gebouw ("Woning", "10 woningen", "Kantoor"), piekvermogen
-  // ("8,0 kW", bij meerdere woningen "50,0 kW (5,0 kW/woning)"), aansluiting en klimaatjaar ("T5") hebben al een tekst
+  // ("8,0 kW", bij meerdere woningen "50,0 kW (5,0 kW/woning)"), aansluiting en klimaatjaar ("T1") hebben al een tekst
   // in het model: buildingText, designLoadText en connectionText (model/kpis.ts) en climateShortName (model/climate.ts).
   /** "tapwater 10 kWh/dag"; bij meerdere woningen per woning: "tapwater 6,0 kWh/dag per woning" */
   chipDhw: (dailyKwh: number, perDwelling = false): string =>
@@ -705,16 +712,17 @@ export const VERDICT_TEXTS = {
     `Met begrenzer: ${hours === 0 ? 'geen uur' : `${fmt(hours, 0)} uur`} te koud (laagste ${fmt(minIndoorC, 1)} °C)` +
     (dhwShortfallH > 0 ? ` · ${fmt(dhwShortfallH, 0)} uur tapwatertekort` : '') +
     '.',
+  /** stresstest (spec §4.3): dimensioneren op T1, controleren met de strenge winter 1978/79 */
   stress: (exceedanceH: number, comfortLossH: number): string =>
-    `Strenge winter (T1): ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
+    `Strenge winter 1978/79: ${fmt(exceedanceH, 0)} uur boven de limiet, ${fmt(comfortLossH, 0)} uur te koud.`,
   /**
-   * T1 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op T1 gedimensioneerd: dat zeggen, want de regel
-   * "Strenge winter (T1): … uur te koud" bij T5 gold voor de (kleinere) warmtepomp van T5.
+   * 1978/79 zelf gekozen. Bij automatisch WP-vermogen is de warmtepomp op dat jaar gedimensioneerd: dat zeggen, want de
+   * regel "Strenge winter 1978/79: … uur te koud" bij een ander jaar gold voor de warmtepomp van dat jaar.
    */
   stressSelf: (autoSized: boolean): string =>
     autoSized
-      ? 'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.'
-      : 'Dit is al de stresstest (T1).',
+      ? 'Dit is al de stresstest (1978/79); de warmtepomp is op dit jaar gedimensioneerd.'
+      : 'Dit is al de stresstest (1978/79).',
 } as const;
 
 /** Hendels in Wat als? (§5): effectregels, stapper, mini-grafiek en Verfijnen. */

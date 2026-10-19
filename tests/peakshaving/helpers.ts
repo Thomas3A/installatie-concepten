@@ -1,6 +1,6 @@
 // Hulpfuncties voor de peakshaving-tests: klimaatjaren laden en Python-referentiecases vertalen.
 import refJson from '../../src/concepts/peakshaving/data/referentiejaren.json';
-import realJson from '../../src/concepts/peakshaving/data/knmi-debilt-1991-2025.json';
+import realJson from '../../src/concepts/peakshaving/data/knmi-debilt-1951-2025.json';
 import {
   decodeRealYear,
   decodeReferenceYear,

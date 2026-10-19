@@ -168,13 +168,26 @@ De officiële uurdata van **NEN 5060:2018** (referentiejaar *energie*, ontwerpja
 - Het jaar telt 365 dagen (29 februari weggelaten), **begint op een maandag** (conform NEN 5060) en staat in **MET (UTC+1) zonder zomertijd**; uurindex 0 is 1 januari 00:00–01:00.
 - Resultaat: de maandgemiddelden van de reconstructie wijken maximaal 0,05 K af van de NEN-tabel (zie `meta.jaren.<naam>.maandgemiddelde_T` vs `..._NEN5060_2018`).
 
-Daarnaast zijn de **werkelijke jaren 1991–2025** (alleen temperatuur) beschikbaar als "stresstest met echt weer" (bijv. februari 2012, januari 1997, december 2010).
+**Let op bij de interpretatie van T1 en T5.** De NEN-ontwerpjaren zijn gemaakt voor temperatuuroverschrijdings- en koellastberekeningen; hun winterstrengheid is daarvan een bijproduct. Uit de vergelijking met alle 74 stookseizoenen van De Bilt sinds 1951 (`docs/klimaat/winterstatistiek_1951_2025.csv`) blijkt:
+
+- **T1** heeft wél een strenge winter: het combineert de drie koudste maanden van 1996–2015 (december 2010, januari 1997, februari 1996). Koudste week −7,6 °C, Hellmann-getal ≈ 195 — vergelijkbaar met de winter 1984/85 en op plaats ~8 van 74 seizoenen. Goed voor piekvragen van 1–3 dagen.
+- **T5** heeft een gemiddelde winter (koudste week −4,2 °C, Hellmann ≈ 122, middenmoot), en het **energiejaar** een zachte (koudste week −2,5 °C).
+- De basisperiode 1996–2015 bevat **geen** winter van het kaliber 1955/56, 1962/63, 1978/79 of 1986/87 (koudste week −9 tot −10 °C, 1963 twee maanden aaneengesloten vorst). Juist het aanhoudende karakter van zulke winters is bepalend voor het plateau in de buffergevoeligheid (de warmtepomp moet dagen- tot wekenlang het gemiddelde leveren).
+
+Daarom zijn er twee **stresstest-referentiejaren** toegevoegd, opgebouwd als het T1-jaar maar met het complete werkelijke stookseizoen (1 november t/m 31 maart) van een strenge winter uit de KNMI-reeks, zodat het weer binnen het seizoen aaneengesloten en echt is:
+
+- **`winter1979`** — strenge winter 1978/79: koudste week −10,2 °C (31 dec – 6 jan), koudste 72 uur −11,4 °C, T min −16,7 °C, 98 uur onder −10 °C, Hellmann 206. In 1951–2025 komt zo'n winter ongeveer eens per 25 jaar voor (1956, 1963, 1979, 1985, 1987).
+- **`winter1963`** — extreme winter 1962/63: Hellmann 346 (strengste sinds 1830), 727 uur onder −5 °C, koudste maand −5,3 °C, 3382 graaddagen. Ordegrootte eens per eeuw, en met de huidige opwarming zeldzamer dan dat.
+
+De herhalingstijden zijn empirisch uit 1951–2025 en overschatten de kans in het huidige klimaat; dat staat in de tooltip.
+
+Daarnaast zijn de **werkelijke jaren 1951–2025** (alleen temperatuur) beschikbaar als "stresstest met echt weer" (bijv. 1956, 1963, 1979, 1985, 1987, 1997, 2012); de aanbevolen stresstestjaren staan in `meta.aanbevolen_stresstest`.
 
 In de UI altijd benoemen: *"Reconstructie op basis van KNMI De Bilt; geen officiële NEN 5060-data."* De bestanden mogen in de repo (KNMI open data, bronvermelding: *KNMI*).
 
 ### 4.2 Bestanden (meegeleverd in de hand-off, plaatsen in `src/concepts/peakshaving/data/`)
 
-**`referentiejaren.json`** (≈ 330 kB):
+**`referentiejaren.json`** (≈ 550 kB; vijf jaren):
 
 ```jsonc
 {
@@ -183,55 +196,62 @@ In de UI altijd benoemen: *"Reconstructie op basis van KNMI De Bilt; geen offici
     "variabelen": { "T": "temperatuur 1,5 m [0,1 °C]", "U": "relatieve vochtigheid [%]", "FH": "windsnelheid [0,1 m/s]", "Q": "globale straling, uurgemiddelde [W/m2]" },
     "startWeekdag": 1,                               // 1 = maandag
     "jaren": {
-      "energie": { "bronjaar_per_maand": [2001, 2004, 2004, 2002, 2000, 2011, 2008, 2001, 2011, 2010, 2003, 2003],
-                   "maandgemiddelde_T": [...12], "maandgemiddelde_T_NEN5060_2018": [...12],
+      "energie": { "omschrijving": "...", "bronjaar_per_maand": [2001, 2004, 2004, 2002, 2000, 2011, 2008, 2001, 2011, 2010, 2003, 2003],
+                   "maandgemiddelde_T": [...12], "maandgemiddelde_T_NEN5060_2018": [...12],   // null bij de stresstestjaren
                    "statistiek": { "Tgem": 10.72, "Tmin": -8.8, "uren_onder_0": 458, "uren_onder_min5": 42, "uren_onder_min10": 0,
                                    "koudste_24u": -5.02, "koudste_72u": -4.04, "koudste_168u": -2.46, "koudste_week_start_uur": 289,
                                    "graaddagen_18": 2778, "graaddagen_15_5": 2043 } },
       "T5": { "bronjaar_per_maand": [2013, 1996, 2013, 1996, 2006, 2011, 2013, 1997, 1999, 2001, 1999, 2009], ... },
-      "T1": { "bronjaar_per_maand": [1997, 1996, 2005, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 2010, 2010], ... }
+      "T1": { "bronjaar_per_maand": [1997, 1996, 2005, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 2010, 2010], ... },
+      "winter1979": { "bronjaar_per_maand": [1979, 1979, 1979, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 1978, 1978], ... },
+      "winter1963": { "bronjaar_per_maand": [1963, 1963, 1963, 2007, 1998, 2006, 2006, 2003, 2011, 2011, 1962, 1962], ... }
     }
   },
   "data": {
     "energie": { "T": [8760 × int, 0,1 °C], "U": [8760 × int %], "FH": [8760 × int 0,1 m/s], "Q": [8760 × int W/m2] },
-    "T5": { ... }, "T1": { ... }
+    "T5": { ... }, "T1": { ... }, "winter1979": { ... }, "winter1963": { ... }
   }
 }
 ```
 
-Statistiek van de drie referentiejaren (ter controle en voor de UI-tooltip bij de keuzelijst):
+Statistiek van de vijf referentiejaren (ter controle en voor de UI-tooltip bij de keuzelijst):
 
 | Jaar | T gem. | T min | uren < 0 °C | uren < −5 °C | uren < −10 °C | koudste 24 u | koudste 72 u | koudste week | graaddagen (18 °C) |
 |---|---|---|---|---|---|---|---|---|---|
 | energie (≈ RA2018EN) | 10,72 | −8,8 | 458 | 42 | 0 | −5,0 | −4,0 | −2,5 | 2778 |
 | T5 — ontwerp 5 % (≈ RA2018T5) | 10,49 | −14,0 | 1202 | 199 | 21 | −9,2 | −6,6 | −4,2 | 2916 |
 | T1 — ontwerp 1 % (≈ RA2018T1) | 10,36 | −15,8 | 1395 | 361 | 57 | −12,7 | −10,2 | −7,6 | 3043 |
+| winter1979 — stresstest streng | 10,22 | −16,7 | 1357 | 366 | 98 | −12,5 | −11,4 | −10,2 | 3096 |
+| winter1963 — stresstest extreem | 9,43 | −17,6 | 1778 | 727 | 145 | −12,0 | −10,3 | −8,7 | 3382 |
 
-**`knmi-debilt-1991-2025.json`** (≈ 1,1 MB, **lazy laden** via dynamic import, alleen als de gebruiker een werkelijk jaar kiest):
+**`knmi-debilt-1951-2025.json`** (≈ 2,3 MB, **lazy laden** via dynamic import, alleen als de gebruiker een werkelijk jaar kiest):
 
 ```jsonc
-{ "meta": { "bron": "...", "startWeekdag": { "1991": 2, ..., "2025": 3 }, "statistiek": { "1991": {...}, ... } },
-  "T": { "1991": [8760 × int 0,1 °C], ..., "2025": [...] } }
+{ "meta": { "bron": "...", "aanbevolen_stresstest": [1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012],
+            "startWeekdag": { "1951": 1, ..., "2025": 3 }, "statistiek": { "1951": {...}, ... } },
+  "T": { "1951": [8760 × int 0,1 °C], ..., "2025": [...] } }
 ```
 
 Werkelijke jaren: 29 februari weggelaten; `startWeekdag` is de echte weekdag van 1 januari (ISO, 1 = maandag), zodat kantoorweken op echte weekdagen vallen. Feestdagen worden genegeerd.
 
-Leesbare CSV-versies (`docs/klimaat/referentiejaar_*.csv`, puntkomma-gescheiden, kolommen `uur_index;maand;dag;uur_MET;weekdag;T_C;RV_pct;wind_ms;Qglob_Wm2;bronjaar`) en `docs/klimaat/statistiek_jaren.csv` zijn documentatie, geen runtime-data.
+Leesbare CSV-versies (`docs/klimaat/referentiejaar_*.csv`, puntkomma-gescheiden, kolommen `uur_index;maand;dag;uur_MET;weekdag;T_C;RV_pct;wind_ms;Qglob_Wm2;bronjaar`) , `docs/klimaat/statistiek_jaren.csv` en `docs/klimaat/winterstatistiek_1951_2025.csv` (Hellmann-getal en koudste 24/72/168/336/720 uur per stookseizoen nov–mrt, 1951/52–2024/25) zijn documentatie, geen runtime-data.
 
-Scripts om alles te reproduceren staan in `scripts/klimaat/` (`download_knmi.sh`, `parse_knmi.py`, `match_months.py`, `build_reference_years.py`, zie `docs/klimaat/README.md`). Ze zijn niet nodig voor de build.
+Scripts om alles te reproduceren staan in `scripts/klimaat/` (`download_knmi.sh`, `parse_knmi.py`, `match_months.py`, `tmy_iso15927.py`, `winter_stats.py`, `build_reference_years.py`, zie `docs/klimaat/README.md`). Ze zijn niet nodig voor de build.
 
 ### 4.3 Keuzelijst klimaatjaar (in de kop)
 
-- *Ontwerpjaar T5 — gematigd streng (≈ NEN 5060:2018 ref T5)* — **default**
-- *Ontwerpjaar T1 — zeer streng (≈ NEN 5060:2018 ref T1)*
+- *Ontwerpjaar T1 — strenge winter (≈ NEN 5060:2018 ref T1)* — **default**
+- *Ontwerpjaar T5 — gemiddelde winter (≈ NEN 5060:2018 ref T5)*
 - *Energiejaar — langjarig gemiddeld (≈ NEN 5060:2018 energie)*
-- *Werkelijk jaar KNMI De Bilt …* (sub-lijst 1991–2025, met per jaar T min en koudste week in de tooltip; aanbevolen stresstests gemarkeerd: 1996, 1997, 2010, 2012, 2013, 2018, 2021)
+- *Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)*
+- *Stresstest extreme winter 1962/63 (≈ 1× per eeuw)*
+- *Werkelijk jaar KNMI De Bilt …* (sub-lijst 1951–2025, met per jaar T min en koudste week in de tooltip; aanbevolen stresstests gemarkeerd: 1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012)
 
-Tooltip per keuze: de statistiekregel uit de tabel hierboven. Toelichting onder de keuzelijst: *"Voor dimensioneren is T5 de gebruikelijke keuze; T1 is de stresstest. Het energiejaar is bedoeld voor jaarverbruik en SCOP, niet voor pieken."*
+Tooltip per keuze: de omschrijving (`meta.jaren.<naam>.omschrijving`) plus de statistiekregel uit de tabel hierboven. Toelichting onder de keuzelijst: *"Dimensioneer op T1 (strenge winter, 1 %-ontwerpjaar) en controleer met de stresstest 1978/79. T5 toont een gemiddelde winter, het energiejaar is bedoeld voor jaarverbruik en SCOP. Herhalingstijden zijn empirisch uit 1951–2025 en in het huidige klimaat eerder langer."*
 
 ### 4.4 Koudste week
 
-De koude week waarop de grafieken automatisch inzoomen is de aaneengesloten periode van **168 uur met de hoogste som van de ideale warmtevraag** `Q_ideal` (§5.6, pass 1), bij gelijke som de laagste gemiddelde buitentemperatuur. Getoond wordt die week **plus 24 uur ervoor en erna** (216 uur). De gebruiker kan in de grafiek pannen/zoomen; knop *Terug naar koude week*. Referentie: voor woning én kantoor met defaults in T5 begint de koude week op uurindex **314** (14 januari 02:00 MET); voor het energiejaar op 289.
+De koude week waarop de grafieken automatisch inzoomen is de aaneengesloten periode van **168 uur met de hoogste som van de ideale warmtevraag** `Q_ideal` (§5.6, pass 1), bij gelijke som de laagste gemiddelde buitentemperatuur. De zoektocht is **cyclisch**: het venster mag over de jaargrens lopen (het jaar wordt immers ook cyclisch gesimuleerd), en het startuur kan dus groter zijn dan 8760 − 168; de weergave plakt dan de laatste decemberuren vóór 1 januari (x-as "31 dec … 7 jan"). Getoond wordt die week **plus 24 uur ervoor en erna** (216 uur). De gebruiker kan in de grafiek pannen/zoomen; knop *Terug naar koude week*. Referentie: voor woning én kantoor met defaults in T5 begint de koude week op uurindex **314** (14 januari 02:00 MET); voor het energiejaar op 289; voor `winter1979` op **8736** (31 december 00:00, doorlopend tot 6 januari).
 
 ### 4.5 Optioneel (fase 2 of later, niet in v1): lokale import NEN 5060
 
@@ -390,7 +410,7 @@ Sjabloon: *"Met **{V} m³ buffer** en **{E} kWh batterij** heeft de warmtepomp *
 
 ### 6.3 Robuustheidstabel (onder de KPI's, inklapbaar)
 
-Dezelfde configuratie doorgerekend voor *energie*, *T5*, *T1* (drie simulaties; WP-vermogen vast op de huidige waarde): kolommen piek warmtevraag, piek aan de meter, uren overschrijding, uren comfortverlies, SCOP, kWh/jaar. Markeer het geselecteerde jaar.
+Dezelfde configuratie doorgerekend voor *energie*, *T5*, *T1*, *winter1979* en *winter1963* (vijf simulaties; WP-vermogen vast op de huidige waarde): kolommen piek warmtevraag, piek aan de meter, uren overschrijding, uren comfortverlies, SCOP, kWh/jaar. Markeer het geselecteerde jaar.
 
 ### 6.4 Meldingen (met knop *Waarom?* die een uitlegregel uitklapt)
 
@@ -472,10 +492,11 @@ Alle controlewaarden uit §5.2, §5.3, §5.5, §5.7. Verder: `UA` woning 8 kW = 
 
 ### 9.2 Klimaatdata (`climate.test.ts`)
 
-- Elk referentiejaar 8760 waarden, geen NaN, `startWeekdag = 1`.
-- Maandgemiddelde T van elk referentiejaar wijkt < 0,06 K af van `maandgemiddelde_T_NEN5060_2018`.
-- Statistiek klopt met §4.2 (T min, uren < 0, koudste week).
-- Werkelijke jaren: 35 jaren, elk 8760 waarden; `startWeekdag[2012] = 7`, `startWeekdag[1997] = 3`.
+- Vijf referentiejaren, elk 8760 waarden, geen NaN, `startWeekdag = 1`.
+- Maandgemiddelde T van `energie`, `T5` en `T1` wijkt < 0,06 K af van `maandgemiddelde_T_NEN5060_2018`; bij `winter1979`/`winter1963` is dat veld `null`; hun maanden apr–okt komen uit dezelfde bronmaanden als T1 (`bronjaar_per_maand[3..9]` identiek).
+- Statistiek klopt met §4.2 (T min, uren < 0, koudste week; `winter1979` koudste week −10,2 °C vanaf uur 8736).
+- `coldestWeekStart` is cyclisch: voor `winter1979` met de woning-defaults geeft het 8736 (de week 31 dec – 6 jan), niet 0.
+- Werkelijke jaren: 75 jaren (1951–2025), elk 8760 waarden; `startWeekdag[2012] = 7`, `startWeekdag[1997] = 3`, `startWeekdag[1963] = 2`, `startWeekdag[1979] = 1`; `aanbevolen_stresstest` bevat 1963 en 1979.
 
 ### 9.3 Gebouwschema (`schedule.test.ts`)
 
@@ -499,13 +520,18 @@ Alle cases met defaults van §3 tenzij vermeld. Woning: 1×35 A, aandeel 40 % (P
 | W6 WP 8 kW, buffer 2 m³ | T5 | zacht | 7,52 | 2,75 | 2,75 | 0 | 0,00 | 15 | 18,25 | 5152 | 3,34 | 500,0 | 331,9 | 8,74 |
 | W7 WP 8 kW, geen buffer | T1 | zacht | 8,15 | 2,74 | 2,74 | 0 | 0,00 | 253 | 13,88 | 5274 | 3,39 | 0 | 0 | 12,93 |
 | W8 WP 8 kW, geen buffer | energie | zacht | 6,23 | 2,73 | 2,73 | 0 | 0,00 | 2 | 19,47 | 4188 | 3,79 | 0 | 0 | 8,14 |
+| W9 WP 8 kW, geen buffer | winter1979 | zacht | 8,28 | 2,75 | 2,75 | 0 | 0,00 | 228 | 13,25 | 5319 | 3,40 | 0 | 0 | 12,18 |
+| W10 WP 8 kW, buffer 1 m³ | winter1979 | zacht | 8,28 | 2,75 | 2,75 | 0 | 0,00 | 189 | 13,38 | 5477 | 3,31 | — | — | 10,57 |
+| W11 WP 8 kW, geen buffer | winter1963 | zacht | 8,17 | 2,75 | 2,75 | 0 | 0,00 | 595 | 14,38 | 6082 | 3,26 | 0 | 0 | 12,92 |
 | K1 kantoor 100 kW, WP 100 kW, geen buffer/batterij | T5 | zacht | 133,92 | 28,80 | 28,80 | 132 | 1,09 | 121 | 14,79 | 56 388 | 3,71 | 0 | 0 | 172,40 |
 | K2 idem, buffer 10 m³ | T5 | zacht | 133,92 | 28,48 | 28,48 | 2 | 0,77 | 8 | 17,48 | 57 967 | 3,63 | 5898 | 1280 | 125,81 |
 | K3 WP 70 kW, buffer 10 m³ + batterij 50 kWh | T5 | zacht | 133,92 | 25,64 | 25,64 | 0 | 0,00 | 271 | 10,30 | 55 800 | 3,65 | 10 912 | 1378 | — |
 | K4 als K3, modus 'limited' | T5 | hard | 133,92 | 25,64 | 25,64 | 0 | 0,00 | 271 | 10,30 | 55 800 | 3,65 | 10 912 | 1378 | — |
 | K5 WP 100 kW, geen buffer | T1 | zacht | 144,74 | 28,80 | 28,80 | 183 | 1,09 | 155 | 12,28 | 60 137 | 3,61 | 0 | 0 | 205,75 |
+| K6 WP 100 kW, geen buffer | winter1979 | zacht | 145,13 | 28,80 | 28,80 | 190 | 1,09 | 140 | 11,10 | 60 812 | 3,61 | 0 | 0 | 209,39 |
+| K7 WP 100 kW, buffer 20 m³ | winter1963 | zacht | 138,60 | 28,80 | 28,80 | 42 | 1,09 | 88 | 13,43 | 73 239 | 3,33 | — | — | 117,37 |
 
-(W1–W3: de piek aan de meter is in deze cases laag omdat de WP van 8 kW thermisch te klein is — dat is precies wat de comfortverliesuren laten zien; de sizing-kolom geeft de werkelijk benodigde machine.)
+(W1–W3: de piek aan de meter is in deze cases laag omdat de WP van 8 kW thermisch te klein is — dat is precies wat de comfortverliesuren laten zien; de sizing-kolom geeft de werkelijk benodigde machine. Vergelijk de laatste kolom per klimaatjaar: woning zonder buffer 8,1 (energie) → 10,6 (T5) → 12,9 (T1) → 12,2 (1979) → 12,9 kW (1963); met 1 m³ buffer 8,7 (T5) → 10,6 kW (1979). Kantoor met 20 m³ buffer: 96 kW in T5 tegen 117 kW in 1963 — het plateau ligt in een aanhoudend strenge winter hoger. De cellen "—" zijn in de fixture wel aanwezig en moeten ook getest worden.)
 
 ### 9.6 Gevoeligheid (`sweep.test.ts`) — woning 8 kW, T5, WP = `P_th,min(V)`
 
@@ -550,7 +576,7 @@ Pagina rendert met defaults; het wijzigen van het piekvermogen schaalt de schuif
 src/concepts/peakshaving/
   data/
     referentiejaren.json          (meegeleverd)
-    knmi-debilt-1991-2025.json    (meegeleverd; lazy import)
+    knmi-debilt-1951-2025.json    (meegeleverd; lazy import)
     connections.ts                 standaardaansluitingen §5.5
     heatPumpCurves.ts              capaciteitsfactor, ontdooifactor, stooklijnpresets §5.2
     dhwProfile.ts                  tapwaterprofiel §5.7
@@ -581,7 +607,7 @@ tests/peakshaving/
   components.test.ts climate.test.ts schedule.test.ts ideal.test.ts simulate.test.ts sweep.test.ts invariants.test.ts ui.test.tsx
   fixtures/referentiewaarden.json
 tools/peakshaving_ref/             (meegeleverd) peakshaving_ref.py run_cases.py inspect_week.py referentiewaarden.json README.md
-scripts/klimaat/                   (meegeleverd) download_knmi.sh parse_knmi.py match_months.py tmy_iso15927.py build_reference_years.py
+scripts/klimaat/                   (meegeleverd) download_knmi.sh parse_knmi.py match_months.py tmy_iso15927.py winter_stats.py build_reference_years.py
 docs/SPEC-peakshaving.md  docs/klimaat/README.md  docs/klimaat/*.csv  docs/AANNAMES.md (sectie toevoegen)
 ```
 
@@ -594,7 +620,7 @@ docs/SPEC-peakshaving.md  docs/klimaat/README.md  docs/klimaat/*.csv  docs/AANNA
   5. *Kantoor 100 kW, 3×80 A — zonder maatregelen*
   6. *Kantoor 100 kW — 20 m³ buffer* (past binnen 3×80 A bij 50 %)
   7. *Kantoor 100 kW — 10 m³ buffer en 100 kWh batterij*
-  8. *Kantoor 100 kW — stresstest T1 met 20 m³ buffer*
+  8. *Kantoor 100 kW — stresstest strenge winter 1978/79 met 20 m³ buffer*
 - `texts.ts`: alle UI-teksten, tooltips, meldingteksten (Nederlands) op één plek.
 
 ---
@@ -610,7 +636,7 @@ Secties met korte alinea's en één formule per sectie:
 5. **Batterij** — nuttig deel, rendement, 0,5 C; laden onder de budgetlijn, ontladen erboven.
 6. **Aansluiting en budget** — standaardaansluitwaarden, \(P = \sqrt{3}\,U\,I\), aandeel voor de WP, waarom overig gebruik volledig wordt meegerekend.
 7. **Dimensioneren** — bisectie op comfortcriterium; kleinste aansluiting; de gevoeligheidsgrafiek lezen.
-8. **Klimaatjaren** — NEN 5060:2018 (1996–2015), T1/T5/energie, de reconstructie uit KNMI-data en haar beperkingen, werkelijke jaren als stresstest.
+8. **Klimaatjaren** — NEN 5060:2018 (1996–2015), T1/T5/energie en wat hun winters wél en niet zijn, de reconstructie uit KNMI-data en haar beperkingen, de stresstestjaren 1978/79 en 1962/63 (met de empirische herhalingstijd en de kanttekening klimaatverandering), werkelijke jaren 1951–2025.
 9. **Beperkingen** — samenvatting van §12.
 
 ---
@@ -624,7 +650,7 @@ Secties met korte alinea's en één formule per sectie:
 5. Batterij exclusief voor de WP-groep; gretig laden onder de budgetlijn; geen degradatie, geen stilstandsverlies, geen tariefsturing.
 6. Tapwater via boiler met hysterese 50 %/100 %, boiler op 55 °C, 85 % nuttig; vast dagprofiel; geen legionellaprogramma.
 7. Aansluitingen met cos φ = 1; overig gebruik op het piekmoment volledig benut; geen gelijktijdigheidsfactor.
-8. Klimaat: reconstructie van NEN 5060:2018-referentiejaren uit KNMI De Bilt-uurdata (maandkeuze op basis van gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); jaar begint op maandag; tijd in MET zonder zomertijd; schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering.
+8. Klimaat: reconstructie van NEN 5060:2018-referentiejaren uit KNMI De Bilt-uurdata (maandkeuze op basis van gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); stresstestjaren = T1 met het werkelijke stookseizoen nov–mrt van 1978/79 resp. 1962/63; jaar begint op maandag; tijd in MET zonder zomertijd; schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering (herhalingstijden empirisch uit 1951–2025).
 9. Perfecte voorspelling bij de laadstrategie 'voorspellend' (de simulatie kent het weer van de komende 24 uur).
 10. Rekenresultaten zijn indicatief voor conceptkeuze; productselectie altijd met fabrikantdata (capaciteitstabellen, geluid, hydrauliek).
 

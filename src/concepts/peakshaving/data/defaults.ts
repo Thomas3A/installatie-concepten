@@ -1,6 +1,7 @@
 // Standaardwaarden woning en kantoor (spec §3; gelijk aan woning_defaults(8) en kantoor_defaults(100) in de referentie).
 // Meerdere woningen (buiten de spec, zie docs/AANNAMES.md): woningstandaard met appartementwaarden (piekvermogen en
 // tapwater per woning) × n woningen en een eigen aansluiting.
+import { DEFAULT_CLIMATE_YEAR } from '../model/climate';
 import type {
   Battery,
   Building,
@@ -113,7 +114,7 @@ export const MULTI_DEFAULT_SHARE = 0.8;
 export function multiDwellingInput(dwellings = DEFAULT_DWELLINGS): PeakshavingInput {
   const one = residentialBuilding();
   return {
-    climateYear: 'T5',
+    climateYear: DEFAULT_CLIMATE_YEAR,
     building: {
       ...one,
       dwellings,
@@ -146,10 +147,10 @@ export function defaultInputOfKind(kind: BuildingKind): PeakshavingInput {
   return kind === 'multi' ? multiDwellingInput() : defaultInput(kind === 'office' ? 'office' : 'residential');
 }
 
-/** Volledige standaardinvoer voor een gebouwfunctie (klimaatjaar T5). */
+/** Volledige standaardinvoer voor een gebouwfunctie (klimaatjaar T1, spec §4.3). */
 export function defaultInput(use: BuildingUse = 'residential'): PeakshavingInput {
   return {
-    climateYear: 'T5',
+    climateYear: DEFAULT_CLIMATE_YEAR,
     building: defaultBuilding(use),
     grid: defaultGrid(use),
     heatPump: defaultHeatPump(use),

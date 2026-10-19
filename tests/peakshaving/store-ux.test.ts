@@ -549,7 +549,7 @@ describe('store: deellink zonder UI-toestand', () => {
     ).toBe(true);
     for (const ui of ['basisOpen', 'ownInput', 'undo', 'notice', 'tourStep', 'reveal', 'openedFromLink'])
       expect(json).not.toContain(ui);
-    expect(JSON.parse(json).v).toBe(1);
+    expect(JSON.parse(json).v).toBe(2);
     expect(decodeInput(code)).toEqual(st().input);
     st().endTour();
   });

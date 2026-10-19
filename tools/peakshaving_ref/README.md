@@ -4,7 +4,7 @@
 
 - `run_cases.py <referentiejaren.json> <uitvoermap>` — draait de referentiecases en de gevoeligheidsreeksen en schrijft `referentiewaarden.json` (ook als fixture voor Vitest te gebruiken).
 - `inspect_week.py <referentiejaren.json>` — print de uurreeksen van de koude week voor twee cases (handig om de dispatch te controleren).
-- `referentiewaarden.json` — de uitkomsten die bij deze versie horen (gegenereerd 16-10-2026).
+- `referentiewaarden.json` — de uitkomsten die bij deze versie horen (gegenereerd 16-10-2026, vijf klimaatjaren).
 
 Vereist alleen Python 3.10+ (standaardbibliotheek). Draai met `python3 -I`.
 

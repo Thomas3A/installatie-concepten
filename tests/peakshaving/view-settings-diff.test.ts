@@ -38,7 +38,7 @@ describe('Meer instellingen: aantal aangepaste velden', () => {
       'kantoor-basis': 0,
       'kantoor-buffer': 0,
       'kantoor-buffer-batterij': 0,
-      'kantoor-t1': 1,
+      'kantoor-winter1979': 1,
     });
     expect(moreSettingsChanged(withDesignLoad(base('single'), 12))).toBe(0);
   });

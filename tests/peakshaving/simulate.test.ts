@@ -36,6 +36,25 @@ const HOUR_KEYS: [string, string][] = [
 ];
 
 describe('referentiecases (spec §9.5)', () => {
+  it('18 cases: W1–W11 en K1–K7, in vijf klimaatjaren', () => {
+    const ids = FIXTURE.cases.map((c) => c.naam.split(' ')[0]);
+    expect(ids).toEqual([
+      ...Array.from({ length: 11 }, (_, i) => `W${i + 1}`),
+      ...Array.from({ length: 7 }, (_, i) => `K${i + 1}`),
+    ]);
+    expect([...new Set(FIXTURE.cases.map((c) => c.jaar))].sort()).toEqual(
+      ['T1', 'T5', 'energie', 'winter1963', 'winter1979'].sort(),
+    );
+  });
+
+  it('de stresstestcases gebruiken de koude week van hun eigen jaar (winter1979: over de jaargrens)', () => {
+    const start = (id: string): number =>
+      FIXTURE.cases.find((c) => c.naam.startsWith(`${id} `))!.kpi.koudste_week_start;
+    expect(['W9', 'W10', 'K6'].map(start)).toEqual([8736, 8736, 8736]);
+    expect(start('W11')).toBe(368);
+    expect(start('K7')).toBe(368);
+  });
+
   for (const c of FIXTURE.cases) {
     it(c.naam, () => {
       const { setup, climate, mode } = caseSetup(c);
@@ -64,6 +83,7 @@ describe('referentiecases (spec §9.5)', () => {
 
 describe('tabel spec §9.5 (afgeronde waarden)', () => {
   // [case-prefix, Q_vraag,max, P_el,max, P_net,max, uren overschr., max overschr., uren comfort, min T_i, E_el, SCOP, E_buf,uit, E_buf,verlies, P_th,min]
+  // null = "—" in de spectabel; die waarden staan wel in de fixture en worden in 'referentiecases' getoetst
   const TABLE: [
     string,
     number,
@@ -75,8 +95,8 @@ describe('tabel spec §9.5 (afgeronde waarden)', () => {
     number,
     number,
     number,
-    number,
-    number,
+    number | null,
+    number | null,
     number | null,
   ][] = [
     ['W1', 7.52, 2.75, 2.75, 0, 0, 78, 17.51, 4966, 3.46, 0, 0, 10.56],
@@ -87,11 +107,16 @@ describe('tabel spec §9.5 (afgeronde waarden)', () => {
     ['W6', 7.52, 2.75, 2.75, 0, 0, 15, 18.25, 5152, 3.34, 500.0, 331.9, 8.74],
     ['W7', 8.15, 2.74, 2.74, 0, 0, 253, 13.88, 5274, 3.39, 0, 0, 12.93],
     ['W8', 6.23, 2.73, 2.73, 0, 0, 2, 19.47, 4188, 3.79, 0, 0, 8.14],
+    ['W9', 8.28, 2.75, 2.75, 0, 0, 228, 13.25, 5319, 3.4, 0, 0, 12.18],
+    ['W10', 8.28, 2.75, 2.75, 0, 0, 189, 13.38, 5477, 3.31, null, null, 10.57],
+    ['W11', 8.17, 2.75, 2.75, 0, 0, 595, 14.38, 6082, 3.26, 0, 0, 12.92],
     ['K1', 133.92, 28.8, 28.8, 132, 1.09, 121, 14.79, 56388, 3.71, 0, 0, 172.4],
     ['K2', 133.92, 28.48, 28.48, 2, 0.77, 8, 17.48, 57967, 3.63, 5898, 1280, 125.81],
     ['K3', 133.92, 25.64, 25.64, 0, 0, 271, 10.3, 55800, 3.65, 10912, 1378, null],
     ['K4', 133.92, 25.64, 25.64, 0, 0, 271, 10.3, 55800, 3.65, 10912, 1378, null],
     ['K5', 144.74, 28.8, 28.8, 183, 1.09, 155, 12.28, 60137, 3.61, 0, 0, 205.75],
+    ['K6', 145.13, 28.8, 28.8, 190, 1.09, 140, 11.1, 60812, 3.61, 0, 0, 209.39],
+    ['K7', 138.6, 28.8, 28.8, 42, 1.09, 88, 13.43, 73239, 3.33, null, null, 117.37],
   ];
   for (const row of TABLE) {
     const [id, qMax, pEl, pNet, hEx, maxEx, hCom, minTi, eEl, scop, bufOut, bufLoss, pth] = row;
@@ -109,8 +134,8 @@ describe('tabel spec §9.5 (afgeronde waarden)', () => {
       expectCloseTemp(k.minIndoorC, minTi, 'min T_i');
       expectClosePower(k.eElectricKwh, eEl, 'E_el');
       expectClosePower(k.scop, scop, 'SCOP');
-      expectClosePower(k.eBufferOutKwh, bufOut, 'E_buf,uit');
-      expectClosePower(k.eBufferLossKwh, bufLoss, 'E_buf,verlies');
+      if (bufOut !== null) expectClosePower(k.eBufferOutKwh, bufOut, 'E_buf,uit');
+      if (bufLoss !== null) expectClosePower(k.eBufferLossKwh, bufLoss, 'E_buf,verlies');
       if (pth !== null) {
         const p = sizeHeatPump(setup.building, setup.heatPump, setup.buffer, climate, 0, prepared);
         expect(Math.abs(p - pth) / pth).toBeLessThanOrEqual(0.01);

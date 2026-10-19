@@ -430,13 +430,16 @@ describe('normalizeInput (spec §3)', () => {
     expect(at(6)).toBe(6);
   });
 
-  it('klimaatjaar: referentiejaren en werkelijke jaren 1991–2025 blijven, de rest wordt T5', () => {
-    expect(normalizeInput({ climateYear: 'T1' }).climateYear).toBe('T1');
+  it('klimaatjaar: referentiejaren en werkelijke jaren 1951–2025 blijven, de rest wordt T1 (standaard)', () => {
+    expect(normalizeInput({ climateYear: 'T5' }).climateYear).toBe('T5');
     expect(normalizeInput({ climateYear: 'energie' }).climateYear).toBe('energie');
+    expect(normalizeInput({ climateYear: 'winter1979' }).climateYear).toBe('winter1979');
+    expect(normalizeInput({ climateYear: 'winter1963' }).climateYear).toBe('winter1963');
     expect(normalizeInput({ climateYear: 'knmi-1997' }).climateYear).toBe('knmi-1997');
-    expect(normalizeInput({ climateYear: 'knmi-1990' }).climateYear).toBe('T5');
-    expect(normalizeInput({ climateYear: 'knmi-2026' }).climateYear).toBe('T5');
-    expect(normalizeInput({ climateYear: 1997 }).climateYear).toBe('T5');
+    expect(normalizeInput({ climateYear: 'knmi-1951' }).climateYear).toBe('knmi-1951');
+    expect(normalizeInput({ climateYear: 'knmi-1950' }).climateYear).toBe('T1');
+    expect(normalizeInput({ climateYear: 'knmi-2026' }).climateYear).toBe('T1');
+    expect(normalizeInput({ climateYear: 1997 }).climateYear).toBe('T1');
   });
 
   it('gebruikstijden: eind ligt altijd na begin', () => {

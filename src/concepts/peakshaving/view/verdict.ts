@@ -21,6 +21,8 @@ export const NEARLY_FIT_FRACTION = 0.03;
 export const AMPLE_MARGIN_FRACTION = 0.25;
 /** Een batterij schaaft af als de piek zonder batterij meer dan 5 W hoger ligt. */
 export const SHAVE_EPS_KW = 0.005;
+/** Klimaatjaar van de stresstestregel in het oordeel (spec §4.3: controleren met de strenge winter 1978/79). */
+export const STRESS_LINE_YEAR = 'winter1979';
 
 /** Deel van de meterbalk: van `fromKw` tot `toKw`, en als fractie (0…1) van de schaal. */
 export interface MeterSpan {
@@ -355,12 +357,13 @@ export function buildVerdict(a: Analysis, sens: SensitivityState | null): Verdic
     if (fixes.length > 0) fixesLabel = VERDICT_TEXTS.fixesLabel.smaller;
   }
 
-  const t1 = a.robustness.find((r) => r.climateId === 'T1');
+  // stresstest: de strenge winter 1978/79 uit de robuustheidstabel (spec §4.3, §6.3)
+  const stress = a.robustness.find((r) => r.climateId === STRESS_LINE_YEAR);
   const stressLine =
-    a.climateId === 'T1'
+    a.climateId === STRESS_LINE_YEAR
       ? VERDICT_TEXTS.stressSelf(a.input.heatPump.sizingMode === 'auto')
-      : t1
-        ? VERDICT_TEXTS.stress(t1.exceedanceHours, t1.comfortLossHours)
+      : stress
+        ? VERDICT_TEXTS.stress(stress.exceedanceHours, stress.comfortLossHours)
         : null;
 
   return {

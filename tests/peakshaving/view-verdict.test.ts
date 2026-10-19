@@ -49,7 +49,10 @@ async function gridOf(input: PeakshavingInput): Promise<SensitivityState> {
   return { key, rows, total, done: true };
 }
 
-const scenario = (id: string): PeakshavingInput => normalizeInput(findScenario(id)!.build());
+// De geverifieerde uitkomsten van het UX-plan (§4.5) zijn in ontwerpjaar T5 doorgerekend; de voorbeelden rekenen
+// sinds de klimaatupdate standaard in T1, dus hier expliciet T5.
+const scenario = (id: string): PeakshavingInput =>
+  normalizeInput({ ...findScenario(id)!.build(), climateYear: 'T5' });
 
 function variant(id: string, patch: (i: PeakshavingInput) => void): PeakshavingInput {
   const i = scenario(id);
@@ -163,7 +166,7 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
       text: 'Met begrenzer: geen uur te koud (laagste 19,5 °C).',
       tone: 'neutral',
     });
-    expect(v.stressLine).toBe('Strenge winter (T1): 111 uur boven de limiet, 40 uur te koud.');
+    expect(v.stressLine).toBe('Strenge winter 1978/79: 106 uur boven de limiet, 95 uur te koud.');
   });
 
   it('woning-basis: tegels en meterbalk', () => {
@@ -219,7 +222,7 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
     ]);
     expect(v.tiles[1].line).toBe('geen enkel uur');
     expect(v.tiles[2].line).toBe('gelijk aan de huidige');
-    expect(v.stressLine).toBe('Strenge winter (T1): 0 uur boven de limiet, 48 uur te koud.');
+    expect(v.stressLine).toBe('Strenge winter 1978/79: 0 uur boven de limiet, 135 uur te koud.');
     expect(v.fixesLabel).toBe('Kleinere aansluiting volstaat ook');
     // 1×25 A past zonder batterij nergens, met batterij al bij 0,50 m³ of minder: alleen de aansluiting, het oordeel
     // noemt daarna de exacte batterij (niet de grovere rasterbatterij of meer buffer)
@@ -307,7 +310,7 @@ describe('oordeel: geverifieerde uitkomsten (§4.5)', () => {
       text: 'Met begrenzer: 115 uur te koud (laagste 15,2 °C).',
       tone: 'warn',
     });
-    expect(v.stressLine).toBe('Strenge winter (T1): 424 uur boven de limiet, 157 uur te koud.');
+    expect(v.stressLine).toBe('Strenge winter 1978/79: 479 uur boven de limiet, 140 uur te koud.');
     expect(labels(v.fixes)).toEqual([
       '20,00 m³ buffer',
       '200,0 kWh batterij',
@@ -644,14 +647,20 @@ describe('oordeel: raster en modus', () => {
     expect(v.meter.shaved).toBeNull();
   });
 
-  it('T1 zelf gekozen: de stresstestregel zegt dat, en bij automatisch WP-vermogen dat de WP op T1 is gedimensioneerd', async () => {
-    const a = await analyzeInput(scenario('kantoor-t1'));
+  it('1978/79 zelf gekozen: de stresstestregel zegt dat, en bij automatisch WP-vermogen dat de WP op 1978/79 is gedimensioneerd', async () => {
+    const a = await analyzeInput(normalizeInput(findScenario('kantoor-winter1979')!.build()));
+    expect(a.climateId).toBe('winter1979');
     expect(buildVerdict(a, null).stressLine).toBe(
-      'Dit is al de stresstest (T1); de warmtepomp is op dit jaar gedimensioneerd.',
+      'Dit is al de stresstest (1978/79); de warmtepomp is op dit jaar gedimensioneerd.',
     );
     const manual = await analyzeInput(
       normalizeInput({ ...a.input, heatPump: { ...a.input.heatPump, sizingMode: 'manual', nominalKw: 150 } }),
     );
-    expect(buildVerdict(manual, null).stressLine).toBe('Dit is al de stresstest (T1).');
+    expect(buildVerdict(manual, null).stressLine).toBe('Dit is al de stresstest (1978/79).');
+    // in T1, het ontwerpjaar, staat de regel van 1978/79 er gewoon
+    const t1 = await analyzeInput(normalizeInput({ ...a.input, climateYear: 'T1' }));
+    expect(buildVerdict(t1, null).stressLine).toMatch(
+      /^Strenge winter 1978\/79: \d+ uur boven de limiet, \d+ uur te koud\.$/,
+    );
   });
 });

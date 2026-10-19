@@ -62,9 +62,15 @@ export function weekdayOfDay(d: number, startWeekday: number): number {
   return ((startWeekday - 1 + d) % 7) + 1;
 }
 
-/** Arceer zaterdag en zondag. */
-export function shadeWeekends(u: uPlot, n: number, startWeekday: number, color: string): void {
-  shadeHours(u, n, (t) => weekdayOfDay(Math.floor(t / 24), startWeekday) >= 6, color);
+/** Arceer zaterdag en zondag; `hourOf` zet een x-waarde om naar het uur van het jaar (verlengde as, spec §4.4). */
+export function shadeWeekends(
+  u: uPlot,
+  n: number,
+  startWeekday: number,
+  color: string,
+  hourOf: (t: number) => number = (t) => t,
+): void {
+  shadeHours(u, n, (t) => weekdayOfDay(Math.floor(hourOf(t) / 24), startWeekday) >= 6, color);
 }
 
 /**

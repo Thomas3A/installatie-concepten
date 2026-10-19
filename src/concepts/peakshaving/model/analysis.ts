@@ -11,6 +11,7 @@ import {
   coldestWeekStart,
   coldWeekWindow,
   MONTH_START_HOUR,
+  wrapHour,
 } from './climate';
 import { connectionLabel, connectionPowerKw, gridLimitKw } from './grid';
 import { capacityFactor } from './heatPump';
@@ -90,6 +91,10 @@ export interface Analysis {
   withoutMeasures: { nominalKw: number; kpis: SimulationKpis; smallest: ConnectionAdvice };
   smallest: ConnectionAdvice;
   requiredBattery: BatteryAdvice | null;
+  /**
+   * koude week (start in [0, 8760)) en het venster van de grafieken ± 24 uur in doorlopende uren: `from` < 0 of
+   * `to` > 8760 als het over de jaargrens loopt (spec §4.4); de waarden staan in de reeksen op `wrapHour(t)`
+   */
   coldWeek: { start: number; from: number; to: number; meanOutdoorC: number };
   coldSpell: { days: number; meanC: number };
   /** per uur: in gebruik (1/0) en opstookuur (1/0), voor de banden in de grafieken */
@@ -114,29 +119,37 @@ function sortedDesc(a: Float64Array): Float64Array {
   return Float64Array.from(a).sort().reverse();
 }
 
+/** Gemiddelde over [from, to), cyclisch: een index buiten de reeks valt terug in de reeks (jaargrens). */
 function mean(a: ArrayLike<number>, from: number, to: number): number {
+  const n = a.length;
   let s = 0;
-  for (let i = from; i < to; i++) s += a[i];
+  for (let i = from; i < to; i++) s += a[((i % n) + n) % n];
   return to > from ? s / (to - from) : NaN;
 }
 
 /**
  * Koudste periode voor de uitleg "uren, geen dagen": de langste reeks opeenvolgende dagen met een daggemiddelde
- * onder 0 °C die de koude week raakt; is die korter dan 2 dagen, dan de koude week zelf.
+ * onder 0 °C die de koude week raakt; is die korter dan 2 dagen, dan de koude week zelf. Cyclisch, zoals de
+ * simulatie: een reeks en de koude week mogen over de jaargrens lopen (spec §4.4).
  */
 export function coldSpellOf(T: ArrayLike<number>, coldWeekStart: number): { days: number; meanC: number } {
   const nDays = Math.floor(T.length / 24);
   const daily = new Float64Array(nDays);
   for (let d = 0; d < nDays; d++) daily[d] = mean(T, d * 24, d * 24 + 24);
+  // dagen van de koude week, doorlopend geteld (d1 kan voorbij het jaar liggen)
   const d0 = Math.floor(coldWeekStart / 24);
-  const d1 = Math.min(nDays - 1, Math.floor((coldWeekStart + COLD_WEEK_HOURS - 1) / 24));
+  const d1 = Math.floor((coldWeekStart + COLD_WEEK_HOURS - 1) / 24);
+  // reeksen zoeken vanaf een dag zonder vorst, zodat een reeks over de jaargrens heel blijft
+  const s0 = daily.findIndex((v) => !(v < 0));
+  if (s0 < 0) return { days: nDays, meanC: mean(daily, 0, nDays) };
   let best = { from: -1, to: -1 };
-  let d = 0;
-  while (d < nDays) {
-    if (daily[d] < 0) {
+  let d = s0;
+  while (d < s0 + nDays) {
+    if (daily[d % nDays] < 0) {
       let e = d;
-      while (e + 1 < nDays && daily[e + 1] < 0) e++;
-      const overlaps = e >= d0 && d <= d1;
+      while (e + 1 < s0 + nDays && daily[(e + 1) % nDays] < 0) e++;
+      // [d, e] ligt in [0, 2 · nDays): vergelijk met de week een jaar eerder, gelijk en een jaar later
+      const overlaps = [-nDays, 0, nDays].some((k) => e + k >= d0 && d + k <= d1);
       if (overlaps && e - d > best.to - best.from) best = { from: d, to: e };
       d = e + 1;
     } else d++;
@@ -175,7 +188,10 @@ export function monthlyBalance(s: SimulationSeries): MonthBalance[] {
   return out;
 }
 
-/** Aandeel van de bepalende uren (comfortverlies of tapwatertekort) dat binnen [from, to) valt. */
+/**
+ * Aandeel van de bepalende uren (comfortverlies of tapwatertekort) dat binnen [from, to) valt; het venster mag over
+ * de jaargrens lopen (doorlopende uren).
+ */
 function shareInWindow(s: SimulationSeries, inUse: Uint8Array, from: number, to: number): number | null {
   let all = 0;
   let inside = 0;
@@ -184,7 +200,7 @@ function shareInWindow(s: SimulationSeries, inUse: Uint8Array, from: number, to:
       (inUse[t] === 1 && s.indoorC[t] < s.setpointC[t] - COMFORT_MARGIN_K) || s.dhwShortfall[t] > 1e-9;
     if (!fail) continue;
     all++;
-    if (t >= from && t < to) inside++;
+    if (wrapHour(t - from) < to - from) inside++;
   }
   return all > 0 ? inside / all : null;
 }
@@ -211,7 +227,7 @@ function argmax(a: ArrayLike<number>): number {
 }
 
 export interface AnalyzeOptions {
-  /** de drie referentiejaren (en eventueel het gekozen werkelijke jaar) voor de robuustheidstabel */
+  /** de vijf referentiejaren (en eventueel het gekozen werkelijke jaar) voor de robuustheidstabel */
   robustnessYears?: ClimateYear[];
 }
 

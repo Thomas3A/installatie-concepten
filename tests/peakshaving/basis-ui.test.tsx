@@ -8,7 +8,7 @@ import { defaultInputOfKind } from '../../src/concepts/peakshaving/data/defaults
 import type { Engine } from '../../src/concepts/peakshaving/model/engine';
 import { findScenario } from '../../src/concepts/peakshaving/scenarios';
 import { configureEngine, useStore } from '../../src/concepts/peakshaving/store';
-import { CLIMATE_NOTE_SHORT, HELP } from '../../src/concepts/peakshaving/texts';
+import { CLIMATE_NOTE, HELP } from '../../src/concepts/peakshaving/texts';
 import { BasisSection } from '../../src/concepts/peakshaving/ui/basis/BasisSection';
 import { stripChips } from '../../src/concepts/peakshaving/ui/basis/BasisStrip';
 import { STORAGE_KEYS } from '../../src/concepts/peakshaving/ui/storage';
@@ -352,9 +352,9 @@ describe('Meer instellingen', () => {
     renderBasis();
     expect(summaryText()).toBe('Meer instellingen · standaardwaarden');
     act(() => {
-      fireEvent.change(field('Klimaatjaar'), { target: { value: 'T1' } });
+      fireEvent.change(field('Klimaatjaar'), { target: { value: 'T5' } });
     });
-    expect(st().input.climateYear).toBe('T1');
+    expect(st().input.climateYear).toBe('T5');
     expect(summaryText()).toBe('Meer instellingen · 1 aangepast');
     typeAndBlur(field('Ontwerpbuitentemperatuur'), '−12');
     expect(summaryText()).toBe('Meer instellingen · 2 aangepast');
@@ -368,17 +368,57 @@ describe('Meer instellingen', () => {
     expect(summaryText()).toBe('Meer instellingen · 1 aangepast');
   });
 
-  it('klimaat: alle 38 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T5:"', () => {
+  it('klimaat: alle 80 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T1:"', () => {
     renderBasis();
     const select = screen.getByLabelText('Klimaatjaar') as HTMLSelectElement;
-    expect(select.options).toHaveLength(38);
+    expect(select.options).toHaveLength(80);
+    // volgorde en labels van spec §4.3, in drie groepen
+    const groups = Array.from(select.querySelectorAll('optgroup'));
+    expect(groups.map((g) => g.label)).toEqual([
+      'Referentiejaren (reconstructie NEN 5060:2018)',
+      'Stresstest strenge winter (T1 met een werkelijk stookseizoen)',
+      'Werkelijk jaar KNMI De Bilt (stresstest met echt weer)',
+    ]);
+    const options = Array.from(select.options);
+    expect(options.slice(0, 5).map((o) => [o.value, o.textContent])).toEqual([
+      ['T1', 'Ontwerpjaar T1 — strenge winter'],
+      ['T5', 'Ontwerpjaar T5 — gemiddelde winter'],
+      ['energie', 'Energiejaar — langjarig gemiddeld'],
+      ['winter1979', 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)'],
+      ['winter1963', 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)'],
+    ]);
+    // tooltip: de omschrijving uit de meta plus de statistiekregel
+    const w79 = options.find((o) => o.value === 'winter1979')!;
+    expect(w79.title).toMatch(
+      /^Stresstest strenge winter 1978\/79 \(koudste week −10 °C; ≈ 1× per 25 jaar in 1951–2025\)/,
+    );
+    expect(w79.title).toContain('koudste week −10,2 °C');
+    expect(options.find((o) => o.value === 'winter1963')!.title).toContain('Hellmann 346');
+    // werkelijke jaren 1951 t/m 2025, de aanbevolen stresstestjaren met ★
+    const real = options.slice(5);
+    expect(real).toHaveLength(75);
+    expect(real[0].value).toBe('knmi-1951');
+    expect(real[74].value).toBe('knmi-2025');
+    const starred = real.filter((o) => o.textContent?.includes('★')).map((o) => o.value);
+    expect(starred).toEqual(
+      [1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012].map((y) => `knmi-${y}`),
+    );
     expect(Array.from(select.options).some((o) => o.textContent?.startsWith('1997 ★'))).toBe(true);
     expect(select.getAttribute('aria-describedby')).toBe('ps-klimaat-statistiek');
     const stats = (): string => document.getElementById('ps-klimaat-statistiek')?.textContent ?? '';
-    expect(stats()).toMatch(/^Klimaatjaar T5: /);
-    expect(stats()).toContain('1.202 uur < 0 °C');
-    expect(select.title).toContain('1.202 uur < 0 °C');
-    expect(screen.getByText(CLIMATE_NOTE_SHORT)).toBeTruthy();
+    expect(stats()).toMatch(/^Klimaatjaar T1: /);
+    expect(stats()).toContain('1.395 uur < 0 °C');
+    expect(select.title).toContain('1.395 uur < 0 °C');
+    expect(select.title).toMatch(/^Ontwerpjaar T1, 1 % \(≈ NEN 5060:2018 ref T1\); winter streng/);
+    expect(screen.getByText(CLIMATE_NOTE)).toBeTruthy();
+    expect(CLIMATE_NOTE).toContain(
+      'Dimensioneer op T1 (strenge winter, 1 %-ontwerpjaar) en controleer met de stresstest 1978/79.',
+    );
+    act(() => {
+      fireEvent.change(select, { target: { value: 'winter1979' } });
+    });
+    expect(stats()).toMatch(/^Klimaatjaar winter 1978\/79: /);
+    expect(select.title).toMatch(/^Stresstest strenge winter 1978\/79/);
     act(() => {
       fireEvent.change(select, { target: { value: 'knmi-2012' } });
     });
@@ -413,7 +453,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Warm tapwater: tapwater 10 kWh/dag, wijzigen',
       'Aansluitwaarde: 1×35 A, wijzigen',
       'Aandeel voor warmtepomp: limiet 3,22 kW · 40 %, wijzigen',
-      'Klimaatjaar: T5, wijzigen',
+      'Klimaatjaar: T1, wijzigen',
     ]);
     const toolbar = screen.getByRole('toolbar', { name: 'Basis' });
     expect(
@@ -427,7 +467,7 @@ describe('Basis ingeklapt: de strook', () => {
       'tapwater 10 kWh/dag',
       '1×35 A',
       'limiet 3,22 kW · 40 %',
-      'T5',
+      'T1',
     ]);
   });
 
@@ -458,7 +498,7 @@ describe('Basis ingeklapt: de strook', () => {
       'Nachtverlaging: nachtverlaging, wijzigen',
       'Aansluitwaarde: 3×80 A, wijzigen',
       'Aandeel voor warmtepomp: limiet 27,7 kW · 50 %, wijzigen',
-      'Klimaatjaar: T5, wijzigen',
+      'Klimaatjaar: T1, wijzigen',
     ]);
     expect(screen.queryByText(/per woning/)).toBeNull();
     expect(screen.getByRole('toolbar').textContent).not.toMatch(/woning/);
@@ -481,7 +521,7 @@ describe('Basis ingeklapt: de strook', () => {
     const input = defaultInputOfKind('single');
     expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
     // alleen een ander klimaatjaar: dat heeft al een eigen chip
-    input.climateYear = 'T1';
+    input.climateYear = 'T5';
     expect(stripChips(input).some((c) => c.key === 'moreSettings')).toBe(false);
     input.grid.allowedExceedanceH = 5;
     input.heatPump.carnotEfficiency = 0.42;
@@ -560,7 +600,7 @@ describe('Basis ingeklapt: de strook', () => {
     renderBasis();
     collapse();
     expect(moreDetails().open).toBe(false);
-    click(screen.getByRole('button', { name: 'Klimaatjaar: T5, wijzigen' }));
+    click(screen.getByRole('button', { name: 'Klimaatjaar: T1, wijzigen' }));
     expect(st().basisOpen).toBe(true);
     expect(moreDetails().open).toBe(true);
     expect(document.activeElement).toBe(field('Klimaatjaar'));
@@ -652,8 +692,8 @@ describe('revealSetting van elders', () => {
 describe('voorbeeld in de regel', () => {
   it('elk voorbeeld met een korte titel', () => {
     renderBasis();
-    act(() => st().applyScenario('kantoor-t1'));
-    const sc = findScenario('kantoor-t1')!;
+    act(() => st().applyScenario('kantoor-winter1979'));
+    const sc = findScenario('kantoor-winter1979')!;
     expect(
       screen.getByText(`Ingevuld met voorbeeld „${sc.shortTitle}”. Pas het aan naar je eigen gebouw.`),
     ).toBeTruthy();

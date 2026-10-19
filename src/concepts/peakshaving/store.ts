@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { defaultInput } from './data/defaults';
 import { createEngineClient, type EngineClient, type EngineClientOptions } from './engineClient';
 import { sensitivityKey, type Analysis } from './model/analysis';
-import { climateInSentence, COLD_WEEK_HOURS } from './model/climate';
+import { climateInSentence, COLD_WEEK_HOURS, wrapHour } from './model/climate';
 import type { EngineResponse } from './model/engine';
 import {
   buildingKind,
@@ -596,18 +596,18 @@ export function configureEngine(options: EngineClientOptions = {}): void {
 
 /**
  * Standaarduur van de scrubber en het conceptschema: het uur van max P_net in de koude week zelf (168 uur, spec §8);
- * bij gelijke P_net (bijv. een batterij die op de limiet afschaaft) het uur met de hoogste P_el.
+ * bij gelijke P_net (bijv. een batterij die op de limiet afschaaft) het uur met de hoogste P_el. Een doorlopend uur:
+ * loopt de koude week over de jaargrens, dan kan het ≥ 8760 zijn (spec §4.4).
  */
 export function defaultScrubHour(a: Analysis): number {
   const { pGrid, pElectric } = a.main.series;
   const from = a.coldWeek.start;
-  const to = Math.min(from + COLD_WEEK_HOURS, pGrid.length);
+  const to = from + COLD_WEEK_HOURS;
   let best = from;
   for (let t = from; t < to; t++) {
-    if (
-      pGrid[t] > pGrid[best] + 1e-9 ||
-      (Math.abs(pGrid[t] - pGrid[best]) <= 1e-9 && pElectric[t] > pElectric[best])
-    )
+    const i = wrapHour(t);
+    const b = wrapHour(best);
+    if (pGrid[i] > pGrid[b] + 1e-9 || (Math.abs(pGrid[i] - pGrid[b]) <= 1e-9 && pElectric[i] > pElectric[b]))
       best = t;
   }
   return best;

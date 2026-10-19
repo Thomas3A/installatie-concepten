@@ -1,5 +1,6 @@
 // Scenario's: de acht van spec §10 plus twee met meerdere woningen op één warmtepomp (buiten de spec, zie
 // docs/AANNAMES.md). Basis is steeds de standaardinvoer van de gekozen gebouwfunctie, plus de genoemde wijzigingen.
+// De getallen in de beschrijvingen gelden voor het standaardklimaatjaar T1 (strenge winter, spec §4.3).
 import { defaultInput, multiDwellingInput } from './data/defaults';
 import { normalizeInput } from './model/input';
 import type { BuildingKind, PeakshavingInput } from './model/types';
@@ -48,7 +49,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: "Woning jaren '70 · zonder maatregelen",
     group: 'single',
     description:
-      'De warmtepomp wordt gedimensioneerd op de piek en komt zo’n honderd uur per jaar boven de WP-limiet van 3,2 kW.',
+      'De warmtepomp wordt gedimensioneerd op de piek (12,9 kW) en zit zo’n 150 uur per jaar boven de WP-limiet van 3,2 kW.',
     build: residential(() => undefined),
   },
   {
@@ -57,7 +58,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: "Woning jaren '70 · 0,5 m³ buffer",
     group: 'single',
     description:
-      'Een halve kuub buffer vangt de uurpieken op: de warmtepomp wordt kleiner en past binnen 1×35 A.',
+      'Een halve kuub buffer vangt de uurpieken op: de warmtepomp wordt kleiner (11,4 in plaats van 12,9 kW) en zit nog maar 2 uur per jaar boven de WP-limiet.',
     build: residential((i) => {
       i.buffer.volumeM3 = 0.5;
     }),
@@ -67,7 +68,8 @@ export const SCENARIOS: Scenario[] = [
     title: '… met 1 m³ buffer en 5 kWh batterij',
     shortTitle: "Woning jaren '70 · 1 m³ buffer + 5 kWh batterij",
     group: 'single',
-    description: 'Buffer én batterij: de meterpiek zakt zo ver dat de woning naar 1×25 A kan.',
+    description:
+      'Met 1 m³ buffer blijft de woning binnen 1×35 A, ook zonder batterij; op 1×25 A blijven er met 5 kWh batterij zo’n 45 uur boven de limiet.',
     build: residential((i) => {
       i.buffer.volumeM3 = 1;
       i.battery.capacityKwh = 5;
@@ -92,7 +94,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: '10 woningen · zonder maatregelen',
     group: 'multi',
     description:
-      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt zo’n 66 kW en zit ruim honderd uur per jaar boven de WP-limiet van 19,4 kW; pas 3×40 A past.',
+      'Verwarming plus het tapwater van tien woningen: de warmtepomp wordt zo’n 80 kW en zit zo’n 160 uur per jaar boven de WP-limiet van 19,4 kW; pas 3×50 A past.',
     build: multiDwelling(() => undefined),
   },
   {
@@ -101,7 +103,7 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: '10 woningen · 1 m³ buffer',
     group: 'multi',
     description:
-      'Eén kuub buffer vangt het bijladen van de boiler (’s ochtends en ’s avonds) op: de piek aan de meter zakt van 21,6 naar 19,4 kW en past zonder overschrijding binnen 3×35 A.',
+      'Eén kuub buffer: de warmtepomp wordt kleiner (75 in plaats van 80 kW), de piek aan de meter zakt van 25,7 naar 21,8 kW en de uren boven de WP-limiet van zo’n 160 naar 15; 3×40 A past.',
     build: multiDwelling((i) => {
       i.buffer.volumeM3 = 1;
     }),
@@ -120,7 +122,8 @@ export const SCENARIOS: Scenario[] = [
     title: 'Kantoor 100 kW — 20 m³ buffer',
     shortTitle: 'Kantoor 100 kW · 20 m³ buffer',
     group: 'office',
-    description: 'Met 20 m³ buffer past het kantoor binnen 3×80 A bij een aandeel van 50 %.',
+    description:
+      'Met 20 m³ buffer wordt de warmtepomp 127 in plaats van 206 kW, maar in de strenge winter van T1 zit de WP-groep nog 41 uur boven de limiet van 3×80 A bij 50 %.',
     build: office((i) => {
       i.buffer.volumeM3 = 20;
     }),
@@ -131,20 +134,21 @@ export const SCENARIOS: Scenario[] = [
     shortTitle: 'Kantoor 100 kW · 10 m³ buffer + 100 kWh batterij',
     group: 'office',
     description:
-      'Een kleinere buffer met een batterij: de batterij schaaft de laatste uren overschrijding af.',
+      'Een kleinere buffer met een batterij: de batterij brengt de uren boven de limiet van 80 naar 32; voor 0 uur is zo’n 440 kWh nodig.',
     build: office((i) => {
       i.buffer.volumeM3 = 10;
       i.battery.capacityKwh = 100;
     }),
   },
   {
-    id: 'kantoor-t1',
-    title: 'Kantoor 100 kW — stresstest T1 met 20 m³ buffer',
-    shortTitle: 'Kantoor 100 kW · stresstest T1, 20 m³ buffer',
+    id: 'kantoor-winter1979',
+    title: 'Kantoor 100 kW — stresstest strenge winter 1978/79 met 20 m³ buffer',
+    shortTitle: 'Kantoor 100 kW · stresstest 1978/79, 20 m³ buffer',
     group: 'office',
-    description: 'Hetzelfde kantoor in het zeer strenge ontwerpjaar T1: hoe robuust is de keuze?',
+    description:
+      'Het kantoor met 20 m³ buffer in de strenge winter van 1978/79 (≈ 1× per 25 jaar): zo’n 115 uur boven de limiet, tegen 41 in T1.',
     build: office((i) => {
-      i.climateYear = 'T1';
+      i.climateYear = 'winter1979';
       i.buffer.volumeM3 = 20;
     }),
   },

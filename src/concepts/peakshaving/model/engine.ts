@@ -3,6 +3,7 @@
 import refJson from '../data/referentiejaren.json';
 import { analyze, sensitivityAxes, type Analysis } from './analysis';
 import {
+  DEFAULT_CLIMATE_YEAR,
   decodeRealYear,
   decodeReferenceYear,
   isReferenceYear,
@@ -31,8 +32,14 @@ export type EngineResponse =
 
 export type Emit = (msg: EngineResponse, transfer?: Transferable[]) => void;
 
-/** Volgorde van de robuustheidstabel. */
-const ROBUSTNESS_ORDER: readonly ReferenceYearName[] = ['energie', 'T5', 'T1'];
+/** Volgorde van de robuustheidstabel (spec §6.3): de drie NEN-jaren en de twee stresstestjaren. */
+export const ROBUSTNESS_ORDER: readonly ReferenceYearName[] = [
+  'energie',
+  'T5',
+  'T1',
+  'winter1979',
+  'winter1963',
+];
 
 /** Overdraagbare buffers van een doorrekening (sneller dan kopiëren). */
 export function transferablesOf(a: Analysis): Transferable[] {
@@ -46,15 +53,15 @@ export function transferablesOf(a: Analysis): Transferable[] {
 const nextTick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 /**
- * Werkelijke jaren (1,1 MB) pas laden als ze nodig zijn. In de browser met fetch: een mislukte dynamische import()
+ * Werkelijke jaren (2,3 MB) pas laden als ze nodig zijn. In de browser met fetch: een mislukte dynamische import()
  * onthoudt de browser tot de pagina herlaadt, een mislukte fetch kan opnieuw. In de tests (Node) direct importeren.
  */
 async function loadRealYearsDefault(): Promise<RealYearsJson> {
   if (import.meta.env.MODE === 'test') {
-    const m = await import('../data/knmi-debilt-1991-2025.json');
+    const m = await import('../data/knmi-debilt-1951-2025.json');
     return (m.default ?? m) as unknown as RealYearsJson;
   }
-  const res = await fetch(new URL('../data/knmi-debilt-1991-2025.json', import.meta.url));
+  const res = await fetch(new URL('../data/knmi-debilt-1951-2025.json', import.meta.url));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as RealYearsJson;
 }
@@ -85,7 +92,7 @@ export function createEngine(loadRealYears?: () => Promise<RealYearsJson>): Engi
   async function climate(id: ClimateYearId): Promise<ClimateYear> {
     if (isReferenceYear(id)) return reference(id);
     const year = realYearOf(id);
-    if (year === null) return reference('T5');
+    if (year === null) return reference(DEFAULT_CLIMATE_YEAR);
     let y = realYears.get(year);
     if (!y) {
       // een mislukte download niet onthouden: het volgende verzoek probeert opnieuw

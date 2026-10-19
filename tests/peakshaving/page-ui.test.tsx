@@ -173,10 +173,12 @@ describe('peakshaving-pagina: klimaatjaar en robuustheid', () => {
     const select = screen.getByLabelText('Klimaatjaar') as HTMLSelectElement;
     const statsId = select.getAttribute('aria-describedby')!;
     const stats = document.getElementById(statsId)?.textContent ?? '';
-    expect(stats).toContain('Klimaatjaar T5');
-    expect(stats).toContain('1.202 uur < 0 °C');
-    expect(stats).toContain('T min −14,0 °C');
-    expect(select.title).toContain('1.202 uur < 0 °C');
+    // standaardklimaatjaar T1 (spec §4.3)
+    expect(select.value).toBe('T1');
+    expect(stats).toContain('Klimaatjaar T1');
+    expect(stats).toContain('1.395 uur < 0 °C');
+    expect(stats).toContain('T min −15,8 °C');
+    expect(select.title).toContain('1.395 uur < 0 °C');
     act(() => {
       fireEvent.change(select, { target: { value: 'knmi-2012' } });
     });
@@ -202,6 +204,9 @@ describe('peakshaving-pagina: klimaatjaar en robuustheid', () => {
     ]);
     expect(details.textContent).toMatch(/zonder begrenzer/);
     expect(details.textContent).toMatch(/als de aansluiting begrenst/);
+    // vijf rijen (spec §6.3), het gekozen jaar gemarkeerd
+    const rows = Array.from(details.querySelectorAll('tbody th')).map((th) => th.textContent);
+    expect(rows).toEqual(['energiejaar', 'T5', 'T1 (gekozen)', 'winter 1978/79', 'winter 1962/63']);
   }, 30000);
 });
 
