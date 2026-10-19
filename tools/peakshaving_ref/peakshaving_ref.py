@@ -441,13 +441,14 @@ def kleinste_aansluiting(gb, wp, buf, bat, el: Elektra, klim, tol_uren=0, Q_idea
     return "grootverbruik", float("nan")
 
 def koudste_week(Q_ideaal: list[float], T: list[float]) -> int:
-    """Startuur van de 168-uurs periode met de hoogste warmtevraagsom (tie-break: laagste T-gemiddelde)."""
-    best, best_i = -1.0, 0
-    s = sum(Q_ideaal[:168]); sT = sum(T[:168])
-    for i in range(0, 8760 - 168):
+    """Startuur van de 168-uurs periode met de hoogste warmtevraagsom (tie-break: laagste T-gemiddelde).
+    Cyclisch: het venster mag over de jaargrens dec->jan lopen (startuur > 8760-168 betekent: loopt door in januari)."""
+    n = 8760; W = 168
+    best, best_T, best_i = -1.0, 0.0, 0
+    s = sum(Q_ideaal[:W]); sT = sum(T[:W])
+    for i in range(n):
         if i > 0:
-            s += Q_ideaal[i + 167] - Q_ideaal[i - 1]; sT += T[i + 167] - T[i - 1]
+            s += Q_ideaal[(i + W - 1) % n] - Q_ideaal[i - 1]; sT += T[(i + W - 1) % n] - T[i - 1]
         if s > best + 1e-9 or (abs(s - best) <= 1e-9 and sT < best_T):
-            best, best_i, best_T = s, i, sT
-        if i == 0: best_T = sT
+            best, best_T, best_i = s, sT, i
     return best_i

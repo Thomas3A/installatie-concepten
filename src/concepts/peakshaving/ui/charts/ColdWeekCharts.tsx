@@ -1,7 +1,9 @@
 // Tabblad Koude week (spec §7.1): drie gekoppelde panelen (warmte, elektrisch, toestand) over de koude week ± 24 uur,
 // met arcering van weekend en gebruikstijd, een markering van het gekozen uur en de scrubber eronder.
 // De grafieken krijgen de volledige jaarreeksen; het zichtbare venster wordt met setScale op de koude week gezet.
-// Inzoomen door te slepen; verschuiven (pannen) met de knoppen ◀ ▶ of Shift + scrollwiel, binnen het hele jaar.
+// Loopt het venster over de jaargrens (spec §4.4), dan is de as verlengd: december vóór 1 januari geplakt, of januari
+// na 31 december. Inzoomen door te slepen; verschuiven (pannen) met de knoppen ◀ ▶ of Shift + scrollwiel, binnen de
+// hele as.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type uPlot from 'uplot';
 import { fmt } from '../../../../core/format';
@@ -16,7 +18,15 @@ import u from '../../../../ui/ui.module.css';
 import type { Analysis } from '../../model/analysis';
 import { batteryUsableEnergy } from '../../model/battery';
 import { COMFORT_MARGIN_K, HOURS_PER_YEAR } from '../../model/building';
-import { COLD_WEEK_HOURS, formatHour, hourInfo, MONTH_SHORT, WEEKDAY_SHORT } from '../../model/climate';
+import {
+  COLD_WEEK_HOURS,
+  formatHour,
+  hourInfo,
+  MONTH_SHORT,
+  WEEKDAY_SHORT,
+  wrapHour,
+} from '../../model/climate';
+import type { SimulationSeries } from '../../model/types';
 import { useSelectedHour, useStore } from '../../store';
 import {
   hatchToZero,
@@ -34,10 +44,6 @@ import c from './ColdWeek.module.css';
 import { Scrubber } from './Scrubber';
 
 const N = HOURS_PER_YEAR;
-/** x-waarden: uurindex van het jaar */
-const HOURS_X = Float64Array.from({ length: N }, (_, i) => i);
-/** lege reeks (houdt de linker as van paneel 3 aan als er geen opslag is) */
-const NULLS: null[] = new Array<null>(N).fill(null);
 const PANEL_HEIGHT = 210;
 const PRINT_PANEL_HEIGHT = 160;
 const SYNC_KEY = 'ps-koude-week';
@@ -90,8 +96,38 @@ function usePalette(): Palette {
   return pal;
 }
 
-/** Afgeleide reeksen voor de panelen (gestapeld, negatief, percentages, comfortverlies). */
-interface Derived {
+/**
+ * As van de grafieken: grafiekindex i is het doorlopende uur x0 + i, met de waarde van wrapHour(x0 + i). Normaal het
+ * jaar zelf (x0 = 0, n = 8760); loopt het venster van de koude week over de jaargrens, dan verlengd met die uren.
+ */
+interface Axis {
+  x0: number;
+  n: number;
+}
+
+export function axisOf(a: Pick<Analysis, 'coldWeek'>): Axis {
+  const x0 = Math.min(0, a.coldWeek.from);
+  return { x0, n: Math.max(N, a.coldWeek.to) - x0 };
+}
+
+/** Jaarreeks op de as; zonder verlenging de reeks zelf (geen kopie). */
+function onAxis<T extends Float64Array | Uint8Array>(arr: T, { x0, n }: Axis, make: (n: number) => T): T {
+  if (x0 === 0 && n === arr.length) return arr;
+  const out = make(n);
+  for (let i = 0; i < n; i++) out[i] = arr[wrapHour(x0 + i)];
+  return out;
+}
+
+/** Afgeleide reeksen voor de panelen op de as (gestapeld, negatief, percentages, comfortverlies). */
+interface Derived extends Axis {
+  /** x-waarden: grafiekindex 0 … n − 1 */
+  x: Float64Array;
+  /** lege reeks (houdt de linker as van paneel 3 aan als er geen opslag is) */
+  nulls: null[];
+  /** de uurreeksen van de hoofdsimulatie op de as */
+  se: SimulationSeries;
+  inUse: Uint8Array;
+  preheat: Uint8Array;
   stackBuffer: Float64Array;
   stackBackup: Float64Array;
   stackDhw: Float64Array;
@@ -108,34 +144,48 @@ interface Derived {
 }
 
 function derive(a: Analysis): Derived {
-  const se = a.main.series;
-  const stackBuffer = new Float64Array(N);
-  const stackBackup = new Float64Array(N);
-  const stackDhw = new Float64Array(N);
-  const charge = new Float64Array(N);
-  const comfort = new Uint8Array(N);
-  for (let t = 0; t < N; t++) {
+  const axis = axisOf(a);
+  const { x0, n } = axis;
+  const f64 = (arr: Float64Array): Float64Array => onAxis(arr, axis, (k) => new Float64Array(k));
+  const u8 = (arr: Uint8Array): Uint8Array => onAxis(arr, axis, (k) => new Uint8Array(k));
+  const se = Object.fromEntries(
+    Object.entries(a.main.series).map(([k, v]) => [k, f64(v as Float64Array)]),
+  ) as unknown as SimulationSeries;
+  const inUse = u8(a.hours.inUse);
+  const stackBuffer = new Float64Array(n);
+  const stackBackup = new Float64Array(n);
+  const stackDhw = new Float64Array(n);
+  const charge = new Float64Array(n);
+  const comfort = new Uint8Array(n);
+  for (let t = 0; t < n; t++) {
     stackBuffer[t] = se.qSpaceHeating[t] + se.qBufferDischarge[t];
     stackBackup[t] = stackBuffer[t] + se.qBackup[t];
     stackDhw[t] = stackBackup[t] + se.qDhw[t];
     // geen −0 in de legenda
     charge[t] = se.qBufferCharge[t] > 0 ? -se.qBufferCharge[t] : 0;
-    comfort[t] = a.hours.inUse[t] === 1 && se.indoorC[t] < se.setpointC[t] - COMFORT_MARGIN_K ? 1 : 0;
+    comfort[t] = inUse[t] === 1 && se.indoorC[t] < se.setpointC[t] - COMFORT_MARGIN_K ? 1 : 0;
   }
   let comfortInWindow = 0;
   let exceedInWindow = 0;
-  for (let t = a.coldWeek.from; t < a.coldWeek.to; t++) {
+  for (let t = a.coldWeek.from - x0; t < a.coldWeek.to - x0; t++) {
     comfortInWindow += comfort[t];
     if (se.pGrid[t] > a.pLimitKw + 1e-9) exceedInWindow++;
   }
   const eBuffer = a.main.kpis.bufferEnergyKwh;
   const eBattery = batteryUsableEnergy(a.input.battery);
   return {
+    x0,
+    n,
+    x: Float64Array.from({ length: n }, (_, i) => i),
+    nulls: new Array<null>(n).fill(null),
+    se,
+    inUse,
+    preheat: u8(a.hours.preheat),
     stackBuffer,
     stackBackup,
     stackDhw,
     charge,
-    limit: Number.isFinite(a.pLimitKw) ? new Float64Array(N).fill(a.pLimitKw) : null,
+    limit: Number.isFinite(a.pLimitKw) ? new Float64Array(n).fill(a.pLimitKw) : null,
     socBuffer: eBuffer > 0 ? se.socBuffer.map((v) => (100 * v) / eBuffer) : null,
     socBattery: eBattery > 0 ? se.socBattery.map((v) => (100 * v) / eBattery) : null,
     comfort,
@@ -146,11 +196,11 @@ function derive(a: Analysis): Derived {
   };
 }
 
-/** Ticklabel: om 00:00 de dag ("do 16 jan"), anders het uur ("12:00"). */
-function tickLabel(v: number, startWeekday: number): string {
+/** Ticklabel bij grafiekindex v: om 00:00 de dag ("do 16 jan"), anders het uur ("12:00"). */
+function tickLabel(v: number, { x0, n }: Axis, startWeekday: number): string {
   const t = Math.round(v);
-  if (t < 0 || t >= N) return '';
-  const h = hourInfo(t, startWeekday);
+  if (t < 0 || t >= n) return '';
+  const h = hourInfo(x0 + t, startWeekday);
   if (h.hour === 0) return `${WEEKDAY_SHORT[h.weekday - 1]} ${h.day} ${MONTH_SHORT[h.month]}`;
   return `${String(h.hour).padStart(2, '0')}:00`;
 }
@@ -173,8 +223,13 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
 
   const boxRef = useRef<HTMLDivElement>(null);
   const plots = useRef<(uPlot | null)[]>([null, null, null]);
+  const axisRef = useRef<Axis>({ x0: 0, n: N });
+  axisRef.current = derived ? { x0: derived.x0, n: derived.n } : { x0: 0, n: N };
+  // venster in grafiekindices (doorlopend uur − x0)
   const windowRef = useRef<{ from: number; to: number } | null>(null);
-  windowRef.current = analysis ? { from: analysis.coldWeek.from, to: analysis.coldWeek.to } : null;
+  windowRef.current = analysis
+    ? { from: analysis.coldWeek.from - axisRef.current.x0, to: analysis.coldWeek.to - axisRef.current.x0 }
+    : null;
   const weekdayRef = useRef(1);
   weekdayRef.current = analysis?.startWeekday ?? 1;
   // klik na slepen (inzoomen) niet als keuze van een uur tellen
@@ -191,15 +246,16 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     plots.current.forEach(applyWindow);
   }, [applyWindow]);
 
-  /** Venster `dh` uur verschuiven (alle panelen samen), binnen het jaar; de breedte van het venster blijft gelijk. */
+  /** Venster `dh` uur verschuiven (alle panelen samen), binnen de as; de breedte van het venster blijft gelijk. */
   const pan = useCallback((dh: number): void => {
     const live = plots.current.filter((q): q is uPlot => !!q && q.root.isConnected);
     const ref = live[0];
     if (!ref || !Number.isFinite(dh) || dh === 0) return;
+    const n = axisRef.current.n;
     const min = ref.scales.x.min ?? 0;
-    const max = ref.scales.x.max ?? N - 1;
-    const span = Math.min(max - min, N - 1);
-    const from = Math.min(Math.max(min + dh, 0), N - 1 - span);
+    const max = ref.scales.x.max ?? n - 1;
+    const span = Math.min(max - min, n - 1);
+    const from = Math.min(Math.max(min + dh, 0), n - 1 - span);
     live.forEach((p) => p.setScale('x', { min: from, max: from + span }));
   }, []);
 
@@ -220,10 +276,15 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     if (p) return p.bbox.width / pixelRatio();
     return Math.max(200, (boxRef.current?.clientWidth ?? 700) - 2 * AXIS_WITH_LABEL_PX - 18);
   };
-  const xSplits = (min: number, max: number): number[] => hourSplits(min, max, plotWidthCss());
+  // ticks op hele uren van de dag: in doorlopende uren bepalen, terug naar grafiekindices
+  const xSplits = (min: number, max: number): number[] => {
+    const { x0 } = axisRef.current;
+    return hourSplits(min + x0, max + x0, plotWidthCss()).map((v) => v - x0);
+  };
   const xFormat = (v: number): string => {
     const t = Math.round(v);
-    return t >= 0 && t < N ? formatHour(t, weekdayRef.current) : '';
+    const { x0, n } = axisRef.current;
+    return t >= 0 && t < n ? formatHour(x0 + t, weekdayRef.current) : '';
   };
 
   const onReady =
@@ -231,7 +292,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     (p: uPlot): void => {
       plots.current[i] = p;
       // ticklabels kort houden (dag om 00:00, anders het uur); de legenda toont de volledige datum via xFormat
-      p.axes[0].values = (_u, splits) => splits.map((v) => tickLabel(v, weekdayRef.current));
+      p.axes[0].values = (_u, splits) => splits.map((v) => tickLabel(v, axisRef.current, weekdayRef.current));
       p.over.addEventListener('mousedown', (e: MouseEvent) => {
         pointer.current.downX = e.clientX;
       });
@@ -265,14 +326,15 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     }
     const w = windowRef.current;
     if (!w || !Number.isFinite(x)) return;
-    setScrubHour(Math.min(Math.max(Math.round(x), w.from), w.to - 1));
+    // gekozen uur als doorlopend uur, zoals de scrubber
+    setScrubHour(Math.min(Math.max(Math.round(x), w.from), w.to - 1) + axisRef.current.x0);
   };
 
   const data = useMemo(() => {
     if (!analysis || !derived) return null;
-    const se = analysis.main.series;
+    const se = derived.se;
     const heat: uPlot.AlignedData = [
-      HOURS_X,
+      derived.x,
       se.qSpaceHeating,
       derived.stackBuffer,
       derived.stackBackup,
@@ -282,14 +344,14 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
       se.outdoorC,
       se.outdoorFilteredC,
     ];
-    const elec: (Float64Array | null[])[] = [HOURS_X, se.pElectric];
+    const elec: (Float64Array | null[])[] = [derived.x, se.pElectric];
     if (derived.hasBattery) elec.push(se.pBattery);
     elec.push(se.pGrid);
     if (derived.limit) elec.push(derived.limit);
-    const state: (Float64Array | null[])[] = [HOURS_X];
+    const state: (Float64Array | null[])[] = [derived.x];
     if (derived.socBuffer) state.push(derived.socBuffer);
     if (derived.socBattery) state.push(derived.socBattery);
-    if (!derived.socBuffer && !derived.socBattery) state.push(NULLS);
+    if (!derived.socBuffer && !derived.socBattery) state.push(derived.nulls);
     state.push(se.indoorC, se.setpointC);
     return { heat, elec: elec as uPlot.AlignedData, state: state as uPlot.AlignedData };
   }, [analysis, derived]);
@@ -298,7 +360,8 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     return <p className={c.placeholder}>De koude week wordt berekend…</p>;
   }
 
-  const se = analysis.main.series;
+  const se = derived.se;
+  const { x0, n } = derived;
   const sw = analysis.startWeekday;
   const { start, meanOutdoorC } = analysis.coldWeek;
   const pLimit = analysis.pLimitKw;
@@ -310,14 +373,14 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     preheat: withAlpha(pal.warn, 0.16),
   };
   const shade = (p: uPlot): void => {
-    shadeWeekends(p, N, sw, shading.weekend);
+    shadeWeekends(p, n, sw, shading.weekend, (t) => wrapHour(x0 + t));
     if (derived.office) {
-      shadeHours(p, N, (t) => analysis.hours.inUse[t] === 1, shading.inUse);
-      shadeHours(p, N, (t) => analysis.hours.preheat[t] === 1, shading.preheat);
+      shadeHours(p, n, (t) => derived.inUse[t] === 1, shading.inUse);
+      shadeHours(p, n, (t) => derived.preheat[t] === 1, shading.preheat);
     }
   };
   const marker = (p: uPlot): void => {
-    if (selected !== null) verticalLine(p, selected, pal.accent, 2);
+    if (selected !== null) verticalLine(p, selected - x0, pal.accent, 2);
   };
   const shadingLegend: LegendExtra[] = [
     { label: 'Weekend', color: withAlpha(pal.text2, 0.3), kind: 'band' },
@@ -419,7 +482,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
     draw: [
       // per uur een streepje onderaan: bij een venster van 9 dagen is het vlak boven de limiet vaak maar smal
       (p: uPlot) => {
-        if (derived.limit) markHoursAtBottom(p, N, (t) => se.pGrid[t] > pLimit + 1e-9, 5, pal.err);
+        if (derived.limit) markHoursAtBottom(p, n, (t) => se.pGrid[t] > pLimit + 1e-9, 5, pal.err);
       },
       marker,
     ],
@@ -461,7 +524,7 @@ export function ColdWeekCharts({ print = false }: { print?: boolean }) {
   const stateHooks: uPlot.Hooks.Arrays = {
     drawClear: [shade],
     draw: [
-      (p: uPlot) => markHours(p, N, (t) => derived.comfort[t] === 1, 'pct', -3, PCT_MIN + 3, pal.err),
+      (p: uPlot) => markHours(p, n, (t) => derived.comfort[t] === 1, 'pct', -3, PCT_MIN + 3, pal.err),
       marker,
     ],
   };

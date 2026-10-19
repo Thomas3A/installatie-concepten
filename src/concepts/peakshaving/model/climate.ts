@@ -217,12 +217,20 @@ export function climateStats(T: ArrayLike<number>): ClimateStats {
 export const COLD_WEEK_HOURS = 168;
 export const COLD_WEEK_MARGIN_H = 24;
 
+/** Uurindex binnen het jaar [0, 8760) van een doorlopend uur (negatief = december, ≥ 8760 = januari). */
+export function wrapHour(t: number): number {
+  return ((t % HOURS_PER_YEAR) + HOURS_PER_YEAR) % HOURS_PER_YEAR;
+}
+
 /**
  * Startuur van de 168-uursperiode met de hoogste som van Q_ideal;
  * bij gelijke som de laagste gemiddelde buitentemperatuur (port van koudste_week).
+ * Cyclisch (spec §4.4), zoals het jaar gesimuleerd wordt: het venster mag over de jaargrens lopen. Het startuur kan
+ * dus groter zijn dan 8760 − 168; uur k van de week is dan (start + k) mod 8760.
  */
 export function coldestWeekStart(qIdeal: ArrayLike<number>, T: ArrayLike<number>): number {
   const W = COLD_WEEK_HOURS;
+  const n = HOURS_PER_YEAR;
   let s = 0;
   let sT = 0;
   for (let i = 0; i < W; i++) {
@@ -232,10 +240,10 @@ export function coldestWeekStart(qIdeal: ArrayLike<number>, T: ArrayLike<number>
   let best = -1;
   let bestI = 0;
   let bestT = Infinity;
-  for (let i = 0; i < HOURS_PER_YEAR - W; i++) {
+  for (let i = 0; i < n; i++) {
     if (i > 0) {
-      s += qIdeal[i + W - 1] - qIdeal[i - 1];
-      sT += T[i + W - 1] - T[i - 1];
+      s += qIdeal[(i + W - 1) % n] - qIdeal[i - 1];
+      sT += T[(i + W - 1) % n] - T[i - 1];
     }
     if (s > best + 1e-9 || (Math.abs(s - best) <= 1e-9 && sT < bestT)) {
       best = s;
@@ -246,11 +254,13 @@ export function coldestWeekStart(qIdeal: ArrayLike<number>, T: ArrayLike<number>
   return bestI;
 }
 
-/** Venster van de grafieken: koude week ± 24 uur, binnen het jaar. */
+/**
+ * Venster van de grafieken: koude week ± 24 uur (216 uur) in doorlopende uren. Het jaar is cyclisch: `from` is
+ * negatief als de marge in december begint, `to` groter dan 8760 als het venster doorloopt in januari. De waarde van
+ * uur t staat in de jaarreeksen op `wrapHour(t)`.
+ */
 export function coldWeekWindow(start: number): { from: number; to: number } {
-  const from = Math.max(0, start - COLD_WEEK_MARGIN_H);
-  const to = Math.min(HOURS_PER_YEAR, start + COLD_WEEK_HOURS + COLD_WEEK_MARGIN_H);
-  return { from, to };
+  return { from: start - COLD_WEEK_MARGIN_H, to: start + COLD_WEEK_HOURS + COLD_WEEK_MARGIN_H };
 }
 
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -279,11 +289,12 @@ export const MONTH_START_HOUR: readonly number[] = MONTH_DAYS.reduce<number[]>(
   [0],
 );
 
-/** Kalendergegevens van uur t (365 dagen, MET). */
+/** Kalendergegevens van uur t (365 dagen, MET); een doorlopend uur buiten het jaar valt terug in het jaar. */
 export function hourInfo(
-  t: number,
+  hour: number,
   startWeekday: number,
 ): { month: number; day: number; hour: number; weekday: number } {
+  const t = wrapHour(hour);
   const dayOfYear = Math.floor(t / 24);
   let month = 0;
   while (month < 11 && t >= MONTH_START_HOUR[month + 1]) month++;

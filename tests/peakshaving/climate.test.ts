@@ -24,6 +24,7 @@ import {
   REFERENCE_YEAR_LABELS,
   REFERENCE_YEARS,
   STRESS_TEST_YEARS,
+  wrapHour,
   WEEKDAY_SHORT,
   type ClimateStats,
   type ReferenceYearName,
@@ -497,11 +498,27 @@ describe('coldestWeekStart (spec §4.4)', () => {
     expect(coldestWeekStart(q, T)).toBe(3000);
   });
 
-  it('laatste startuur is 8591, zoals range(0, 8760 − 168) in de Python', () => {
+  it('cyclisch (spec §4.4): de laatste week van het jaar en een week over de jaargrens zijn kandidaat', () => {
     const q = new Float64Array(HOURS);
     for (let i = HOURS - 168; i < HOURS; i++) q[i] = 1;
     const T = new Float64Array(HOURS).fill(5);
-    expect(coldestWeekStart(q, T)).toBe(HOURS - 168 - 1);
+    expect(coldestWeekStart(q, T)).toBe(HOURS - 168);
+    // vraag van 31 december 00:00 tot en met 6 januari: start 8736, vensterindex (start + k) mod 8760
+    q.fill(0);
+    for (let i = 8736; i < HOURS; i++) q[i] = 1;
+    for (let i = 0; i < 144; i++) q[i] = 1;
+    expect(coldestWeekStart(q, T)).toBe(8736);
+  });
+
+  it('cyclisch: bij gelijke vraag wint de koudere week, ook als die over de jaargrens loopt', () => {
+    const q = new Float64Array(HOURS);
+    for (let i = 1000; i < 1168; i++) q[i] = 2;
+    for (let i = HOURS - 100; i < HOURS; i++) q[i] = 2;
+    for (let i = 0; i < 68; i++) q[i] = 2;
+    const T = new Float64Array(HOURS).fill(5);
+    expect(coldestWeekStart(q, T)).toBe(1000);
+    for (let i = HOURS - 100; i < HOURS; i++) T[i] = -5;
+    expect(coldestWeekStart(q, T)).toBe(HOURS - 100);
   });
 
   it('geen vraag: uur 0', () => {
@@ -517,12 +534,17 @@ describe('coldWeekWindow (spec §4.4)', () => {
     expect(coldWeekWindow(314).to - coldWeekWindow(314).from).toBe(216);
   });
 
-  it('begrensd op het begin en einde van het jaar', () => {
-    expect(coldWeekWindow(0)).toEqual({ from: 0, to: 192 });
-    expect(coldWeekWindow(10)).toEqual({ from: 0, to: 202 });
-    expect(coldWeekWindow(8591)).toEqual({ from: 8567, to: HOURS });
+  it('cyclisch: altijd 216 uur, in doorlopende uren over de jaargrens', () => {
+    // marge in december: negatieve uren
+    expect(coldWeekWindow(0)).toEqual({ from: -24, to: 192 });
+    expect(coldWeekWindow(4)).toEqual({ from: -20, to: 196 });
     expect(coldWeekWindow(8500)).toEqual({ from: 8476, to: 8692 });
-    expect(coldWeekWindow(8580)).toEqual({ from: 8556, to: HOURS });
+    // venster loopt door in januari: uren ≥ 8760
+    expect(coldWeekWindow(8591)).toEqual({ from: 8567, to: 8783 });
+    expect(coldWeekWindow(8736)).toEqual({ from: 8712, to: 8928 });
+    expect(wrapHour(8928 - 1)).toBe(167);
+    expect(wrapHour(-24)).toBe(HOURS - 24);
+    expect(wrapHour(HOURS)).toBe(0);
   });
 });
 
@@ -550,6 +572,15 @@ describe('kalender: hourInfo en formatHour', () => {
 
   it('uur 130 is zaterdag 6 januari 10:00 (spec §9.3)', () => {
     expect(formatHour(130, 1)).toBe('za 6 jan 10:00');
+  });
+
+  it('doorlopende uren buiten het jaar vallen terug in het jaar (x-as "31 dec … 7 jan")', () => {
+    // winter1979: koude week 31 december 00:00 – 6 januari 23:00, het jaar begint op maandag
+    expect(formatHour(8736, 1)).toBe('ma 31 dec 00:00');
+    expect(formatHour(8736 + 167, 1)).toBe('za 6 jan 23:00');
+    expect(formatHour(8736 + 168 + 24 - 1, 1)).toBe('zo 7 jan 23:00');
+    expect(hourInfo(HOURS + 5, 1)).toEqual(hourInfo(5, 1));
+    expect(formatHour(-20, 1)).toBe('ma 31 dec 04:00');
   });
 
   it('maandovergangen en het laatste uur', () => {

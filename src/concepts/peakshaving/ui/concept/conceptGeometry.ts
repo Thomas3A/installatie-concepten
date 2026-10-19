@@ -3,6 +3,7 @@
 import type { Analysis } from '../../model/analysis';
 import { batteryUsableEnergy } from '../../model/battery';
 import { COMFORT_MARGIN_K, gainsAt, tankEnergy } from '../../model/building';
+import { wrapHour } from '../../model/climate';
 import { bufferChargeTemperature, supplyTemperature } from '../../model/heatPump';
 
 /** Afmetingen van het viewBox [eenheden]; het schema schaalt mee met de containerbreedte. */
@@ -554,7 +555,9 @@ export function windowRefs(a: Analysis): WindowRefs {
   let stack = 0;
   let th = 0;
   let el = 0;
-  for (let t = a.coldWeek.from; t < a.coldWeek.to; t++) {
+  for (let h = a.coldWeek.from; h < a.coldWeek.to; h++) {
+    // het venster mag over de jaargrens lopen
+    const t = wrapHour(h);
     stack = Math.max(stack, s.pElectric[t], s.pGrid[t]);
     th = Math.max(
       th,
@@ -618,8 +621,9 @@ function frac(v: number, max: number): number {
   return max > 0 ? Math.min(Math.max(v / max, 0), 1) : 0;
 }
 
-/** Alle waarden die het schema voor uur t toont. */
-export function hourState(a: Analysis, t: number): HourState {
+/** Alle waarden die het schema voor uur t toont; t is een doorlopend uur (de waarden staan op `wrapHour(t)`). */
+export function hourState(a: Analysis, hour: number): HourState {
+  const t = wrapHour(hour);
   const s = a.main.series;
   const input = a.input;
   const b = input.building;
@@ -633,7 +637,7 @@ export function hourState(a: Analysis, t: number): HourState {
   const setpointC = s.setpointC[t];
   const running = pHeatPump > 1e-6 && qHeatPump > 1e-6;
   return {
-    t,
+    t: hour,
     outdoorC: s.outdoorC[t],
     supplyC: supplyTemperature(input.heatPump, b.designOutdoorC, s.outdoorC[t]),
     dhwTempC: b.dhw.tankTempC,

@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { fmt } from '../../../../core/format';
 import u from '../../../../ui/ui.module.css';
-import { formatHour } from '../../model/climate';
+import { formatHour, wrapHour } from '../../model/climate';
 import { defaultScrubHour, useSelectedHour, useStore } from '../../store';
 import s from './Scrubber.module.css';
 
@@ -67,15 +67,17 @@ export function Scrubber() {
     return <p className={s.note}>Scrubber verschijnt zodra de berekening klaar is.</p>;
   }
 
+  // doorlopende uren: het venster mag over de jaargrens lopen (spec §4.4); de waarden staan op wrapHour(h)
   const { from, to } = analysis.coldWeek;
   const last = to - 1;
   const sw = analysis.startWeekday;
   const se = analysis.main.series;
   const h = Math.min(Math.max(hour, from), last);
+  const i = wrapHour(h);
   const pLimit = analysis.pLimitKw;
-  const qHeatPump = se.qSpaceHeating[h] + se.qDhw[h] + se.qBufferCharge[h];
-  const exceed = Number.isFinite(pLimit) ? Math.max(0, se.pGrid[h] - pLimit) : NaN;
-  const pBat = se.pBattery[h];
+  const qHeatPump = se.qSpaceHeating[i] + se.qDhw[i] + se.qBufferCharge[i];
+  const exceed = Number.isFinite(pLimit) ? Math.max(0, se.pGrid[i] - pLimit) : NaN;
+  const pBat = se.pBattery[i];
 
   const togglePlay = (): void => {
     if (playing) {
@@ -138,7 +140,7 @@ export function Scrubber() {
               T<sub>e</sub>
             </>
           }
-          value={fmt(se.outdoorC[h], 1)}
+          value={fmt(se.outdoorC[i], 1)}
           unit="°C"
         />
         <Item
@@ -147,7 +149,7 @@ export function Scrubber() {
               Q<sub>req</sub>
             </>
           }
-          value={fmt(se.qRequested[h], 2)}
+          value={fmt(se.qRequested[i], 2)}
           unit="kW"
         />
         <Item
@@ -161,7 +163,7 @@ export function Scrubber() {
         />
         <Item
           label="Buffer in / uit"
-          value={`${fmt(se.qBufferCharge[h], 2)} / ${fmt(se.qBufferDischarge[h], 2)}`}
+          value={`${fmt(se.qBufferCharge[i], 2)} / ${fmt(se.qBufferDischarge[i], 2)}`}
           unit="kW"
         />
         <Item
@@ -170,7 +172,7 @@ export function Scrubber() {
               P<sub>el</sub>
             </>
           }
-          value={fmt(se.pElectric[h], 2)}
+          value={fmt(se.pElectric[i], 2)}
           unit="kW"
         />
         <Item
@@ -184,7 +186,7 @@ export function Scrubber() {
               P<sub>net</sub>
             </>
           }
-          value={fmt(se.pGrid[h], 2)}
+          value={fmt(se.pGrid[i], 2)}
           unit="kW"
         />
         <Item
