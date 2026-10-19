@@ -121,8 +121,11 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
    legionellaprogramma.
 7. **Aansluitingen** met cos φ = 1; overig gebruik op het piekmoment volledig benut; geen gelijktijdigheidsfactor.
 8. **Klimaat:** reconstructie van de NEN 5060:2018-referentiejaren uit KNMI De Bilt-uurdata (maandkeuze op basis van de
-   gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); het jaar begint op maandag; tijd in MET zonder
-   zomertijd; schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering. Herkomst: `docs/klimaat/README.md`.
+   gepubliceerde maandgemiddelden; cross-fade van 16 uur aan maandgrenzen); stresstestjaren = T1 met het werkelijke
+   stookseizoen nov–mrt van 1978/79 resp. 1962/63; het jaar begint op maandag; tijd in MET zonder zomertijd;
+   schrikkeldag weggelaten; geen correctie voor locatie of klimaatverandering. De herhalingstijden van de stresstestjaren
+   (≈ 1× per 25 jaar, ≈ 1× per eeuw) zijn empirisch geteld in 1951–2025; door de opwarming zijn ze in het huidige klimaat
+   eerder langer. Herkomst: `docs/klimaat/README.md`.
 9. **Perfecte voorspelling** bij de laadstrategie _voorspellend_ (de simulatie kent het weer van de komende 24 uur).
 10. Rekenresultaten zijn **indicatief** voor conceptkeuze; productselectie altijd met fabrikantdata (capaciteitstabellen,
     geluid, hydrauliek).
@@ -160,7 +163,8 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   (de batterij begint vol); zo is het verlies nooit negatief.
 - **Robuustheidstabel:** per klimaatjaar twee simulaties met het WP-vermogen vast op de huidige waarde: de uren
   overschrijding komen uit de modus "overschrijding tonen", de uren comfortverlies uit "aansluiting begrenst"; piek aan de
-  meter, SCOP en elektriciteit uit de gekozen modus. Is een werkelijk jaar gekozen, dan komt dat als vierde rij erbij.
+  meter, SCOP en elektriciteit uit de gekozen modus. Vijf rijen (energie, T5, T1, winter 1978/79, winter 1962/63); is
+  een werkelijk jaar gekozen, dan komt dat als zesde rij erbij.
 
 ### Meldingen (spec §6.4)
 
@@ -168,7 +172,8 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   minder dan een kwart van de winst van het eerste volume (dat sluit kleine buffers uit, waar het effect nog lineair is);
   of de buffer is minstens half V_max en geeft minder dan 2 % winst ten opzichte van geen buffer.
 - **De koudste periode** in de uitleg is de langste reeks aaneengesloten dagen met een daggemiddelde onder 0 °C die de
-  koude week raakt; is die korter dan 2 dagen, dan de koude week zelf (7 dagen).
+  koude week raakt; is die korter dan 2 dagen, dan de koude week zelf (7 dagen). Net als de koude week mag de reeks over
+  de jaargrens lopen (december → januari); voor energie, T5 en T1 verandert de uitkomst daardoor niet.
 - **Koudegolf bepaalt de maat:** bij 99 % van P_th,min valt minstens de helft van de uren met comfortverlies of
   tapwatertekort in de koude week (168 uur, zonder de marge van de grafieken).
 - **Batterij raakt leeg / batterijvermogen begrenst:** beoordeeld in de modus "overschrijding tonen" (in "aansluiting
@@ -262,7 +267,7 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
 
 ### Na de eindreview
 
-- **Werkelijke klimaatjaren** (1991–2025) worden in de browser met `fetch` als los JSON-bestand geladen in plaats van met
+- **Werkelijke klimaatjaren** (1951–2025, 2,3 MB) worden in de browser met `fetch` als los JSON-bestand geladen in plaats van met
   een dynamische `import()`: een mislukte `import()` onthoudt de browser tot de pagina herlaadt, een mislukte `fetch`
   wordt bij het volgende verzoek opnieuw geprobeerd. Valt de Web Worker uit, dan rekent de pagina verder in de
   hoofdthread en worden de openstaande berekeningen daar opnieuw gestart. Bij een rekenfout staat naast de melding een
@@ -297,6 +302,27 @@ vrijwel exact: de grootste afwijking is de afronding van de referentiewaarden op
   bereikbaar zodra ze scrollen; legenda-knoppen zijn minstens 24 px hoog (WCAG 2.5.8); de pagina's van beide concepten
   staan in één `main`-landmark.
 - **Uitleg:** sectie 1 telt de uren (h_overschr, h_comfort), sectie 9 toont de 1R1C-balans; elke sectie heeft een formule.
+
+### Klimaatjaren 1951–2025 en stresstestjaren
+
+- **Koude week en venster over de jaargrens** (spec §4.4): de zoektocht naar de koude week is cyclisch, en het venster
+  van de grafieken (koude week ± 24 uur) dan ook: altijd 216 uur, ook als de marge vóór 1 januari begint (T1: de week
+  begint op uur 4, het venster op 31 december 04:00). Venster, gekozen uur van de scrubber en het standaarduur zijn
+  doorlopende uren (negatief = december, ≥ 8760 = januari); de waarden staan in de jaarreeksen op `wrapHour(t)`. De as
+  van de koude-weekgrafieken is het jaar, zo nodig verlengd met de uren van het venster buiten het jaar: december vóór
+  1 januari geplakt of januari na 31 december. Bij een jaar van 365 dagen dat op maandag begint, volgt op maandag
+  31 december weer maandag 1 januari; zo rekent de cyclische simulatie ook (kantoorschema).
+- **Statistiek van de klimaatjaren** (T min, koudste 24/72/168 uur, enzovoort) gebruikt cyclische lopende gemiddelden,
+  zoals `scripts/klimaat/build_reference_years.py`. Daardoor verandert alleen de koudste week van 2008 (−2,5 in plaats van
+  −2,2 °C, over de jaargrens) en begint de koudste week van winter1979 op uur 8736.
+- **Spectabel §4.2:** de koudste 24 uur van winter1979 staat er als −12,5 °C; de meta zegt −12,45 (exact −12,446), dus
+  dubbel afgerond. De test gebruikt −12,45.
+- **Namen:** in tabellen, de strook en de statistiekregel heten de stresstestjaren "winter 1978/79" en "winter 1962/63",
+  in een zin "de winter 1978/79". De aanbevolen stresstestjaren (★) staan als constante in `model/climate.ts`, omdat de
+  pagina het bestand met de werkelijke jaren pas laadt als er een gekozen wordt; een test controleert dat ze gelijk zijn
+  aan `meta.aanbevolen_stresstest`.
+- **Voorbeeld 8** heet nu `kantoor-winter1979` (was `kantoor-t1`). Deelbare links vergelijken de invoer, niet het id, en
+  blijven dus werken.
 
 ### Meerdere woningen (buiten de spec)
 
@@ -528,8 +554,9 @@ scrollbaar. Onder 1024 px valt de werkbank terug op één kolom, zonder verdere 
   het einde van de schuif (bijvoorbeeld kantoor in T1 met 20 m³ buffer), dan staat er "{min} kW bij {V_max} m³ (einde
   bereik)" en ook onder de bufferschuif geen regel "Meer buffer maakt de warmtepomp niet kleiner".
 - **Keuzelijsten:** de optie grootverbruik heet "Grootverbruik" (het veld ernaast heet al "Gecontracteerd vermogen") en
-  de referentiejaren heten "Ontwerpjaar T5 — gematigd streng" enzovoort, zonder "(≈ NEN 5060:2018 …)", dat al in de
-  groepskop staat. Zo past de gekozen optie in de kolom.
+  de NEN-referentiejaren heten "Ontwerpjaar T1 — strenge winter" enzovoort, zonder "(≈ NEN 5060:2018 …)", dat al in de
+  groepskop staat. Zo past de gekozen optie in de kolom. De stresstestjaren staan in een eigen groep ("Stresstest strenge
+  winter (T1 met een werkelijk stookseizoen)") met hun volledige label uit spec §4.3.
 
 **Rondleiding**
 

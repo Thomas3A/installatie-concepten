@@ -109,7 +109,7 @@ export const MESSAGE_TEXTS: Record<MessageCode, MessageText> = {
       'Met 99 % van het benodigde WP-vermogen ontstaat het comfortverlies vooral in de koude week. Die valt in een koude periode van {days} dagen met gemiddeld {meanT} °C. De maat van de warmtepomp wordt dus bepaald door een aaneengesloten koude periode, niet door een enkel piekuur.',
     ],
     solutions: [
-      'Vergelijk met het energiejaar en met T1 in de robuustheidstabel.',
+      'Vergelijk de klimaatjaren in de robuustheidstabel, ook de stresstest 1978/79.',
       'Een grotere buffer helpt hier maar beperkt; een bijstookelement kan de laatste kW leveren.',
     ],
   },
@@ -375,10 +375,14 @@ export const EXPLAIN: ExplainSection[] = [
     id: 'klimaat',
     title: '8. Klimaatjaren',
     body: [
-      'NEN 5060:2018 bevat referentiejaren voor De Bilt die zijn samengesteld uit werkelijke kalendermaanden uit 1996–2015: het **energiejaar** (langjarig gemiddeld, voor jaarverbruik en SCOP) en de ontwerpjaren **T5** en **T1** (5 % en 1 % overschrijdingskans, voor pieken). De officiële uurdata zijn niet vrij beschikbaar.',
-      'Deze tool gebruikt daarom een **reconstructie** uit open KNMI-uurdata van De Bilt: per maand is de werkelijke maand gekozen waarvan het maandgemiddelde overeenkomt met de gepubliceerde maandgemiddelden van NEN 5060:2018 (binnen 0,05 K), met vloeiende overgangen over 16 uur. Het jaar begint op een maandag, in MET zonder zomertijd, zonder 29 februari. Het is geen officiële NEN 5060-data.',
+      'NEN 5060:2018 bevat referentiejaren voor De Bilt die zijn samengesteld uit werkelijke kalendermaanden uit 1996–2015: het **energiejaar** (langjarig gemiddeld, voor jaarverbruik en SCOP) en de ontwerpjaren **T5** en **T1** (5 % en 1 % overschrijdingskans). Ze zijn gemaakt voor temperatuuroverschrijding en koellast; hoe streng hun winter is, is een bijproduct. De officiële uurdata zijn niet vrij beschikbaar.',
+      'Vergeleken met alle 74 stookseizoenen van De Bilt sinds 1951 heeft **T1** een strenge winter: december 2010, januari 1997 en februari 1996, koudste week −7,6 °C, ongeveer plaats 8 van 74. Dat is goed voor piekvragen van 1 tot 3 dagen. **T5** heeft een gemiddelde winter (koudste week −4,2 °C), het energiejaar een zachte (−2,5 °C). Een winter als 1955/56, 1962/63, 1978/79 of 1986/87, met een koudste week van −9 tot −10 °C en vorst die weken aanhoudt, zit niet in 1996–2015. Juist die duur bepaalt het plateau in de gevoeligheidsgrafiek: de warmtepomp moet dagen tot weken het gemiddelde zelf leveren.',
+      'Deze tool gebruikt een **reconstructie** uit open KNMI-uurdata van De Bilt: per maand is de werkelijke maand gekozen waarvan het maandgemiddelde overeenkomt met de gepubliceerde maandgemiddelden van NEN 5060:2018 (binnen 0,05 K), met vloeiende overgangen over 16 uur. Het jaar begint op een maandag, in MET zonder zomertijd, zonder 29 februari, en wordt cyclisch doorgerekend: december loopt door in januari. Het is geen officiële NEN 5060-data.',
       '$$\\overline{T}_{maand,reconstructie} - \\overline{T}_{maand,NEN} \\le 0{,}05\\ \\mathrm{K}$$',
-      'Daarnaast zijn de werkelijke jaren 1991–2025 beschikbaar als stresstest met echt weer (bijvoorbeeld januari 1997, december 2010, februari 2012). De koude week in de grafieken is de week met de hoogste warmtevraag, niet per se de koudste week.',
+      'De twee **stresstestjaren** zijn het T1-jaar met het complete werkelijke stookseizoen (1 november t/m 31 maart) van een strenge winter, zodat het weer in dat seizoen aaneengesloten en echt is. **1978/79**: koudste week −10,2 °C (31 december – 6 januari), T min −16,7 °C, Hellmann-getal 206; in 1951–2025 ongeveer eens per 25 jaar. **1962/63**: Hellmann-getal 346, de strengste winter sinds 1830, twee maanden aaneengesloten vorst; ordegrootte eens per eeuw. Het Hellmann-getal telt de vorst van een stookseizoen op over de daggemiddelden onder 0 °C:',
+      '$$H = \\sum_{d:\\ \\overline{T}_d < 0} \\left| \\overline{T}_d \\right|$$',
+      'De herhalingstijden zijn geteld in 1951–2025. Door de opwarming zijn zulke winters nu zeldzamer, dus in het huidige klimaat is de herhalingstijd eerder langer. Dimensioneer op T1 en controleer met de stresstest 1978/79; 1962/63 laat zien wat een uitzonderlijke winter doet.',
+      'Daarnaast zijn de **werkelijke jaren 1951–2025** beschikbaar als stresstest met echt weer (alleen temperatuur, met de echte weekdagen); ★ markeert de aanbevolen jaren 1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010 en 2012. De koude week in de grafieken is de week met de hoogste warmtevraag, niet per se de koudste week, en mag over de jaargrens lopen.',
     ],
   },
   {
