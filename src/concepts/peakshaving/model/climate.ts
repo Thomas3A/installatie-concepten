@@ -2,13 +2,18 @@
 import { HOURS_PER_YEAR } from './building';
 import type { ClimateYear, ClimateYearId } from './types';
 
-export type ReferenceYearName = 'energie' | 'T5' | 'T1';
-export const REFERENCE_YEARS: readonly ReferenceYearName[] = ['T5', 'T1', 'energie'];
+export type ReferenceYearName = 'energie' | 'T5' | 'T1' | 'winter1979' | 'winter1963';
+/** Volgorde van de keuzelijst: de drie NEN-reconstructies, dan de twee stresstestjaren. */
+export const REFERENCE_YEARS: readonly ReferenceYearName[] = ['T5', 'T1', 'energie', 'winter1979', 'winter1963'];
+/** Stresstestjaren: T1 met het werkelijke stookseizoen nov–mrt van een strenge winter (spec §4.1). */
+export const STRESS_TEST_YEARS: readonly ReferenceYearName[] = ['winter1979', 'winter1963'];
 export const DEFAULT_CLIMATE_YEAR: ReferenceYearName = 'T5';
-export const REAL_YEAR_FIRST = 1991;
+export const REAL_YEAR_FIRST = 1951;
 export const REAL_YEAR_LAST = 2025;
-/** Aanbevolen stresstests met echt weer (spec §4.3). */
-export const RECOMMENDED_STRESS_YEARS: readonly number[] = [1996, 1997, 2010, 2012, 2013, 2018, 2021];
+/** Aanbevolen stresstests met echt weer (spec §4.3; gelijk aan meta.aanbevolen_stresstest). */
+export const RECOMMENDED_STRESS_YEARS: readonly number[] = [
+  1956, 1963, 1979, 1985, 1986, 1987, 1996, 1997, 2010, 2012,
+];
 
 export interface ClimateStats {
   Tgem: number;
@@ -33,9 +38,11 @@ export interface ReferenceYearsJson {
     jaren: Record<
       ReferenceYearName,
       {
+        omschrijving: string;
         bronjaar_per_maand: number[];
         maandgemiddelde_T: number[];
-        maandgemiddelde_T_NEN5060_2018: number[];
+        /** null bij de stresstestjaren: die zijn geen reconstructie van een NEN-jaar */
+        maandgemiddelde_T_NEN5060_2018: number[] | null;
         statistiek: ClimateStats;
       }
     >;
@@ -44,7 +51,12 @@ export interface ReferenceYearsJson {
 }
 
 export interface RealYearsJson {
-  meta: { bron: string; startWeekdag: Record<string, number>; statistiek: Record<string, ClimateStats> };
+  meta: {
+    bron: string;
+    aanbevolen_stresstest: number[];
+    startWeekdag: Record<string, number>;
+    statistiek: Record<string, ClimateStats>;
+  };
   T: Record<string, number[]>;
 }
 
@@ -52,16 +64,24 @@ export const REFERENCE_YEAR_LABELS: Record<ReferenceYearName, string> = {
   T5: 'Ontwerpjaar T5 — gematigd streng (≈ NEN 5060:2018 ref T5)',
   T1: 'Ontwerpjaar T1 — zeer streng (≈ NEN 5060:2018 ref T1)',
   energie: 'Energiejaar — langjarig gemiddeld (≈ NEN 5060:2018 energie)',
+  winter1979: 'Stresstest strenge winter 1978/79 (≈ 1× per 25 jaar)',
+  winter1963: 'Stresstest extreme winter 1962/63 (≈ 1× per eeuw)',
 };
 
 export const REFERENCE_YEAR_SHORT: Record<ReferenceYearName, string> = {
   T5: 'T5',
   T1: 'T1',
   energie: 'energiejaar',
+  winter1979: 'winter 1978/79',
+  winter1963: 'winter 1962/63',
 };
 
 export function isReferenceYear(id: ClimateYearId): id is ReferenceYearName {
-  return id === 'T5' || id === 'T1' || id === 'energie';
+  return (REFERENCE_YEARS as readonly string[]).includes(id);
+}
+
+export function isStressTestYear(id: ClimateYearId): boolean {
+  return (STRESS_TEST_YEARS as readonly string[]).includes(id);
 }
 
 /** Jaartal van een werkelijk jaar ('knmi-1997' → 1997), anders null. */
@@ -80,15 +100,16 @@ export function isValidClimateYearId(id: unknown): id is ClimateYearId {
   return typeof id === 'string' && (isReferenceYear(id) || realYearOf(id) !== null);
 }
 
-/** Korte naam voor tabellen: "T5", "energiejaar", "1997". */
+/** Korte naam voor tabellen: "T5", "energiejaar", "winter 1978/79", "1997". */
 export function climateShortName(id: ClimateYearId): string {
   if (isReferenceYear(id)) return REFERENCE_YEAR_SHORT[id];
   return String(realYearOf(id) ?? id);
 }
 
-/** Naam binnen een zin: "ontwerpjaar T5", "het energiejaar", "1997". */
+/** Naam binnen een zin: "ontwerpjaar T5", "het energiejaar", "de winter 1978/79", "1997". */
 export function climateInSentence(id: ClimateYearId): string {
   if (id === 'energie') return 'het energiejaar';
+  if (isStressTestYear(id)) return `de ${REFERENCE_YEAR_SHORT[id as ReferenceYearName]}`;
   if (isReferenceYear(id)) return `ontwerpjaar ${id}`;
   return String(realYearOf(id) ?? id);
 }
@@ -111,7 +132,7 @@ export function decodeReferenceYear(json: ReferenceYearsJson, name: ReferenceYea
   };
 }
 
-/** Werkelijk jaar uit knmi-debilt-1991-2025.json. */
+/** Werkelijk jaar uit knmi-debilt-1951-2025.json. */
 export function decodeRealYear(json: RealYearsJson, year: number): ClimateYear {
   const key = String(year);
   const T = json.T[key];
@@ -124,14 +145,18 @@ export function decodeRealYear(json: RealYearsJson, year: number): ClimateYear {
   };
 }
 
-/** Laagste lopend gemiddelde over `hours` uur (niet cyclisch) en het startuur. */
+/**
+ * Laagste lopend gemiddelde over `hours` uur en het startuur. Cyclisch, zoals het jaar gesimuleerd wordt: een venster
+ * mag over de jaargrens december → januari lopen (startuur > n − hours).
+ */
 function coldestRunningMean(T: ArrayLike<number>, hours: number): { mean: number; start: number } {
+  const n = T.length;
   let s = 0;
   for (let i = 0; i < hours; i++) s += T[i];
   let best = s;
   let start = 0;
-  for (let i = 1; i + hours <= T.length; i++) {
-    s += T[i + hours - 1] - T[i - 1];
+  for (let i = 1; i < n; i++) {
+    s += T[(i + hours - 1) % n] - T[i - 1];
     if (s < best - 1e-9) {
       best = s;
       start = i;

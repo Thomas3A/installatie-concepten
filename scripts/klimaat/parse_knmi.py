@@ -34,8 +34,14 @@ for path in sorted(glob.glob(os.path.join(raw_dir, "debilt_*.txt"))):
     # eerste uur van het jaar (00-01 MET) komt uit uurvak 24 UT van 31 dec vorig jaar -> ontbreekt; vul met uur 1
     if np.isnan(arr[0]).any():
         arr[0] = arr[1]
-    years[year] = arr
     miss = int(np.isnan(arr).sum())
+    # kleine gaten lineair interpoleren (per kolom)
+    for c in range(4):
+        col = arr[:, c]
+        bad = np.isnan(col)
+        if bad.any() and (~bad).sum() > 2:
+            col[bad] = np.interp(np.flatnonzero(bad), np.flatnonzero(~bad), col[~bad])
+    years[year] = arr
     print(f"{year}: {n} uren, ontbrekend {miss}, Tmin {np.nanmin(arr[:,0]):.1f} Tmean {np.nanmean(arr[:,0]):.2f} Tmax {np.nanmax(arr[:,0]):.1f}")
 
 np.savez_compressed(out, **{str(y): a for y, a in years.items()})

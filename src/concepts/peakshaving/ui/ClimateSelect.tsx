@@ -51,7 +51,7 @@ function selectTitle(id: ClimateYearId): string {
   return stats ? `${statsLine(stats)}. ${CLIMATE_RECONSTRUCTION}` : CLIMATE_RECONSTRUCTION;
 }
 
-/** Alle 38 klimaatjaren: drie referentiejaren en de werkelijke jaren (★ = aanbevolen stresstest), elk met tooltip. */
+/** Alle 80 klimaatjaren: vijf referentiejaren en de werkelijke jaren (★ = aanbevolen stresstest), elk met tooltip. */
 function ClimateOptions() {
   return (
     <>

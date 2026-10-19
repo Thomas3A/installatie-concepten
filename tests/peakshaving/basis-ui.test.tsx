@@ -368,10 +368,10 @@ describe('Meer instellingen', () => {
     expect(summaryText()).toBe('Meer instellingen · 1 aangepast');
   });
 
-  it('klimaat: alle 38 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T5:"', () => {
+  it('klimaat: alle 80 jaren; de statistiekregel beschrijft de keuzelijst en begint met "Klimaatjaar T5:"', () => {
     renderBasis();
     const select = screen.getByLabelText('Klimaatjaar') as HTMLSelectElement;
-    expect(select.options).toHaveLength(38);
+    expect(select.options).toHaveLength(80);
     expect(Array.from(select.options).some((o) => o.textContent?.startsWith('1997 ★'))).toBe(true);
     expect(select.getAttribute('aria-describedby')).toBe('ps-klimaat-statistiek');
     const stats = (): string => document.getElementById('ps-klimaat-statistiek')?.textContent ?? '';

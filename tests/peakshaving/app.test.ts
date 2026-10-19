@@ -4,6 +4,7 @@ import { CONCEPTS } from '../../src/concepts';
 import {
   REAL_YEAR_START_WEEKDAY,
   REAL_YEAR_STATS,
+  REFERENCE_YEAR_DESCRIPTIONS,
   REFERENCE_YEAR_STATS,
 } from '../../src/concepts/peakshaving/data/climateStats';
 import { defaultInput } from '../../src/concepts/peakshaving/data/defaults';
@@ -33,9 +34,13 @@ describe('klimaatstatistiek voor de keuzelijst', () => {
     for (const y of REFERENCE_YEARS) {
       expect(REF_JSON.meta.jaren[y].statistiek).toMatchObject(REFERENCE_YEAR_STATS[y]);
     }
-    for (let y = 1991; y <= 2025; y++) {
+    for (let y = 1951; y <= 2025; y++) {
       expect(REAL_JSON.meta.statistiek[String(y)]).toMatchObject(REAL_YEAR_STATS[y]);
       expect(REAL_JSON.meta.startWeekdag[String(y)]).toBe(REAL_YEAR_START_WEEKDAY[y]);
+    }
+    expect(Object.keys(REAL_YEAR_STATS)).toHaveLength(75);
+    for (const y of REFERENCE_YEARS) {
+      expect(REFERENCE_YEAR_DESCRIPTIONS[y]).toBe(REF_JSON.meta.jaren[y].omschrijving);
     }
   });
 });

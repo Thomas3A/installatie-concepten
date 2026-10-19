@@ -209,6 +209,8 @@ export const CLIMATE_OPTION_LABELS = {
   T5: 'Ontwerpjaar T5 — gematigd streng',
   T1: 'Ontwerpjaar T1 — zeer streng',
   energie: 'Energiejaar — langjarig gemiddeld',
+  winter1979: 'Stresstest strenge winter 1978/79',
+  winter1963: 'Stresstest extreme winter 1962/63',
 } as const;
 
 /** Tabbladen van Verdieping, in deze volgorde; Schema (`concept`) is het standaardtabblad. */
