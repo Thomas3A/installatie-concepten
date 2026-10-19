@@ -1,5 +1,6 @@
-// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5 en T1 (spec §6.3). Ingeklapt in ResultMore, direct
-// onder de oordeelkaart (die de T1-regel toont); op papier open (data-print-open).
+// Robuustheid: dezelfde configuratie (WP vast) in energiejaar, T5, T1 en de stresstestjaren 1978/79 en 1962/63
+// (spec §6.3). Ingeklapt in ResultMore, direct onder de oordeelkaart (met de regel voor de strenge winter); op papier open
+// (data-print-open).
 import { fmt } from '../../../../core/format';
 import { climateShortName } from '../../model/climate';
 import { useStore } from '../../store';

@@ -167,7 +167,7 @@ describe("scenario's (spec §10, orde van grootte volgens §9.6)", () => {
 });
 
 describe('rekenmotor (Web Worker-protocol)', () => {
-  it('analyze: antwoord met hetzelfde id, robuustheid in drie referentiejaren', async () => {
+  it('analyze: antwoord met hetzelfde id, robuustheid in vijf referentiejaren (spec §6.3)', async () => {
     const engine = createEngine();
     const got: EngineResponse[] = [];
     await engine.handle({ type: 'analyze', id: 7, input: defaultInput('residential') }, (m) => got.push(m));
@@ -176,9 +176,22 @@ describe('rekenmotor (Web Worker-protocol)', () => {
     expect(m.type).toBe('analysis');
     if (m.type !== 'analysis') return;
     expect(m.id).toBe(7);
-    expect(m.analysis.robustness.map((r) => r.climateId)).toEqual(['energie', 'T5', 'T1']);
+    expect(m.analysis.robustness.map((r) => r.climateId)).toEqual([
+      'energie',
+      'T5',
+      'T1',
+      'winter1979',
+      'winter1963',
+    ]);
+    expect(m.analysis.robustness.filter((r) => r.selected).map((r) => r.climateId)).toEqual([
+      m.analysis.climateId,
+    ]);
+    // de stresstestjaren zijn strenger: meer uren boven de limiet dan het energiejaar
+    const by = Object.fromEntries(m.analysis.robustness.map((r) => [r.climateId, r]));
+    expect(by.winter1979.exceedanceHours).toBeGreaterThan(by.energie.exceedanceHours);
+    expect(by.winter1963.electricityKwh).toBeGreaterThan(by.T1.electricityKwh);
   });
-  it('een werkelijk jaar wordt lazy geladen en als vierde rij aan de robuustheid toegevoegd', async () => {
+  it('een werkelijk jaar wordt lazy geladen en als zesde rij aan de robuustheid toegevoegd', async () => {
     const engine = createEngine(async () => REAL_JSON);
     const input = { ...defaultInput('residential'), climateYear: 'knmi-1997' };
     const got: EngineResponse[] = [];
@@ -187,7 +200,14 @@ describe('rekenmotor (Web Worker-protocol)', () => {
     if (m.type !== 'analysis') throw new Error(m.type);
     expect(m.analysis.climateId).toBe('knmi-1997');
     expect(m.analysis.startWeekday).toBe(realYear(1997).startWeekday);
-    expect(m.analysis.robustness.map((r) => r.climateId)).toEqual(['energie', 'T5', 'T1', 'knmi-1997']);
+    expect(m.analysis.robustness.map((r) => r.climateId)).toEqual([
+      'energie',
+      'T5',
+      'T1',
+      'winter1979',
+      'winter1963',
+      'knmi-1997',
+    ]);
   });
   it('gevoeligheid: 13 rijen progressief, een nieuwer verzoek breekt het oude af', async () => {
     const engine = createEngine();

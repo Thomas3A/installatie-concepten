@@ -202,6 +202,9 @@ describe('peakshaving-pagina: klimaatjaar en robuustheid', () => {
     ]);
     expect(details.textContent).toMatch(/zonder begrenzer/);
     expect(details.textContent).toMatch(/als de aansluiting begrenst/);
+    // vijf rijen (spec §6.3), het gekozen jaar gemarkeerd
+    const rows = Array.from(details.querySelectorAll('tbody th')).map((th) => th.textContent);
+    expect(rows).toEqual(['energiejaar', 'T5 (gekozen)', 'T1', 'winter 1978/79', 'winter 1962/63']);
   }, 30000);
 });
 

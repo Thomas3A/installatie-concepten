@@ -32,8 +32,14 @@ export type EngineResponse =
 
 export type Emit = (msg: EngineResponse, transfer?: Transferable[]) => void;
 
-/** Volgorde van de robuustheidstabel. */
-const ROBUSTNESS_ORDER: readonly ReferenceYearName[] = ['energie', 'T5', 'T1'];
+/** Volgorde van de robuustheidstabel (spec §6.3): de drie NEN-jaren en de twee stresstestjaren. */
+export const ROBUSTNESS_ORDER: readonly ReferenceYearName[] = [
+  'energie',
+  'T5',
+  'T1',
+  'winter1979',
+  'winter1963',
+];
 
 /** Overdraagbare buffers van een doorrekening (sneller dan kopiëren). */
 export function transferablesOf(a: Analysis): Transferable[] {

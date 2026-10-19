@@ -227,7 +227,7 @@ function argmax(a: ArrayLike<number>): number {
 }
 
 export interface AnalyzeOptions {
-  /** de drie referentiejaren (en eventueel het gekozen werkelijke jaar) voor de robuustheidstabel */
+  /** de vijf referentiejaren (en eventueel het gekozen werkelijke jaar) voor de robuustheidstabel */
   robustnessYears?: ClimateYear[];
 }
 
